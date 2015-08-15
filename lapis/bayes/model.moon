@@ -1,8 +1,9 @@
 
 prefix = "lapis_bayes_"
 
+import Model from require "lapis.db.model"
+
 {
-  Model: require("lapis.db.model")\scoped_model prefix, "lapis.bayes.models"
-  prefix_table: (name) =>
-    "#{prefix}#{name}"
+  Model: Model\scoped_model prefix, "lapis.bayes.models"
+  prefix_table: (name) -> "#{prefix}#{name}"
 }

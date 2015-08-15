@@ -14,6 +14,8 @@ import prefix_table from require "lapis.bayes.model"
   [1439610038]: =>
     create_table prefix_table("categories"), {
       {"id", serial}
+      {"name", text}
+
       {"created_at", time}
       {"updated_at", time}
 
@@ -22,6 +24,11 @@ import prefix_table from require "lapis.bayes.model"
 
     create_table prefix_table("word_classifications"), {
       {"category_id", foreign_key}
+      {"word", text}
+      {"match_count", integer}
+      {"total_count", integer}
+
+      "PRIMARY KEY (category_id, word)"
     }
 
 }
