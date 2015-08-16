@@ -5,9 +5,15 @@ tokenize_text = (text) ->
   vector = res.to_tsvector
   [t for t in vector\gmatch "'(.-)'"]
 
-check_text = (text, classifications) ->
 
+check_text = (text, categories) ->
 
-classify_text = (text, classification) ->
+classify_text = (text, category) ->
+  import Categories from require "lapis.bayes.models"
+  category = Categories\find_or_create category
+
+  for word in *tokenize_text text
+    nil
+
 
 {:check_text, :classify_text, :tokenize_text}

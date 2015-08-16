@@ -4,7 +4,7 @@ import truncate_tables from require "lapis.spec.db"
 
 db = require "lapis.db"
 
-import Categories, WordClassifications from require "moonscrape.models"
+import Categories, WordClassifications from require "lapis.bayes.models"
 
 describe "lapis.bayes", ->
   use_test_env!
@@ -20,4 +20,12 @@ describe "lapis.bayes", ->
 
     it "gets tokens with stems and no stop words", ->
       assert.same {"burger", "eat"}, tokenize_text "i am eating burgers"
+
+
+  describe "Categories", ->
+    before_each ->
+      truncate_tables Categories, WordClassifications
+
+    it "creates category", ->
+      Categories\find_or_create "hello"
 
