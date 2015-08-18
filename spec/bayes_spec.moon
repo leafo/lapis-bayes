@@ -172,10 +172,12 @@ describe "lapis.bayes", ->
       spam: {
         [[prom rolex watches for cheap sale]]
         [[older replica outlet sale]]
+        [[dresses]]
       }
       ham: {
         [[i love games and rember these as being good]]
         [[this collection is great text adventures and experimental stuff]]
+        [[games]]
       }
     }
       for text in *texts
