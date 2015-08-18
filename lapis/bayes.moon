@@ -6,9 +6,7 @@ tokenize_text = (text) ->
     select unnest(lexemes) as word
     from ts_debug('english', ?);
   ]], text
-  tokens = {}
   [r.word for r in *res]
-
 
 text_probabilities = (text, categories, opts={}) ->
   num_categories = #categories
@@ -64,8 +62,8 @@ text_probabilities = (text, categories, opts={}) ->
 
   tuples, #available_words / #words
 
-classify_text = (text, categories) ->
-  counts, word_rate_or_err = text_probabilities
+classify_text = (text, categories, ...) ->
+  counts, word_rate_or_err = text_probabilities text, categories, ...
   unless counts
     return nil, word_rate_or_err
 
