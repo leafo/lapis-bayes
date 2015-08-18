@@ -54,14 +54,14 @@ describe "lapis.bayes", ->
     it "gets tokens keeping dupes", ->
       assert.same {"burger", "burger"}, tokenize_text "burgers are burgers"
 
-  describe "classify_text", ->
-    import classify_text from require "lapis.bayes"
+  describe "train_text", ->
+    import train_text from require "lapis.bayes"
 
     before_each ->
       truncate_tables Categories, WordClassifications
 
     it "classifies a single string", ->
-      classify_text "hello this is spam, I love spam", "spam"
+      train_text "hello this is spam, I love spam", "spam"
       assert.same 1, Categories\count!
       c = unpack Categories\select!
       assert.same "spam", c.name
@@ -78,13 +78,13 @@ describe "lapis.bayes", ->
 
 
     it "classifies multiple strings", ->
-      classify_text "hello this is spam, I love spam", "spam"
-      classify_text "there is ham here", "ham"
-      classify_text "eating spamming the regular stuff", "spam"
-      classify_text "pigs create too much jam", "ham"
+      train_text "hello this is spam, I love spam", "spam"
+      train_text "there is ham here", "ham"
+      train_text "eating spamming the regular stuff", "spam"
+      train_text "pigs create too much jam", "ham"
 
   describe "text_probabilities", ->
-    import text_probabilities, classify_text from require "lapis.bayes"
+    import text_probabilities from require "lapis.bayes"
 
     before_each ->
       truncate_tables Categories, WordClassifications

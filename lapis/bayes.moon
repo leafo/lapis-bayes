@@ -69,10 +69,10 @@ check_text = (text, categories) ->
   unless counts
     return nil, word_rate_or_err
 
-  counts[1][1]
+  counts[1][1], word_rate_or_err
 
-classify_text = (text, category) ->
+train_text = (text, category) ->
   category = Categories\find_or_create category
   category\increment_text text
 
-{:check_text, :classify_text, :tokenize_text, :text_probabilities}
+{:check_text, :train_text, :tokenize_text, :text_probabilities}
