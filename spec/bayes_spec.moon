@@ -49,8 +49,10 @@ describe "lapis.bayes", ->
       assert.same {"hello", "world"}, tokenize_text "hello world"
 
     it "gets tokens with stems and no stop words", ->
-      assert.same {"burger", "eat"}, tokenize_text "i am eating burgers"
+      assert.same {"eat", "burger"}, tokenize_text "i am eating burgers"
 
+    it "gets tokens keeping dupes", ->
+      assert.same {"burger", "burger"}, tokenize_text "burgers are burgers"
 
   describe "classify_text", ->
     import classify_text from require "lapis.bayes"
@@ -71,7 +73,7 @@ describe "lapis.bayes", ->
       assert.same {
         { category_id: c.id, count: 1, word: "hello" }
         { category_id: c.id, count: 1, word: "love" }
-        { category_id: c.id, count: 1, word: "spam" }
+        { category_id: c.id, count: 2, word: "spam" }
       }, words
 
 

@@ -1,10 +1,12 @@
 db = require "lapis.db"
 
--- TODO: this stips repeated words
 tokenize_text = (text) ->
-  res = unpack db.query "select to_tsvector('english', ?)", text
-  vector = res.to_tsvector
-  [t for t in vector\gmatch "'(.-)'"]
+  res = db.query [[
+    select unnest(lexemes) as word
+    from ts_debug('english', ?);
+  ]], text
+  tokens = {}
+  [r.word for r in *res]
 
 check_text = (text, categories) ->
 
