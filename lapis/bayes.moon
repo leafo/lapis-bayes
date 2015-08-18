@@ -67,7 +67,7 @@ classify_text = (text, categories, ...) ->
   unless counts
     return nil, word_rate_or_err
 
-  counts[1][1], word_rate_or_err
+  counts[1][1], counts[1][2], word_rate_or_err
 
 train_text = (text, category) ->
   category = Categories\find_or_create category
