@@ -83,3 +83,33 @@ describe "lapis.bayes", ->
       classify_text "eating spamming the regular stuff", "spam"
       classify_text "pigs create too much jam", "ham"
 
+  describe "text_probabilities", ->
+    import text_probabilities, classify_text from require "lapis.bayes"
+
+    before_each ->
+      truncate_tables Categories, WordClassifications
+
+    it "works when there is no data", ->
+      spam = Categories\create name: "spam"
+      ham = Categories\create name: "ham"
+
+      assert.same {
+        nil, "no words in text are classifyable"
+      }, {
+        text_probabilities "hello world", {"spam", "ham"}
+      }
+
+    it "works when there is some data", ->
+      spam = Categories\create name: "spam"
+      spam\increment_text "hello world"
+
+      ham = Categories\create name: "ham"
+      ham\increment_text "butt world"
+
+      probs, rate = text_probabilities "butt zone", {"spam", "ham"}
+      assert.same 0.5, rate
+      assert.same {
+        {"ham", 0.25}
+        {"spam", 0}
+      }, probs
+

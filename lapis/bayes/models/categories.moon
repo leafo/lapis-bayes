@@ -37,7 +37,6 @@ class Categories extends Model
     w\increment count
     @increment count
 
-
   increment_words: (counts) =>
     words = [{:word, :count} for word, count in pairs counts]
     import WordClassifications from require "lapis.bayes.models"
@@ -50,6 +49,7 @@ class Categories extends Model
       }
     }
 
+    total_count = 0
     for word in *words
       word.word_classification or= WordClassifications\create {
         word: word.word
@@ -57,8 +57,8 @@ class Categories extends Model
       }
 
       word.word_classification\increment word.count
+      total_count += word.count
 
+    @increment total_count
     words
-
-
 
