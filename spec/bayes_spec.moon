@@ -109,7 +109,7 @@ describe "lapis.bayes", ->
       probs, rate = text_probabilities "butt zone", {"spam", "ham"}
       assert.same 0.5, rate
       assert.same {
-        {"ham", 0.25}
-        {"spam", 0}
+        {"ham", math.log 0.25}
+        {"spam", math.log 0}
       }, probs
 

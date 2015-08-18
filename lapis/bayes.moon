@@ -44,11 +44,11 @@ text_probabilities = (text, categories) ->
     sum_counts += c.total_count
 
   tuples = for c in *categories
-    p = c.total_count / sum_counts
+    p = math.log c.total_count / sum_counts
     word_counts = by_category_by_words[c.id]
     for w in *available_words
       count = word_counts and word_counts[w] or 0
-      p = p * count / c.total_count
+      p +=  math.log count / c.total_count
 
     {c.name, p}
 
