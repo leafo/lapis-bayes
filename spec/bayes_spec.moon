@@ -113,8 +113,8 @@ describe "lapis.bayes", ->
         p[2] = math.floor p[2] * 100 + 0.5
 
       assert.same {
-        {"ham", 28}
-        {"spam", 3}
+        {"ham", -134}
+        {"spam", -438}
       }, probs
 
   describe "classify_text #ddd", ->

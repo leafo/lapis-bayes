@@ -49,11 +49,14 @@ text_probabilities = (text, categories, opts={}) ->
     for w in *available_words
       -- total times word has appeared in this category
       count = word_counts and word_counts[w] or 0
-      -- multiply by probability that this word has appeared in this cateogry
-      p += math.log count / c.total_count
+      real_prob = count / c.total_count
 
+      -- give a little extra to everything to prevent words that aren't in
+      -- category from prevening a match
+      adjusted_prob = (assumed_prob + sum_counts * real_prob) / sum_counts
 
-    p = (assumed_prob + sum_counts * math.exp(p)) / sum_counts
+      -- accumulate the probability
+      p += math.log adjusted_prob
 
     {c.name, p}
 
