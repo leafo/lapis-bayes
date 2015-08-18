@@ -108,8 +108,12 @@ describe "lapis.bayes", ->
 
       probs, rate = text_probabilities "butt zone", {"spam", "ham"}
       assert.same 0.5, rate
+      -- normalize rpobs for easy specing
+      for p in *probs
+        p[2] = math.floor p[2] * 100 + 0.5
+
       assert.same {
-        {"ham", math.log 0.25}
-        {"spam", math.log 0}
+        {"ham", 28}
+        {"spam", 3}
       }, probs
 

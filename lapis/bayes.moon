@@ -10,8 +10,9 @@ tokenize_text = (text) ->
   [r.word for r in *res]
 
 
-text_probabilities = (text, categories) ->
+text_probabilities = (text, categories, opts={}) ->
   num_categories = #categories
+  assumed_prob = opts.assumed_prob or 0.1
 
   categories = Categories\find_all categories, "name"
   assert num_categories == #categories,
@@ -46,9 +47,15 @@ text_probabilities = (text, categories) ->
   tuples = for c in *categories
     p = math.log c.total_count / sum_counts
     word_counts = by_category_by_words[c.id]
+
     for w in *available_words
+      -- total times word has appeared in this category
       count = word_counts and word_counts[w] or 0
-      p +=  math.log count / c.total_count
+      -- multiply by probability that this word has appeared in this cateogry
+      p += math.log count / c.total_count
+
+
+    p = (assumed_prob + sum_counts * math.exp(p)) / sum_counts
 
     {c.name, p}
 
