@@ -64,7 +64,7 @@ text_probabilities = (text, categories, opts={}) ->
 
   tuples, #available_words / #words
 
-check_text = (text, categories) ->
+classify_text = (text, categories) ->
   counts, word_rate_or_err = text_probabilities
   unless counts
     return nil, word_rate_or_err
@@ -75,4 +75,4 @@ train_text = (text, category) ->
   category = Categories\find_or_create category
   category\increment_text text
 
-{:check_text, :train_text, :tokenize_text, :text_probabilities}
+{:classify_text, :train_text, :tokenize_text, :text_probabilities}
