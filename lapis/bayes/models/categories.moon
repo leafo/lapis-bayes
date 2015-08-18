@@ -14,6 +14,20 @@ class Categories extends Model
       total_count: db.raw "total_count + #{amount}"
     }
 
+  increment_text: (text) =>
+    import tokenize_text from require "lapis.bayes"
+
+    words_by_counts = {}
+    total_words = 0
+
+    for word in *tokenize_text text
+      words_by_counts[word] or= 0
+      words_by_counts[word] += 1
+      total_words += 1
+
+    @increment_words words_by_counts
+    total_words
+
   increment_word: (word, count) =>
     import WordClassifications from require "lapis.bayes.models"
     w = WordClassifications\find_or_create {
