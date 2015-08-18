@@ -18,6 +18,27 @@ describe "lapis.bayes", ->
       c2 = Categories\find_or_create "hello"
       assert.same c.id, c2.id
 
+    it "increments words", ->
+      c = Categories\find_or_create "hello"
+
+      WordClassifications\create {
+        word: "color"
+        category_id: c.id
+        count: 2
+      }
+
+      c\increment_words {
+        color: 55
+        height: 12
+        green: 8
+      }
+
+      wc_by_name = {wc.word, wc for wc in *WordClassifications\select!}
+
+      assert.same 57, wc_by_name.color.count
+      assert.same 12, wc_by_name.height.count
+      assert.same 8, wc_by_name.green.count
+
   describe "tokenize_text", ->
     import tokenize_text from require "lapis.bayes"
 
@@ -31,13 +52,13 @@ describe "lapis.bayes", ->
       assert.same {"burger", "eat"}, tokenize_text "i am eating burgers"
 
 
-  describe "classify_text #ddd", ->
+  describe "classify_text", ->
     import classify_text from require "lapis.bayes"
 
     before_each ->
       truncate_tables Categories, WordClassifications
 
-    it "classifies", ->
+    it "classifies a single string", ->
       classify_text "hello this is spam, I love spam", "spam"
       assert.same 1, Categories\count!
       c = unpack Categories\select!
@@ -54,4 +75,9 @@ describe "lapis.bayes", ->
       }, words
 
 
+    it "classifies multiple strings", ->
+      classify_text "hello this is spam, I love spam", "spam"
+      classify_text "there is ham here", "ham"
+      classify_text "eating spamming the regular stuff", "spam"
+      classify_text "pigs create too much jam", "ham"
 

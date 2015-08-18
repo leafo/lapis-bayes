@@ -5,8 +5,7 @@ import Model from require "lapis.bayes.model"
 class WordClassifications extends Model
   @primary_key: {"category_id", "word"}
 
-  @find_or_create: (category_id, word) =>
-    opts = { :category_id, :word }
+  @find_or_create: (opts={}) =>
     @find(opts) or @create(opts)
 
   increment: (amount) =>

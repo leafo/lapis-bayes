@@ -20,9 +20,7 @@ classify_text = (text, category) ->
     words_by_counts[word] += 1
     total_words += 1
 
-  for word, count in pairs words_by_counts
-    category\increment_word word, count
-
+  category\increment_words words_by_counts
   total_words
 
 {:check_text, :classify_text, :tokenize_text}
