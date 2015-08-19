@@ -10,6 +10,12 @@ It's built on top of [Lapis](http://leafo.net/lapis), but can be used as a
 standalone library as well. It requires PostgreSQL to store and parse training
 data.
 
+## Install
+
+```bash
+$ luarocks install --server=http://luarocks.org/dev lapis-bayes
+```
+
 ## Quick start
 
 Create a new migration that look like this: 
