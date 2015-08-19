@@ -1,3 +1,4 @@
 config.lua
 lint_config.lua
 migrations.lua
+*.rock
