@@ -8,7 +8,7 @@ tokenize_text = (text) ->
   ]], text
   [r.word for r in *res]
 
-text_probabilities = (text, categories, opts={}) ->
+text_probabilities = (categories, text, opts={}) ->
   num_categories = #categories
   assumed_prob = opts.assumed_prob or 0.1
 
@@ -65,14 +65,14 @@ text_probabilities = (text, categories, opts={}) ->
 
   tuples, #available_words / #words
 
-classify_text = (text, categories, ...) ->
-  counts, word_rate_or_err = text_probabilities text, categories, ...
+classify_text = (categories, text, ...) ->
+  counts, word_rate_or_err = text_probabilities categories, text, ...
   unless counts
     return nil, word_rate_or_err
 
   counts[1][1], counts[1][2], word_rate_or_err
 
-train_text = (text, category) ->
+train_text = (category, text) ->
   category = Categories\find_or_create category
   category\increment_text text
 

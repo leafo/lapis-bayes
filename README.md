@@ -34,22 +34,20 @@ Train the classifier:
 ```lua
 local bayes = require("lapis.bayes")
 
-bayes.train_text("Cheap Prom Dresses 2014 - Buy discount Prom Dress", "spam")
-bayes.train_text("Older Models Rolex Watches - View Large Selection of Rolex", "spam")
-bayes.train_text("Hourglass Underwire - $125.00 : Professional swimwear", "spam")
+bayes.train_text("spam", "Cheap Prom Dresses 2014 - Buy discount Prom Dress")
+bayes.train_text("spam", "Older Models Rolex Watches - View Large Selection of Rolex")
+bayes.train_text("spam", "Hourglass Underwire - $125.00 : Professional swimwear")
 
-
-bayes.train_text("Games I've downloaded so I remember them and stuff", "ham")
-bayes.train_text("Secret Tunnel's Collection of Rad Games That I Dig", "ham")
-bayes.train_text("Things I need to pay for when I get my credit card back", "ham")
+bayes.train_text("ham", "Games I've downloaded so I remember them and stuff")
+bayes.train_text("ham", "Secret Tunnel's Collection of Rad Games That I Dig")
+bayes.train_text("ham", "Things I need to pay for when I get my credit card back")
 ```
 
 Classify text:
 
-
 ```lua
-assert("ham" == bayes.classify_text("Games to download", {"spam", "ham"}))
-assert("spam" == bayes.classify_text("discount rolex watch", {"spam", "ham"}))
+assert("ham" == bayes.classify_text({"spam", "ham"}, "Games to download")
+assert("spam" == bayes.classify_text({"spam", "ham"}, "discount rolex watch")
 ```
 
 ## Running outside of Lapis
@@ -74,9 +72,9 @@ config("development", {
 })
 ```
 
-In the example above is the minimum required to allow `lapis-bayes` to connect
-to a PostgreSQL database. You're responsible for creating the actual database
-if it doesn't already exist.
+The example above provides the minimum required for `lapis-bayes` to connect to
+a PostgreSQL database. You're responsible for creating the actual database if
+it doesn't already exist.
 
 For PostgreSQL you might run the command:
 

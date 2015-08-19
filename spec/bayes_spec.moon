@@ -61,7 +61,7 @@ describe "lapis.bayes", ->
       truncate_tables Categories, WordClassifications
 
     it "classifies a single string", ->
-      train_text "hello this is spam, I love spam", "spam"
+      train_text "spam", "hello this is spam, I love spam"
       assert.same 1, Categories\count!
       c = unpack Categories\select!
       assert.same "spam", c.name
@@ -78,10 +78,10 @@ describe "lapis.bayes", ->
 
 
     it "classifies multiple strings", ->
-      train_text "hello this is spam, I love spam", "spam"
-      train_text "there is ham here", "ham"
-      train_text "eating spamming the regular stuff", "spam"
-      train_text "pigs create too much jam", "ham"
+      train_text "spam", "hello this is spam, I love spam"
+      train_text "ham", "there is ham here"
+      train_text "spam", "eating spamming the regular stuff"
+      train_text "ham","pigs create too much jam"
 
   describe "text_probabilities", ->
     import text_probabilities from require "lapis.bayes"
@@ -96,7 +96,7 @@ describe "lapis.bayes", ->
       assert.same {
         nil, "no words in text are classifyable"
       }, {
-        text_probabilities "hello world", {"spam", "ham"}
+        text_probabilities {"spam", "ham"}, "hello world"
       }
 
     it "works when there is some data", ->
@@ -106,9 +106,9 @@ describe "lapis.bayes", ->
       ham = Categories\create name: "ham"
       ham\increment_text "butt world"
 
-      probs, rate = text_probabilities "butt zone", {"spam", "ham"}
+      probs, rate = text_probabilities {"spam", "ham"}, "butt zone"
       assert.same 0.5, rate
-      -- normalize rpobs for easy specing
+      -- normalize probs for easy specs
       for p in *probs
         p[2] = math.floor p[2] * 100 + 0.5
 
@@ -165,7 +165,7 @@ describe "lapis.bayes", ->
         {"ham", [[Point 'n Click/"Walking Sims"/Stories/Exploration]] }
         {"ham", [[Shubshub's List of Cool Games that Shubshub Likes]] }
       }
-        train_text text, c
+        train_text c, text
 
 
     for classification, texts in pairs {
@@ -184,7 +184,7 @@ describe "lapis.bayes", ->
         categories = {"spam", "ham"}
 
         it "classifies '#{text}' as '#{classification}'", ->
-          got = classify_text text, categories
+          got = classify_text categories, text
           unless got == classification
             tokens = tokenize_text text
             error {
@@ -192,6 +192,6 @@ describe "lapis.bayes", ->
               categories: Categories\find_all categories, "name"
               words: WordClassifications\find_all tokens, "word"
               tokens: tokens
-              probs: text_probabilities text, {"spam", "ham"}
+              probs: text_probabilities {"spam", "ham"}, text
             }
 
