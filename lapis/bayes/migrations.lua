@@ -1,4 +1,3 @@
-local db = require("lapis.db")
 local schema = require("lapis.db.schema")
 local add_column, create_index, drop_index, drop_column, create_table
 add_column, create_index, drop_index, drop_column, create_table = schema.add_column, schema.create_index, schema.drop_index, schema.drop_column, schema.create_table

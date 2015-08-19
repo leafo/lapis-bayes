@@ -2,8 +2,6 @@
 import use_test_env from require "lapis.spec"
 import truncate_tables from require "lapis.spec.db"
 
-db = require "lapis.db"
-
 import Categories, WordClassifications from require "lapis.bayes.models"
 
 describe "lapis.bayes", ->
@@ -90,8 +88,8 @@ describe "lapis.bayes", ->
       truncate_tables Categories, WordClassifications
 
     it "works when there is no data", ->
-      spam = Categories\create name: "spam"
-      ham = Categories\create name: "ham"
+      Categories\create name: "spam"
+      Categories\create name: "ham"
 
       assert.same {
         nil, "no words in text are classifyable"
