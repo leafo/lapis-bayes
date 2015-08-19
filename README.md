@@ -78,12 +78,19 @@ Attempts to classify text. If none of the words in `text` are available in any
 of the listed categories then `nil` and an error message are returned.
 
 Returns the name of the category that best matches, along with a probability
-score in the natrual log (`math.log`). The closer to 0 this is, the better the
+score in natrual log (`math.log`). The closer to 0 this is, the better the
 match.
 
 The input text is normalized using the same tokenizer as the trainer: stop
 words are removed and stems are used. Only words that are available in at least
 one category are used for the classification.
+
+## Schema
+
+`lapis-bayes` creates two tables:
+
+* `lapis_bayes_categories`
+* `lapis_bayes_word_classifications`
 
 ## Running outside of Lapis
 
