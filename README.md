@@ -7,8 +7,8 @@ Lua. It can be used to classify text into any category that has been trained
 for ahead of time.
 
 It's built on top of [Lapis](http://leafo.net/lapis), but can be used as a
-standalone library as well. It persists training data into any database
-supported by Lapis.
+standalone library as well. It requires PostgreSQL to store and parse training
+data.
 
 ## Quick start
 
@@ -46,9 +46,44 @@ bayes.train_text("ham", "Things I need to pay for when I get my credit card back
 Classify text:
 
 ```lua
-assert("ham" == bayes.classify_text({"spam", "ham"}, "Games to download")
-assert("spam" == bayes.classify_text({"spam", "ham"}, "discount rolex watch")
+assert("ham" == bayes.classify_text({"spam", "ham"}, "Games to download"))
+assert("spam" == bayes.classify_text({"spam", "ham"}, "discount rolex watch"))
 ```
+
+## Reference
+
+#### `num_words = bayes.train_text(category, text)`
+
+```lua
+local bayes = require("lapis.bayes")
+bayes.train_text("spam", "Cheap Prom Dresses 2014 - Buy discount Prom Dress")
+```
+
+Inserts the tokenized words from `text` into the database associated with the
+category named `category`. Categories don't need to be created ahead of time,
+use any name you'd like. Later when classifying text you'll list all the
+eligible categories.
+
+The tokenizer will normalize words and remove stop words before inserting into
+the database. The number of words kept from the original text is returned.
+
+#### `category, score = bayes.classify_text({category1, category2, ...}, text)`
+
+```lua
+local bayes = require("lapis.bayes")
+print bayes.classify_text({"spam", "ham"}, "Games to download")
+```
+
+Attempts to classify text. If none of the words in `text` are available in any
+of the listed categories then `nil` and an error message are returned.
+
+Returns the name of the category that best matches, along with a probability
+score in the natrual log (`math.log`). The closer to 0 this is, the better the
+match.
+
+The input text is normalized using the same tokenizer as the trainer: stop
+words are removed and stems are used. Only words that are available in at least
+one category are used for the classification.
 
 ## Running outside of Lapis
 
