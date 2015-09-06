@@ -122,9 +122,9 @@ classify_text = function(categories, text, ...)
   return counts[1][1], counts[1][2], word_rate_or_err
 end
 local train_text
-train_text = function(category, text)
+train_text = function(category, text, opts)
   category = Categories:find_or_create(category)
-  return category:increment_text(text)
+  return category:increment_text(text, opts)
 end
 return {
   classify_text = classify_text,

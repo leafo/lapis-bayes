@@ -72,8 +72,8 @@ classify_text = (categories, text, ...) ->
 
   counts[1][1], counts[1][2], word_rate_or_err
 
-train_text = (category, text) ->
+train_text = (category, text, opts) ->
   category = Categories\find_or_create category
-  category\increment_text text
+  category\increment_text text, opts
 
 {:classify_text, :train_text, :tokenize_text, :text_probabilities}

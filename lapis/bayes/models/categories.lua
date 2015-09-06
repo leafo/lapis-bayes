@@ -15,9 +15,21 @@ do
         total_count = db.raw("total_count + " .. tostring(amount))
       })
     end,
-    increment_text = function(self, text)
+    increment_text = function(self, text, opts)
+      if opts == nil then
+        opts = { }
+      end
       local tokenize_text
       tokenize_text = require("lapis.bayes").tokenize_text
+      if not (opts.strip_tags == false) then
+        local extract_text
+        extract_text = require("web_sanitize").extract_text
+        text = extract_text(text)
+        if text:match("^%s*$") then
+          return 0
+        end
+      end
+      print(text)
       local words_by_counts = { }
       local total_words = 0
       local tokens = tokenize_text(text)

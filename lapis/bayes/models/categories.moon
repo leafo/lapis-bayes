@@ -19,8 +19,13 @@ class Categories extends Model
       total_count: db.raw "total_count + #{amount}"
     }
 
-  increment_text: (text) =>
+  increment_text: (text, opts={}) =>
     import tokenize_text from require "lapis.bayes"
+
+    if opts.strip_tags
+      import extract_text from require "web_sanitize"
+      text = extract_text text
+      return 0 if text\match "^%s*$"
 
     words_by_counts = {}
     total_words = 0
