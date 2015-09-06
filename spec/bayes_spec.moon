@@ -58,7 +58,7 @@ describe "lapis.bayes", ->
     before_each ->
       truncate_tables Categories, WordClassifications
 
-    it "classifies a single string", ->
+    it "classifies a single string #ddd", ->
       train_text "spam", "hello this is spam, I love spam"
       assert.same 1, Categories\count!
       c = unpack Categories\select!
@@ -115,7 +115,7 @@ describe "lapis.bayes", ->
         {"spam", -438}
       }, probs
 
-  describe "classify_text #ddd", ->
+  describe "classify_text", ->
     import train_text, classify_text, text_probabilities, tokenize_text from require "lapis.bayes"
 
     setup ->

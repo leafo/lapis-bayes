@@ -1,8 +1,12 @@
 local db = require("lapis.db")
-local Model
-Model = require("lapis.bayes.model").Model
+local Model, encode_tuples
+do
+  local _obj_0 = require("lapis.bayes.model")
+  Model, encode_tuples = _obj_0.Model, _obj_0.encode_tuples
+end
 local Categories
 do
+  local category_cache
   local _parent_0 = Model
   local _base_0 = {
     increment = function(self, amount)
@@ -40,38 +44,42 @@ do
       return self:increment(count)
     end,
     increment_words = function(self, counts)
-      local words
+      local WordClassifications
+      WordClassifications = require("lapis.bayes.models").WordClassifications
+      local category_words
+      do
+        local _accum_0 = { }
+        local _len_0 = 1
+        for word in pairs(counts) do
+          _accum_0[_len_0] = {
+            self.id,
+            word
+          }
+          _len_0 = _len_0 + 1
+        end
+        category_words = _accum_0
+      end
+      category_words = encode_tuples(category_words)
+      local tbl = db.escape_identifier(WordClassifications:table_name())
+      db.query("\n      insert into " .. tostring(tbl) .. "\n      (category_id, word)\n      (\n        select * from (" .. tostring(category_words) .. ") foo(category_id, word)\n          where not exists(select 1 from " .. tostring(tbl) .. " as bar\n            where bar.word = foo.word and bar.category_id = foo.category_id)\n      )\n    ")
+      local total_count = 0
       do
         local _accum_0 = { }
         local _len_0 = 1
         for word, count in pairs(counts) do
-          _accum_0[_len_0] = {
-            word = word,
-            count = count
+          total_count = total_count + count
+          local _value_0 = {
+            self.id,
+            word,
+            count
           }
+          _accum_0[_len_0] = _value_0
           _len_0 = _len_0 + 1
         end
-        words = _accum_0
+        counts = _accum_0
       end
-      local WordClassifications
-      WordClassifications = require("lapis.bayes.models").WordClassifications
-      WordClassifications:include_in(words, "word", {
-        flip = true,
-        local_key = "word",
-        where = {
-          category_id = self.id
-        }
-      })
-      local total_count = 0
-      for _index_0 = 1, #words do
-        local word = words[_index_0]
-        word.word_classification = word.word_classification or WordClassifications:create({
-          word = word.word,
-          category_id = self.id
-        })
-        word.word_classification:increment(word.count)
-        total_count = total_count + word.count
-      end
+      counts = encode_tuples(counts)
+      db.query("\n      update " .. tostring(tbl) .. "\n      set count = " .. tostring(tbl) .. ".count + foo.count\n      from (" .. tostring(counts) .. ") foo(category_id, word, count)\n      where foo.category_id = " .. tostring(tbl) .. ".category_id and foo.word = " .. tostring(tbl) .. ".word\n    ")
       self:increment(total_count)
       return words
     end
@@ -103,7 +111,16 @@ do
   _base_0.__class = _class_0
   local self = _class_0
   self.timestamp = true
+  category_cache = setmetatable({ }, {
+    mode = "v"
+  })
   self.find_or_create = function(self, name)
+    do
+      local cached = category_cache[name]
+      if cached then
+        return cached
+      end
+    end
     return self:find({
       name = name
     }) or self:create({

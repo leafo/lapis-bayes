@@ -1,11 +1,16 @@
 
 db = require "lapis.db"
-import Model from require "lapis.bayes.model"
+import Model, encode_tuples from require "lapis.bayes.model"
 
 class Categories extends Model
   @timestamp: true
 
+  category_cache = setmetatable {}, mode: "v"
+
   @find_or_create: (name) =>
+    if cached = category_cache[name]
+      return cached
+
     @find(:name) or @create(:name)
 
   increment: (amount) =>
@@ -41,26 +46,38 @@ class Categories extends Model
     @increment count
 
   increment_words: (counts) =>
-    words = [{:word, :count} for word, count in pairs counts]
     import WordClassifications from require "lapis.bayes.models"
 
-    WordClassifications\include_in words, "word", {
-      flip: true
-      local_key: "word"
-      where: {
-        category_id: @id
-      }
-    }
+    category_words = [{@id, word} for word in pairs counts]
+    category_words = encode_tuples category_words
 
+    tbl = db.escape_identifier WordClassifications\table_name!
+
+    -- insert
+    db.query "
+      insert into #{tbl}
+      (category_id, word)
+      (
+        select * from (#{category_words}) foo(category_id, word)
+          where not exists(select 1 from #{tbl} as bar
+            where bar.word = foo.word and bar.category_id = foo.category_id)
+      )
+    "
+
+    -- increment
     total_count = 0
-    for word in *words
-      word.word_classification or= WordClassifications\create {
-        word: word.word
-        category_id: @id
-      }
+    counts =  for word, count in pairs counts
+      total_count += count
+      {@id, word, count}
 
-      word.word_classification\increment word.count
-      total_count += word.count
+    counts = encode_tuples counts
+
+    db.query "
+      update #{tbl}
+      set count = #{tbl}.count + foo.count
+      from (#{counts}) foo(category_id, word, count)
+      where foo.category_id = #{tbl}.category_id and foo.word = #{tbl}.word
+    "
 
     @increment total_count
     words
