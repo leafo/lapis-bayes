@@ -21,7 +21,7 @@ do
       end
       local tokenize_text
       tokenize_text = require("lapis.bayes").tokenize_text
-      if not (opts.strip_tags == false) then
+      if opts.strip_tags then
         local extract_text
         extract_text = require("web_sanitize").extract_text
         text = extract_text(text)
@@ -29,7 +29,6 @@ do
           return 0
         end
       end
-      print(text)
       local words_by_counts = { }
       local total_words = 0
       local tokens = tokenize_text(text)
