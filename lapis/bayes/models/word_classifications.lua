@@ -78,6 +78,39 @@ do
     end
     return self:find(opts) or self:create(opts)
   end
+  self.purge_word = function(self, word, categories)
+    local Categories
+    Categories = require("lapis.bayes.models").Categories
+    if not (type(categories) == "table") then
+      categories = {
+        categories
+      }
+    end
+    local original_count = #categories
+    assert(original_count > 0, "missing categories")
+    categories = Categories:find_all(categories, {
+      key = "name"
+    })
+    assert(#categories == original_count, "failed to find all categories specified")
+    local wcs = self:select("where word = ? and category_id in ?", word, db.list((function()
+      local _accum_0 = { }
+      local _len_0 = 1
+      for _index_0 = 1, #categories do
+        local c = categories[_index_0]
+        _accum_0[_len_0] = c.id
+        _len_0 = _len_0 + 1
+      end
+      return _accum_0
+    end)()))
+    local count = 0
+    for _index_0 = 1, #wcs do
+      local wc = wcs[_index_0]
+      if wc:delete() then
+        count = count + 1
+      end
+    end
+    return count > 0, count
+  end
   if _parent_0.__inherited then
     _parent_0.__inherited(_parent_0, _class_0)
   end

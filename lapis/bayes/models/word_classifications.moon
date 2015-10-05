@@ -24,6 +24,25 @@ class WordClassifications extends Model
   @find_or_create: (opts={}) =>
     @find(opts) or @create(opts)
 
+  @purge_word: (word, categories) =>
+    import Categories from require "lapis.bayes.models"
+
+    categories = { categories } unless type(categories) == "table"
+    original_count = #categories
+    assert original_count > 0, "missing categories"
+    categories = Categories\find_all categories, key: "name"
+    assert #categories == original_count, "failed to find all categories specified"
+
+    wcs = @select "where word = ? and category_id in ?",
+      word, db.list [c.id for c in *categories]
+
+    count = 0
+    for wc in *wcs
+      if wc\delete!
+        count += 1
+
+    count > 0, count
+
   delete: =>
     if deleted = delete_and_return @
       import Categories from require "lapis.bayes.models"

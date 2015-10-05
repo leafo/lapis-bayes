@@ -13,24 +13,25 @@ describe "lapis.bayes", ->
       @find(:name) or @create(:name)
 
   describe "WordClassifications", ->
+    local c1, c2
+
     before_each ->
       truncate_tables Categories, WordClassifications
 
-    it "deletes word from category", ->
       c1 = Categories\find_or_create "hello"
-
       c1\increment_words {
         alpha: 17
         beta: 19
       }
-      c1_count = c1.total_count
 
       c2 = Categories\find_or_create "world"
-
       c2\increment_words {
         beta: 22
         triple: 27
       }
+
+    it "deletes word from category", ->
+      c1_count = c1.total_count
       c2_count = c2.total_count
 
       wc = assert WordClassifications\find category_id: c1.id, word: "beta"
@@ -41,6 +42,21 @@ describe "lapis.bayes", ->
 
       assert.same 19, c1_count - c1.total_count
       assert.same 0, c2_count - c2.total_count
+
+    it "purges purges words from all categories", ->
+      c1_count = c1.total_count
+      c2_count = c2.total_count
+
+      deleted, count = WordClassifications\purge_word "alpha", {"hello", "world"}
+      assert.true deleted
+      assert.same 1, count
+
+      c1\refresh!
+      c2\refresh!
+
+      assert.same 17, c1_count - c1.total_count
+      assert.same 0, c2_count - c2.total_count
+
 
   describe "Categories", ->
     before_each ->
