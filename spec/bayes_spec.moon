@@ -113,6 +113,16 @@ describe "lapis.bayes", ->
       assert.same {"wow", "super", "disgust", "buttz", "com", "power"},
         tokenize_text "wow that was super-disgusting buttz.com power/up", symbols_split_tokens: true
 
+    it "adds a custom prefilter", ->
+      assert.same {"goodzoo", "greatzoo", "stuffzoo", "wowzoo"},
+        tokenize_text "good great stuff wow", filter_text: (text) ->
+          text\gsub "[%w]+", "%1zoo"
+
+    it "adds a custom token filter", ->
+      assert.same {"doog", "taerg", "ffuts", "wow"},
+        tokenize_text "good great stuff wow", filter_tokens: (tokens) ->
+          [t\reverse! for t in *tokens]
+
   describe "train_text", ->
     import train_text from require "lapis.bayes"
 
