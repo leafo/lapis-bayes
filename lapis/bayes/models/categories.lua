@@ -31,7 +31,7 @@ do
       end
       local words_by_counts = { }
       local total_words = 0
-      local tokens = tokenize_text(text)
+      local tokens = tokenize_text(text, opts)
       if #tokens == 0 then
         return 
       end

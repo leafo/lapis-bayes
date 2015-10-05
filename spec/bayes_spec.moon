@@ -103,6 +103,16 @@ describe "lapis.bayes", ->
     it "gets tokens keeping dupes", ->
       assert.same {"burger", "burger"}, tokenize_text "burgers are burgers"
 
+    it "skips tokens that are too long or short", ->
+      assert.same {"great"}, tokenize_text "a b c d e f g great eatingthebigriceball "
+
+    it "strips numbers", ->
+      assert.same {"delisho", "hodoc"}, tokenize_text "12 delisho hodocs for $5.99"
+
+    it "splits on symbols with option", ->
+      assert.same {"wow", "super", "disgust", "buttz", "com", "power"},
+        tokenize_text "wow that was super-disgusting buttz.com power/up", symbols_split_tokens: true
+
   describe "train_text", ->
     import train_text from require "lapis.bayes"
 

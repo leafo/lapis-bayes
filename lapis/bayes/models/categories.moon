@@ -30,7 +30,7 @@ class Categories extends Model
     words_by_counts = {}
     total_words = 0
 
-    tokens = tokenize_text text
+    tokens = tokenize_text text, opts
     return if #tokens == 0
 
     for word in *tokens
