@@ -12,7 +12,8 @@ describe "lapis.bayes", ->
       @find(:name) or @create(:name)
 
   describe "classify_text", ->
-    import train_text, classify_text, text_probabilities, tokenize_text from require "lapis.bayes"
+    import train_text, classify_text, text_probabilities from require "lapis.bayes"
+    import tokenize_text from require "lapis.bayes.tokenizer"
 
     setup ->
       truncate_tables Categories, WordClassifications

@@ -89,7 +89,7 @@ describe "lapis.bayes", ->
       assert.same 8, wc_by_name.green.count
 
   describe "tokenize_text", ->
-    import tokenize_text from require "lapis.bayes"
+    import tokenize_text from require "lapis.bayes.tokenizer"
 
     it "gets tokens for empty string", ->
       assert.same {}, tokenize_text ""

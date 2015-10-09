@@ -20,7 +20,7 @@ do
         opts = { }
       end
       local tokenize_text
-      tokenize_text = require("lapis.bayes").tokenize_text
+      tokenize_text = require("lapis.bayes.tokenizer").tokenize_text
       if opts.strip_tags then
         local extract_text
         extract_text = require("web_sanitize").extract_text

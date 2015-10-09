@@ -20,7 +20,7 @@ class Categories extends Model
     }
 
   increment_text: (text, opts={}) =>
-    import tokenize_text from require "lapis.bayes"
+    import tokenize_text from require "lapis.bayes.tokenizer"
 
     if opts.strip_tags
       import extract_text from require "web_sanitize"
