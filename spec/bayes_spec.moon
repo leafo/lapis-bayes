@@ -147,6 +147,21 @@ describe "lapis.bayes", ->
       train_text "spam", "eating spamming the regular stuff"
       train_text "ham","pigs create too much jam"
 
+    it "uses custom tokenizer #ddd", ->
+      train_text "spam", "cat eat foot", {
+        tokenize_text: (str, opts) ->
+          [c for c in str\gmatch "[^%s]"]
+      }
+
+      assert.same {
+        t: 3
+        f: 1
+        o: 2
+        a: 2
+        c: 1
+        e: 1
+      }, {c.word, c.count for c in *WordClassifications\select!}
+
   describe "text_probabilities", ->
     import text_probabilities from require "lapis.bayes"
 

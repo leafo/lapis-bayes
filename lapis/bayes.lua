@@ -15,7 +15,7 @@ text_probabilities = function(categories, text, opts)
   assert(num_categories == #categories, "failed to find all categories for classify")
   local tokenize_text
   tokenize_text = require("lapis.bayes.tokenizer").tokenize_text
-  local words = (opts.tokenize_text or tokenize_text)(text, opts)
+  local words = tokenize_text(text, opts)
   if not (words and next(words)) then
     return nil, "failed to generate tokens"
   end

@@ -17,7 +17,22 @@ filter_tokens = (tokens, opts) ->
 
     t
 
+-- {
+--   tokenize_text: function -- custom tokeniaze function
+-- 
+--   -- the rest of the options only apply to the default tokenizer
+--   filter_text: function -- function to pre-filter text, returns new text
+--   strip_tags: bool -- remove html tags from input in default
+--   symbols_split_tokens: bool -- symbols split apart tokens
+--   min_len: number -- min length of token (default 2)
+--   max_len: number -- max length of token (default 12)
+--   strip_numbers: bool -- remove tokens that are a number (including decimal)
+-- 
+-- }
 tokenize_text = (text, opts) ->
+  if opts and opts.tokenize_text
+    return opts.tokenize_text text, opts
+
   pre_filter = opts and opts.filter_text
 
   if pre_filter

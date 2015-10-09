@@ -41,6 +41,9 @@ filter_tokens = function(tokens, opts)
 end
 local tokenize_text
 tokenize_text = function(text, opts)
+  if opts and opts.tokenize_text then
+    return opts.tokenize_text(text, opts)
+  end
   local pre_filter = opts and opts.filter_text
   if pre_filter then
     text = pre_filter(text)
