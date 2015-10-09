@@ -6,7 +6,6 @@ do
 end
 local Categories
 do
-  local category_cache
   local _parent_0 = Model
   local _base_0 = {
     increment = function(self, amount)
@@ -122,16 +121,7 @@ do
   _base_0.__class = _class_0
   local self = _class_0
   self.timestamp = true
-  category_cache = setmetatable({ }, {
-    mode = "v"
-  })
   self.find_or_create = function(self, name)
-    do
-      local cached = category_cache[name]
-      if cached then
-        return cached
-      end
-    end
     return self:find({
       name = name
     }) or self:create({

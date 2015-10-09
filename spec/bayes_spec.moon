@@ -7,11 +7,6 @@ import Categories, WordClassifications from require "lapis.bayes.models"
 describe "lapis.bayes", ->
   use_test_env!
 
-  setup ->
-    -- remove the version that caches
-    Categories.find_or_create = (name) =>
-      @find(:name) or @create(:name)
-
   describe "WordClassifications", ->
     local c1, c2
 

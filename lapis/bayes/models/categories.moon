@@ -5,12 +5,7 @@ import Model, encode_tuples from require "lapis.bayes.model"
 class Categories extends Model
   @timestamp: true
 
-  category_cache = setmetatable {}, mode: "v"
-
   @find_or_create: (name) =>
-    if cached = category_cache[name]
-      return cached
-
     @find(:name) or @create(:name)
 
   increment: (amount) =>

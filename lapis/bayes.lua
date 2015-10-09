@@ -4,8 +4,6 @@ do
   local _obj_0 = require("lapis.bayes.models")
   Categories, WordClassifications = _obj_0.Categories, _obj_0.WordClassifications
 end
-local tokenize_text
-tokenize_text = require("lapis.bayes.tokenizer").tokenize_text
 local text_probabilities
 text_probabilities = function(categories, text, opts)
   if opts == nil then
@@ -15,7 +13,12 @@ text_probabilities = function(categories, text, opts)
   local assumed_prob = opts.assumed_prob or 0.1
   categories = Categories:find_all(categories, "name")
   assert(num_categories == #categories, "failed to find all categories for classify")
-  local words = tokenize_text(text, opts)
+  local tokenize_text
+  tokenize_text = require("lapis.bayes.tokenizer").tokenize_text
+  local words = (opts.tokenize_text or tokenize_text)(text, opts)
+  if not (words and next(words)) then
+    return nil, "failed to generate tokens"
+  end
   local categories_by_id
   do
     local _tbl_0 = { }

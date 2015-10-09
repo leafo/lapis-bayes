@@ -1,8 +1,6 @@
 db = require "lapis.db"
 import Categories, WordClassifications from require "lapis.bayes.models"
 
-import tokenize_text from require "lapis.bayes.tokenizer"
-
 text_probabilities = (categories, text, opts={}) ->
   num_categories = #categories
   assumed_prob = opts.assumed_prob or 0.1
@@ -11,7 +9,10 @@ text_probabilities = (categories, text, opts={}) ->
   assert num_categories == #categories,
     "failed to find all categories for classify"
 
-  words = tokenize_text text, opts
+  import tokenize_text from require "lapis.bayes.tokenizer"
+
+  words = (opts.tokenize_text or tokenize_text) text, opts
+  return nil, "failed to generate tokens" unless words and next words
 
   categories_by_id = {c.id, c for c in *categories}
   by_category_by_words = {}

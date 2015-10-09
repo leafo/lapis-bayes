@@ -6,11 +6,6 @@ import Categories, WordClassifications from require "lapis.bayes.models"
 describe "lapis.bayes", ->
   use_test_env!
 
-  setup ->
-    -- remove the version that caches
-    Categories.find_or_create = (name) =>
-      @find(:name) or @create(:name)
-
   describe "classify_text", ->
     import train_text, classify_text, text_probabilities from require "lapis.bayes"
     import tokenize_text from require "lapis.bayes.tokenizer"
