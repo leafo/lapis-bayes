@@ -45,6 +45,11 @@ tokenize_text = function(text, opts)
   if pre_filter then
     text = pre_filter(text)
   end
+  if opts and opts.strip_tags then
+    local extract_text
+    extract_text = require("web_sanitize").extract_text
+    text = extract_text(text)
+  end
   if opts and opts.symbols_split_tokens then
     text = text:gsub("[%!%@%#%$%%%^%&%*%(%)%[%]%{%}%|%\\%/%`%~%-%_%<%>%,%.]", " ")
   end

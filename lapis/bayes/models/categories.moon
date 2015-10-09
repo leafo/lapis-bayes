@@ -17,16 +17,11 @@ class Categories extends Model
   increment_text: (text, opts={}) =>
     import tokenize_text from require "lapis.bayes.tokenizer"
 
-    if opts.strip_tags
-      import extract_text from require "web_sanitize"
-      text = extract_text text
-      return 0 if text\match "^%s*$"
-
     words_by_counts = {}
     total_words = 0
 
     tokens = tokenize_text text, opts
-    return if #tokens == 0
+    return 0 if #tokens == 0
 
     for word in *tokens
       words_by_counts[word] or= 0

@@ -20,19 +20,11 @@ do
       end
       local tokenize_text
       tokenize_text = require("lapis.bayes.tokenizer").tokenize_text
-      if opts.strip_tags then
-        local extract_text
-        extract_text = require("web_sanitize").extract_text
-        text = extract_text(text)
-        if text:match("^%s*$") then
-          return 0
-        end
-      end
       local words_by_counts = { }
       local total_words = 0
       local tokens = tokenize_text(text, opts)
       if #tokens == 0 then
-        return 
+        return 0
       end
       for _index_0 = 1, #tokens do
         local word = tokens[_index_0]

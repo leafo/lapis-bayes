@@ -19,8 +19,13 @@ filter_tokens = (tokens, opts) ->
 
 tokenize_text = (text, opts) ->
   pre_filter = opts and opts.filter_text
+
   if pre_filter
     text = pre_filter text
+
+  if opts and opts.strip_tags
+    import extract_text from require "web_sanitize"
+    text = extract_text text
 
   if opts and opts.symbols_split_tokens
     text = text\gsub "[%!%@%#%$%%%^%&%*%(%)%[%]%{%}%|%\\%/%`%~%-%_%<%>%,%.]", " "
