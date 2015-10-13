@@ -1,14 +1,33 @@
+local trim
+trim = function(str)
+  return tostring(str):match("^%s*(.-)%s*$")
+end
 local UrlDomainsTokenizer
 do
   local _base_0 = {
     filter_urls = function(self, urls)
-      return urls
+      return (function()
+        local _accum_0 = { }
+        local _len_0 = 1
+        for _index_0 = 1, #urls do
+          local url = urls[_index_0]
+          url = trim(url)
+          url = url:gsub("^%w+://", "")
+          url = url:gsub("^www%.", "")
+          url = url:gsub("/.*$", "")
+          url = trim(url)
+          local _value_0 = url
+          _accum_0[_len_0] = _value_0
+          _len_0 = _len_0 + 1
+        end
+        return _accum_0
+      end)()
     end,
     build_grammer = function(self)
-      local P, S, R, C
+      local P, S, R, C, Ct, Cs
       do
         local _obj_0 = require("lpeg")
-        P, S, R, C = _obj_0.P, _obj_0.S, _obj_0.R, _obj_0.C
+        P, S, R, C, Ct, Cs = _obj_0.P, _obj_0.S, _obj_0.R, _obj_0.C, _obj_0.Ct, _obj_0.Cs
       end
       local case_insensitive
       case_insensitive = function(text)
@@ -33,7 +52,7 @@ do
       local word = (alphanum + S("._-")) ^ 1
       local attr_value = C(word) + P('"') * C((1 - P('"')) ^ 0) * P('"') + P("'") * C((1 - P("'")) ^ 0) * P("'")
       local href = case_insensitive("href") * space * P("=") * space * attr_value / function(v)
-        return unescape_char
+        return (assert(unescape_text:match(v), "failed to unescape text"))
       end
       local simple = C(case_insensitive("www") * (P(".") * (1 - (S("./") + some_space)) ^ 1) ^ 1)
       return Ct((raw_url + href + simple + 1) ^ 0)
@@ -42,7 +61,7 @@ do
       self.grammar = self.grammar or self:build_grammer()
       local matches = self.grammar:match(text)
       if not (matches) then
-        return 
+        return nil, "failed to parse text"
       end
       return self:filter_urls(matches)
     end

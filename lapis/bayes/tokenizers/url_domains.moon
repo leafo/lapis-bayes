@@ -59,6 +59,6 @@ class UrlDomainsTokenizer
   tokenize_text: (text) =>
     @grammar or= @build_grammer!
     matches = @grammar\match text
-    return unless matches
+    return nil, "failed to parse text" unless matches
     @filter_urls matches
 
