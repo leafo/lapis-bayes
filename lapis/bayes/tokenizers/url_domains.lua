@@ -10,15 +10,32 @@ do
         local _accum_0 = { }
         local _len_0 = 1
         for _index_0 = 1, #urls do
-          local url = urls[_index_0]
-          url = trim(url)
-          url = url:gsub("^%w+://", "")
-          url = url:gsub("^www%.", "")
-          url = url:gsub("/.*$", "")
-          url = trim(url)
-          local _value_0 = url
-          _accum_0[_len_0] = _value_0
-          _len_0 = _len_0 + 1
+          local _continue_0 = false
+          repeat
+            local url = urls[_index_0]
+            url = trim(url)
+            url = url:gsub("^%w+://", "")
+            url = url:gsub("^www%.", "")
+            url = url:gsub("/.*$", "")
+            url = trim(url)
+            url:gsub("<$", "")
+            url:gsub("^>", "")
+            if url:match("^%w+:") then
+              _continue_0 = true
+              break
+            end
+            if url:match([=[[<>="' ]]=]) then
+              _continue_0 = true
+              break
+            end
+            local _value_0 = url
+            _accum_0[_len_0] = _value_0
+            _len_0 = _len_0 + 1
+            _continue_0 = true
+          until true
+          if not _continue_0 then
+            break
+          end
         end
         return _accum_0
       end)()

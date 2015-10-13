@@ -12,6 +12,15 @@ class UrlDomainsTokenizer
       url = url\gsub "^www%.", ""
       url = url\gsub "/.*$", ""
       url = trim url
+
+      url\gsub "<$", ""
+      url\gsub "^>", ""
+
+      continue if url\match "^%w+:" -- mailto and co
+      continue if url\match [=[[<>="' ]]=]
+
+      continue if @opts and @opts.domain_whitelist and @opts.domain_whitelist[url]
+
       url
 
   build_grammer: =>
