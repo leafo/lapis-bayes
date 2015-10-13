@@ -20,6 +20,10 @@ do
             url = trim(url)
             url:gsub("<$", "")
             url:gsub("^>", "")
+            if url == "" then
+              _continue_0 = true
+              break
+            end
             if url:match("^%w+:") then
               _continue_0 = true
               break
@@ -73,7 +77,7 @@ do
       local word = (alphanum + S("._-")) ^ 1
       local attr_value = C(word) + P('"') * C((1 - P('"')) ^ 0) * P('"') + P("'") * C((1 - P("'")) ^ 0) * P("'")
       local href = case_insensitive("href") * space * P("=") * space * attr_value / function(v)
-        return (assert(unescape_text:match(v), "failed to unescape text"))
+        return unescape_text:match(v) or ""
       end
       local simple = C(case_insensitive("www") * (P(".") * (1 - (S("./") + some_space)) ^ 1) ^ 1)
       return Ct((raw_url + href + simple + 1) ^ 0)

@@ -16,6 +16,7 @@ class UrlDomainsTokenizer
       url\gsub "<$", ""
       url\gsub "^>", ""
 
+      continue if url == ""
       continue if url\match "^%w+:" -- mailto and co
       continue if url\match [=[[<>="' ]]=]
 
@@ -58,8 +59,7 @@ class UrlDomainsTokenizer
     word = (alphanum + S"._-")^1
     attr_value = C(word) + P'"' * C((1 - P'"')^0) * P'"' + P"'" * C((1 - P"'")^0) * P"'"
 
-    href = case_insensitive"href" * space * P"=" * space * attr_value / (v) ->
-      (assert unescape_text\match(v), "failed to unescape text")
+    href = case_insensitive"href" * space * P"=" * space * attr_value / (v) -> unescape_text\match(v) or ""
 
     simple = C case_insensitive"www" * (P"." * (1 - (S"./" + some_space))^1)^1
 
