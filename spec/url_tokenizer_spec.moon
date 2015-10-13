@@ -25,3 +25,10 @@ describe "lapis.bayes.tokenizer.url_tokenizer", ->
     before_each ->
       tokenize_text = UrlDomainsTokenizer!\tokenize_text
 
+    it "extracts tokens from string", ->
+      assert.same {
+        "leafo.net&"
+        "google.com"
+        "leafodad.com"
+      }, tokenize_text "href='http://leafo.net&amp; ' http://google.com/p8sslord/da?what please help the good one www.leafodad.com yeah what the freak"
+

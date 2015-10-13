@@ -1,10 +1,18 @@
 
+trim = (str) -> tostring(str)\match "^%s*(.-)%s*$"
+
 class UrlDomainsTokenizer
   new: (@opts) =>
 
   -- strip urls to just domains
   filter_urls: (urls) =>
-    urls
+    return for url in *urls
+      url = trim url
+      url = url\gsub "^%w+://", ""
+      url = url\gsub "^www%.", ""
+      url = url\gsub "/.*$", ""
+      url = trim url
+      url
 
   build_grammer: =>
     import P, S, R, C, Ct, Cs from require "lpeg"
