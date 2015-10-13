@@ -27,6 +27,7 @@ build = {
     ["lapis.bayes.models.word_classifications"] = "lapis/bayes/models/word_classifications.lua",
     ["lapis.bayes.schema"] = "lapis/bayes/schema.lua",
     ["lapis.bayes.tokenizer"] = "lapis/bayes/tokenizer.lua",
+    ["lapis.bayes.tokenizers.postgres_text"] = "lapis/bayes/tokenizers/postgres_text.lua",
   }
 }
 
