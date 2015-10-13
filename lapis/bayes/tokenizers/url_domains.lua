@@ -28,6 +28,10 @@ do
               _continue_0 = true
               break
             end
+            if self.opts and self.opts.domain_whitelist and self.opts.domain_whitelist[url] then
+              _continue_0 = true
+              break
+            end
             local _value_0 = url
             _accum_0[_len_0] = _value_0
             _len_0 = _len_0 + 1
