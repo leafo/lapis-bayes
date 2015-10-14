@@ -13,6 +13,7 @@ do
           local _continue_0 = false
           repeat
             local url = urls[_index_0]
+            url = url:lower()
             url = trim(url)
             url = url:gsub("^%w+://", "")
             url = url:gsub("^www%.", "")
@@ -32,7 +33,11 @@ do
               _continue_0 = true
               break
             end
-            if self.opts and self.opts.domain_whitelist and self.opts.domain_whitelist[url] then
+            if not (url:match("%.")) then
+              _continue_0 = true
+              break
+            end
+            if self.opts and self.opts.ignore_domains and self.opts.ignore_domains[url] then
               _continue_0 = true
               break
             end

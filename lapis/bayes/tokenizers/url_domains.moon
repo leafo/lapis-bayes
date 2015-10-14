@@ -7,6 +7,7 @@ class UrlDomainsTokenizer
   -- strip urls to just domains
   filter_urls: (urls) =>
     return for url in *urls
+      url = url\lower!
       url = trim url
       url = url\gsub "^%w+://", ""
       url = url\gsub "^www%.", ""
@@ -19,8 +20,9 @@ class UrlDomainsTokenizer
       continue if url == ""
       continue if url\match "^%w+:" -- mailto and co
       continue if url\match [=[[<>="' ]]=]
+      continue unless url\match "%."
 
-      continue if @opts and @opts.domain_whitelist and @opts.domain_whitelist[url]
+      continue if @opts and @opts.ignore_domains and @opts.ignore_domains[url]
 
       url
 
