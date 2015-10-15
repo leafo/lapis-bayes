@@ -5,7 +5,7 @@ class UrlDomainsTokenizer
   new: (@opts) =>
 
   -- strip urls to just domains
-  filter_urls: (urls) =>
+  filter_tokens: (urls) =>
     return for url in *urls
       url = url\lower!
       url = trim url
@@ -71,5 +71,5 @@ class UrlDomainsTokenizer
     @grammar or= @build_grammar!
     matches = @grammar\match text
     return nil, "failed to parse text" unless matches
-    @filter_urls matches
+    @filter_tokens matches
 

@@ -5,7 +5,7 @@ end
 local UrlDomainsTokenizer
 do
   local _base_0 = {
-    filter_urls = function(self, urls)
+    filter_tokens = function(self, urls)
       return (function()
         local _accum_0 = { }
         local _len_0 = 1
@@ -93,7 +93,7 @@ do
       if not (matches) then
         return nil, "failed to parse text"
       end
-      return self:filter_urls(matches)
+      return self:filter_tokens(matches)
     end
   }
   _base_0.__index = _base_0

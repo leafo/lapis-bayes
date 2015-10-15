@@ -4,14 +4,14 @@ UrlDomainsTokenizer = require "lapis.bayes.tokenizers.url_domains"
 describe "lapis.bayes.tokenizer.url_tokenizer", ->
   it "builds grammar", ->
     tokenizer = UrlDomainsTokenizer!
-    p = tokenizer\build_grammer!
+    p = tokenizer\build_grammar!
     p\match "https"
 
   describe "with grammar", ->
     local grammar
 
     before_each ->
-      grammar = UrlDomainsTokenizer!\build_grammer!
+      grammar = UrlDomainsTokenizer!\build_grammar!
 
     it "detects some urls", ->
       assert.same {
