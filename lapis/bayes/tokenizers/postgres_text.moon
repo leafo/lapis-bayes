@@ -28,6 +28,7 @@ class PostgresTextTokenizer
       if strip_numbers and t\match "^[%d%.]+$"
         continue
 
+      continue if @opts and @opts.ignore_words and @opts.ignore_words[t]
       t
 
   tokenize_text: (text) =>

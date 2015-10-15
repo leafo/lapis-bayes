@@ -30,6 +30,10 @@ do
               _continue_0 = true
               break
             end
+            if self.opts and self.opts.ignore_words and self.opts.ignore_words[t] then
+              _continue_0 = true
+              break
+            end
             local _value_0 = t
             _accum_0[_len_0] = _value_0
             _len_0 = _len_0 + 1

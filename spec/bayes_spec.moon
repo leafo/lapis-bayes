@@ -104,6 +104,13 @@ describe "lapis.bayes", ->
     it "strips numbers", ->
       assert.same {"delisho", "hodoc"}, tokenize_text "12 delisho hodocs for $5.99"
 
+    it "skips words in ignore list", ->
+      assert.same {"delisho"}, tokenize_text "12 delisho hodocs for $5.99", {
+        ignore_words: {
+          hodoc: true
+        }
+      }
+
     it "uses custom tokenizer", ->
       tokenizer = require "lapis.bayes.tokenizers.url_domains"
       assert.same {"leafo.net"},
