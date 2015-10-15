@@ -25,7 +25,7 @@ class PostgresTextTokenizer
       continue if t_len > max_len
       continue if t_len < min_len
 
-      if strip_numbers and t\match "^[%d%.]+$"
+      if strip_numbers and t\match "^[%d%.%/%-]+$"
         continue
 
       continue if @opts and @opts.ignore_words and @opts.ignore_words[t]

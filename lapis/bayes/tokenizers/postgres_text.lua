@@ -26,7 +26,7 @@ do
               _continue_0 = true
               break
             end
-            if strip_numbers and t:match("^[%d%.]+$") then
+            if strip_numbers and t:match("^[%d%.%/%-]+$") then
               _continue_0 = true
               break
             end
