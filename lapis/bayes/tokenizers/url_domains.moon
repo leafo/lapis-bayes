@@ -26,7 +26,7 @@ class UrlDomainsTokenizer
 
       url
 
-  build_grammer: =>
+  build_grammar: =>
     import P, S, R, C, Ct, Cs from require "lpeg"
 
     case_insensitive = (text) ->
@@ -68,7 +68,7 @@ class UrlDomainsTokenizer
     Ct (raw_url + href + simple + 1)^0
 
   tokenize_text: (text) =>
-    @grammar or= @build_grammer!
+    @grammar or= @build_grammar!
     matches = @grammar\match text
     return nil, "failed to parse text" unless matches
     @filter_urls matches

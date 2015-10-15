@@ -53,7 +53,7 @@ do
         return _accum_0
       end)()
     end,
-    build_grammer = function(self)
+    build_grammar = function(self)
       local P, S, R, C, Ct, Cs
       do
         local _obj_0 = require("lpeg")
@@ -88,7 +88,7 @@ do
       return Ct((raw_url + href + simple + 1) ^ 0)
     end,
     tokenize_text = function(self, text)
-      self.grammar = self.grammar or self:build_grammer()
+      self.grammar = self.grammar or self:build_grammar()
       local matches = self.grammar:match(text)
       if not (matches) then
         return nil, "failed to parse text"
