@@ -1,38 +1,9 @@
 db = require "lapis.db"
 import Categories, WordClassifications from require "lapis.bayes.models"
 
-text_probabilities = (categories, text, opts={}) ->
-  num_categories = #categories
+
+default_probabilities = (categories, available_words, words, opts) ->
   assumed_prob = opts.assumed_prob or 0.1
-
-  categories = Categories\find_all categories, "name"
-  assert num_categories == #categories,
-    "failed to find all categories for classify"
-
-  import tokenize_text from require "lapis.bayes.tokenizer"
-
-  words = tokenize_text text, opts
-  return nil, "failed to generate tokens" unless words and next words
-
-  categories_by_id = {c.id, c for c in *categories}
-  by_category_by_words = {}
-
-  wcs = WordClassifications\find_all words, {
-    key: "word"
-    where: {
-      category_id: db.list [c.id for c in *categories]
-    }
-  }
-
-  available_words = [word for word in pairs {wc.word, true for wc in *wcs}]
-
-  if #available_words == 0
-    return nil, "no words in text are classifyable"
-
-  for wc in *wcs
-    category = categories_by_id[wc.category_id]
-    by_category_by_words[category.id] or= {}
-    by_category_by_words[category.id][wc.word] = wc.count
 
   sum_counts = 0
   for c in *categories
@@ -40,7 +11,7 @@ text_probabilities = (categories, text, opts={}) ->
 
   tuples = for c in *categories
     p = math.log c.total_count / sum_counts
-    word_counts = by_category_by_words[c.id]
+    word_counts = c.word_counts
 
     for w in *available_words
       -- total times word has appeared in this category
@@ -61,6 +32,41 @@ text_probabilities = (categories, text, opts={}) ->
     a[2] > b[2]
 
   tuples, #available_words / #words
+
+
+text_probabilities = (categories, text, opts={}) ->
+  num_categories = #categories
+
+  categories = Categories\find_all categories, "name"
+  assert num_categories == #categories,
+    "failed to find all categories for classify"
+
+  import tokenize_text from require "lapis.bayes.tokenizer"
+
+  words = tokenize_text text, opts
+  return nil, "failed to generate tokens" unless words and next words
+
+  categories_by_id = {c.id, c for c in *categories}
+
+  wcs = WordClassifications\find_all words, {
+    key: "word"
+    where: {
+      category_id: db.list [c.id for c in *categories]
+    }
+  }
+
+  available_words = [word for word in pairs {wc.word, true for wc in *wcs}]
+
+  if #available_words == 0
+    return nil, "no words in text are classifyable"
+
+  for wc in *wcs
+    category = categories_by_id[wc.category_id]
+    category.word_counts or= {}
+    category.word_counts[wc.word] = wc.count
+
+  default_probabilities categories, available_words, words, opts
+
 
 classify_text = (categories, text, ...) ->
   counts, word_rate_or_err = text_probabilities categories, text, ...
