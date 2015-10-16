@@ -32,3 +32,18 @@ describe "lapis.bayes.tokenizer.url_tokenizer", ->
         "leafodad.com"
       }, tokenize_text "href='http://leafo.net&amp; ' http://google.com/p8sslord/da?what please help the good one www.leafodad.com yeah what the freak"
 
+    it "ignore domains", ->
+      tokens = UrlDomainsTokenizer({
+        ignore_domains: {
+          "leafo.net": true
+          "*.google.com": true
+        }
+      })\tokenize_text [[
+        http://leafo.net
+        http://good.leafo.net
+        http://google.com
+        http://butt.google.com
+        http://plus.good.google.com
+      ]]
+
+      assert.same {"good.leafo.net", "google.com"}, tokens

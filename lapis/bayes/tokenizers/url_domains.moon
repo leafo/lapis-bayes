@@ -4,6 +4,16 @@ trim = (str) -> tostring(str)\match "^%s*(.-)%s*$"
 class UrlDomainsTokenizer
   new: (@opts) =>
 
+  ignore_domain: (domain) =>
+    return unless @opts and @opts.ignore_domains
+    return true if @opts.ignore_domains[domain]
+
+    while true
+      sub = domain\gsub("^%**%.?[^%.]+", "*")
+      return false if sub == domain
+      return true if @opts.ignore_domains[sub]
+      domain = sub
+
   -- strip urls to just domains
   filter_tokens: (urls) =>
     return for url in *urls
@@ -22,7 +32,7 @@ class UrlDomainsTokenizer
       continue if url\match [=[[<>="' ]]=]
       continue unless url\match "%."
 
-      continue if @opts and @opts.ignore_domains and @opts.ignore_domains[url]
+      continue if @ignore_domain url
 
       url
 

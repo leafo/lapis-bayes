@@ -5,6 +5,24 @@ end
 local UrlDomainsTokenizer
 do
   local _base_0 = {
+    ignore_domain = function(self, domain)
+      if not (self.opts and self.opts.ignore_domains) then
+        return 
+      end
+      if self.opts.ignore_domains[domain] then
+        return true
+      end
+      while true do
+        local sub = domain:gsub("^%**%.?[^%.]+", "*")
+        if sub == domain then
+          return false
+        end
+        if self.opts.ignore_domains[sub] then
+          return true
+        end
+        domain = sub
+      end
+    end,
     filter_tokens = function(self, urls)
       return (function()
         local _accum_0 = { }
@@ -37,7 +55,7 @@ do
               _continue_0 = true
               break
             end
-            if self.opts and self.opts.ignore_domains and self.opts.ignore_domains[url] then
+            if self:ignore_domain(url) then
               _continue_0 = true
               break
             end
