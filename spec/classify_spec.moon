@@ -73,7 +73,7 @@ describe "lapis.bayes", ->
       for text in *texts
         categories = {"spam", "ham"}
 
-        it "classifies '#{text}' as '#{classification}'", ->
+        it "classifies '#{text}' as '#{classification}' #ddd", ->
           got = classify_text categories, text
           unless got == classification
             tokens = tokenize_text text
