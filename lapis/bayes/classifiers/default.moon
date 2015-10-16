@@ -72,6 +72,8 @@ class DefaultClassifier
     table.sort tuples, (a, b) ->
       a[2] > b[2]
 
-    tuples, #available_words / #words
+    for {c, p} in *tuples
+      tuples[c] = p
 
+    tuples, #available_words / #words
 
