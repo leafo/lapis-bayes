@@ -20,6 +20,7 @@ build = {
   type = "builtin",
   modules = {
     ["lapis.bayes"] = "lapis/bayes.lua",
+    ["lapis.bayes.classifiers.default"] = "lapis/bayes/classifiers/default.lua",
     ["lapis.bayes.migrations"] = "lapis/bayes/migrations.lua",
     ["lapis.bayes.model"] = "lapis/bayes/model.lua",
     ["lapis.bayes.models"] = "lapis/bayes/models.lua",

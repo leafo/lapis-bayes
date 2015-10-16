@@ -159,7 +159,7 @@ describe "lapis.bayes", ->
       train_text "spam", "eating spamming the regular stuff"
       train_text "ham","pigs create too much jam"
 
-    it "uses custom tokenizer #ddd", ->
+    it "uses custom tokenizer", ->
       train_text "spam", "cat eat foot", {
         tokenize_text: (str, opts) ->
           [c for c in str\gmatch "[^%s]"]
@@ -180,7 +180,7 @@ describe "lapis.bayes", ->
     before_each ->
       truncate_tables Categories, WordClassifications
 
-    it "works when there is no data", ->
+    it "works when there is no data #ddd", ->
       Categories\create name: "spam"
       Categories\create name: "ham"
 
