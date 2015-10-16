@@ -33,6 +33,7 @@ class NewClassifier extends DefaultClassifier
 
     total_counts = {}
     for c in *categories
+      continue unless c.word_counts
       for word, count in pairs c.word_counts
         total_counts[word] or= 0
         total_counts[word] += count
@@ -40,7 +41,7 @@ class NewClassifier extends DefaultClassifier
     probs = for c in *categories
       tuples = for word in *available_words
         total_count = total_counts[word]
-        cat_count = c.word_counts[word] or 0
+        cat_count = c.word_counts and c.word_counts[word] or 0
         {cat_count/total_count, total_count}
 
       {c.name, weighted_avg tuples}

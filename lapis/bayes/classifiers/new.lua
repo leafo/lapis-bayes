@@ -42,10 +42,21 @@ do
       end
       local total_counts = { }
       for _index_0 = 1, #categories do
-        local c = categories[_index_0]
-        for word, count in pairs(c.word_counts) do
-          total_counts[word] = total_counts[word] or 0
-          total_counts[word] = total_counts[word] + count
+        local _continue_0 = false
+        repeat
+          local c = categories[_index_0]
+          if not (c.word_counts) then
+            _continue_0 = true
+            break
+          end
+          for word, count in pairs(c.word_counts) do
+            total_counts[word] = total_counts[word] or 0
+            total_counts[word] = total_counts[word] + count
+          end
+          _continue_0 = true
+        until true
+        if not _continue_0 then
+          break
         end
       end
       local probs
@@ -61,7 +72,7 @@ do
             for _index_1 = 1, #available_words do
               local word = available_words[_index_1]
               local total_count = total_counts[word]
-              local cat_count = c.word_counts[word] or 0
+              local cat_count = c.word_counts and c.word_counts[word] or 0
               local _value_0 = {
                 cat_count / total_count,
                 total_count
