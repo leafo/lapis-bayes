@@ -34,6 +34,37 @@ local NewClassifier
 do
   local _parent_0 = DefaultClassifier
   local _base_0 = {
+    debug_probabilities = function(self, categories, text)
+      local available_words, words
+      categories, available_words, words = self:count_words(categories, text)
+      if not (categories) then
+        return nil, available_words
+      end
+      for _index_0 = 1, #categories do
+        local c = categories[_index_0]
+        local tuples
+        do
+          local _accum_0 = { }
+          local _len_0 = 1
+          for _index_1 = 1, #available_words do
+            local word = available_words[_index_1]
+            local cat_count = c.word_counts and c.word_counts[word] or 0
+            local _value_0 = {
+              word,
+              cat_count
+            }
+            _accum_0[_len_0] = _value_0
+            _len_0 = _len_0 + 1
+          end
+          tuples = _accum_0
+        end
+        local columnize
+        columnize = require("lapis.cmd.util").columnize
+        print()
+        print(tostring(c.name))
+        print(columnize(tuples))
+      end
+    end,
     text_probabilities = function(self, categories, text)
       local available_words, words
       categories, available_words, words = self:count_words(categories, text)
