@@ -1,6 +1,6 @@
 
 class DefaultClassifier
-  new: (@opts) =>
+  new: (@opts={}) =>
 
   count_words: (categories, text) =>
     db = require "lapis.db"
@@ -44,7 +44,7 @@ class DefaultClassifier
       return nil, available_words
 
     -- the default probability if there are no matches
-    assumed_prob = @opts.assumed_prob or 0.1
+    default_prob = @opts.default_prob or 0.1
 
     sum_counts = 0
     for c in *categories
@@ -61,7 +61,7 @@ class DefaultClassifier
 
         -- give a little extra to everything to prevent words that aren't in
         -- category from prevening a match
-        adjusted_prob = (assumed_prob + sum_counts * real_prob) / sum_counts
+        adjusted_prob = (default_prob + sum_counts * real_prob) / sum_counts
 
         -- accumulate the probability
 

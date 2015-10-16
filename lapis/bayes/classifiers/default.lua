@@ -74,7 +74,7 @@ do
       if not (categories) then
         return nil, available_words
       end
-      local assumed_prob = self.opts.assumed_prob or 0.1
+      local default_prob = self.opts.default_prob or 0.1
       local sum_counts = 0
       for _index_0 = 1, #categories do
         local c = categories[_index_0]
@@ -92,7 +92,7 @@ do
             local w = available_words[_index_1]
             local count = word_counts and word_counts[w] or 0
             local real_prob = count / c.total_count
-            local adjusted_prob = (assumed_prob + sum_counts * real_prob) / sum_counts
+            local adjusted_prob = (default_prob + sum_counts * real_prob) / sum_counts
             p = p + math.log(adjusted_prob)
           end
           local _value_0 = {
@@ -113,6 +113,9 @@ do
   _base_0.__index = _base_0
   local _class_0 = setmetatable({
     __init = function(self, opts)
+      if opts == nil then
+        opts = { }
+      end
       self.opts = opts
     end,
     __base = _base_0,
