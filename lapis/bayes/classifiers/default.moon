@@ -2,6 +2,10 @@
 class DefaultClassifier
   new: (@opts={}) =>
 
+  confidence: (result) =>
+    hit, miss = unpack result
+    (hit[2] - miss[2]) / hit[2]
+
   count_words: (categories, text) =>
     db = require "lapis.db"
     import Categories, WordClassifications from require "lapis.bayes.models"
@@ -67,7 +71,7 @@ class DefaultClassifier
 
         p += math.log adjusted_prob
 
-      {c.name, p}
+      {c.name, 100000 * math.exp p / #available_words}
 
     table.sort tuples, (a, b) ->
       a[2] > b[2]

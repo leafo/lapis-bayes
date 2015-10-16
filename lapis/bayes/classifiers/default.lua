@@ -1,6 +1,10 @@
 local DefaultClassifier
 do
   local _base_0 = {
+    confidence = function(self, result)
+      local hit, miss = unpack(result)
+      return (hit[2] - miss[2]) / hit[2]
+    end,
     count_words = function(self, categories, text)
       local db = require("lapis.db")
       local Categories, WordClassifications
@@ -97,7 +101,7 @@ do
           end
           local _value_0 = {
             c.name,
-            p
+            100000 * math.exp(p / #available_words)
           }
           _accum_0[_len_0] = _value_0
           _len_0 = _len_0 + 1
