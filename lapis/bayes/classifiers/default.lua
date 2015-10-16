@@ -87,7 +87,7 @@ do
         for _index_0 = 1, #categories do
           local c = categories[_index_0]
           local p = math.log(c.total_count / sum_counts)
-          local word_counts = c.word_counts
+          local word_counts = c.word_counts or { }
           for _index_1 = 1, #available_words do
             local w = available_words[_index_1]
             local count = word_counts and word_counts[w] or 0

@@ -52,7 +52,7 @@ class DefaultClassifier
 
     tuples = for c in *categories
       p = math.log c.total_count / sum_counts
-      word_counts = c.word_counts
+      word_counts = c.word_counts or {}
 
       for w in *available_words
         -- total times word has appeared in this category
