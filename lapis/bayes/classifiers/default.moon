@@ -7,6 +7,29 @@ class DefaultClassifier
     hit, miss = unpack result
     (hit[2] - miss[2]) / hit[2]
 
+  candidate_tokens: (categories, available_words, count) =>
+    return available_words if #available_words <= count
+
+    assert #categories == 2, "can only do two categories"
+
+    a,b = unpack categories
+    -- calculate conflict words
+    tuples = for word in *available_words
+      a_count = a.word_counts and a.word_counts[word] or 0
+      b_count = b.word_counts and b.word_counts[word] or 0
+
+      {
+        word
+        math.random! / 100 + math.abs (a_count - b_count) / math.sqrt a_count + b_count
+        a_count
+        b_count
+      }
+
+    table.sort tuples, (a,b) ->
+      a[2] > b[2]
+
+    [t[1] for t in *tuples[,count]]
+
   count_words: (categories, text) =>
     db = require "lapis.db"
     import Categories, WordClassifications from require "lapis.bayes.models"
@@ -49,12 +72,15 @@ class DefaultClassifier
 
     assert #categories == 2, "only works with two categories"
 
+    token_ratio = #available_words / #words
+
     a, b = unpack categories
 
     sum_counts = 0
     for c in *categories
       sum_counts += c.total_count
 
+    available_words = @candidate_tokens categories, available_words, 40
     available_words_count = #available_words
 
     default_prob = (@opts.default_prob or 0.1) / sum_counts
@@ -62,7 +88,7 @@ class DefaultClassifier
     default_a = default_prob * a.total_count
     default_b = default_prob * b.total_count
 
-    prob = if @opts.log
+    prob = if false -- @opts.log
       -- fast?
       ai_log_sum = 0
       bi_log_sum = 0
@@ -121,5 +147,5 @@ class DefaultClassifier
     for {c, p} in *tuples
       tuples[c] = p
 
-    tuples, available_words_count / #words
+    tuples, token_ratio
 
