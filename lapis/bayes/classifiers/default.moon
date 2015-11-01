@@ -128,13 +128,16 @@ class DefaultClassifier
       ai_prob = a.total_count * ai_mul / ((a.total_count + default_a) * available_words_count)
       bi_prob = b.total_count * bi_mul / ((b.total_count + default_b) * available_words_count)
 
+      ai_prob = 0 if ai_prob != ai_prob
+      bi_prob = 0 if bi_prob != bi_prob
+
       ai_prob / (ai_prob + bi_prob)
 
     if prob != prob
-      error "Got nan when calculating prob"
+      return nil, "Got nan when calculating prob"
 
     if prob == math.huge or prob == -math.huge
-      error "Got inf when calculating prob"
+      return nil, "Got inf when calculating prob"
 
     tuples = {
       { a.name, prob }

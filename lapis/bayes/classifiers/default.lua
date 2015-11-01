@@ -182,13 +182,19 @@ do
         end
         local ai_prob = a.total_count * ai_mul / ((a.total_count + default_a) * available_words_count)
         local bi_prob = b.total_count * bi_mul / ((b.total_count + default_b) * available_words_count)
+        if ai_prob ~= ai_prob then
+          ai_prob = 0
+        end
+        if bi_prob ~= bi_prob then
+          bi_prob = 0
+        end
         prob = ai_prob / (ai_prob + bi_prob)
       end
       if prob ~= prob then
-        error("Got nan when calculating prob")
+        return nil, "Got nan when calculating prob"
       end
       if prob == math.huge or prob == -math.huge then
-        error("Got inf when calculating prob")
+        return nil, "Got inf when calculating prob"
       end
       local tuples = {
         {
