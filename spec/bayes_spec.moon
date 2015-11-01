@@ -204,7 +204,7 @@ describe "lapis.bayes", ->
         {p[1], math.floor p[2] * 100 + 0.5}
 
       assert.same {
-        {"ham", -134}
-        {"spam", -438}
+        {"ham", 95}
+        {"spam", 5}
       }, probs
 
