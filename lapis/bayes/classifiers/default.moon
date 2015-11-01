@@ -1,3 +1,4 @@
+-- implements naive bayes with assumed probability
 
 class DefaultClassifier
   new: (@opts={}) =>
@@ -12,9 +13,8 @@ class DefaultClassifier
 
     num_categories = #categories
 
-    categories = Categories\find_all categories, "name"
-    assert num_categories == #categories,
-      "failed to find all categories for classify"
+    categories_by_name = {c.name, c for c in *Categories\find_all categories, "name" }
+    categories = [categories_by_name[name] for name in *categories]
 
     import tokenize_text from require "lapis.bayes.tokenizer"
 
@@ -43,6 +43,87 @@ class DefaultClassifier
     categories, available_words, words
 
   text_probabilities: (...) =>
+    categories, available_words, words = @count_words ...
+    unless categories
+      return nil, available_words
+
+    assert #categories == 2, "only works with two categories"
+
+    a, b = unpack categories
+
+    sum_counts = 0
+    for c in *categories
+      sum_counts += c.total_count
+
+    available_words_count = #available_words
+
+    default_prob = (@opts.default_prob or 0.1) / sum_counts
+
+    default_a = default_prob * a.total_count
+    default_b = default_prob * b.total_count
+
+    prob = if @opts.log
+      -- fast?
+      ai_log_sum = 0
+      bi_log_sum = 0
+
+      for word in *available_words
+        ai_log_sum += math.log (a.word_counts and a.word_counts[word] or 0) + default_a
+        bi_log_sum += math.log (b.word_counts and b.word_counts[word] or 0) + default_b
+
+      ai_log_sum -= math.log (default_a + a.total_count) * available_words_count
+      bi_log_sum -= math.log (default_b + b.total_count) * available_words_count
+
+      ai_log_sum += math.log a.total_count
+      bi_log_sum += math.log b.total_count
+
+      ai_prob = math.exp ai_log_sum
+      bi_prob = math.exp bi_log_sum
+
+      ai_prob / (ai_prob + bi_prob)
+    else
+      -- slow?
+      local ai_mul, bi_mul
+
+      for word in *available_words
+        ai_count = (a.word_counts and a.word_counts[word] or 0) + default_a
+        bi_count = (b.word_counts and b.word_counts[word] or 0) + default_b
+
+        if ai_mul
+          ai_mul *= ai_count
+        else
+          ai_mul = ai_count
+
+        if bi_mul
+          bi_mul *= bi_count
+        else
+          bi_mul = bi_count
+
+      ai_prob = a.total_count * ai_mul / ((a.total_count + default_a) * available_words_count)
+      bi_prob = b.total_count * bi_mul / ((b.total_count + default_b) * available_words_count)
+
+      ai_prob / (ai_prob + bi_prob)
+
+    if prob != prob
+      error "Got nan when calculating prob"
+
+    if prob == math.huge or prob == -math.huge
+      error "Got inf when calculating prob"
+
+    tuples = {
+      { a.name, prob }
+      { b.name, 1 - prob }
+    }
+
+    table.sort tuples, (a, b) ->
+      a[2] > b[2]
+
+    for {c, p} in *tuples
+      tuples[c] = p
+
+    tuples, available_words_count / #words
+
+  text_probabilities_old: (...) =>
     categories, available_words, words = @count_words ...
     unless categories
       return nil, available_words

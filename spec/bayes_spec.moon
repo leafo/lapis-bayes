@@ -180,7 +180,7 @@ describe "lapis.bayes", ->
     before_each ->
       truncate_tables Categories, WordClassifications
 
-    it "works when there is no data #ddd", ->
+    it "works when there is no data", ->
       Categories\create name: "spam"
       Categories\create name: "ham"
 

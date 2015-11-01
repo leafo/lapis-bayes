@@ -85,3 +85,4 @@ describe "lapis.bayes", ->
               probs: text_probabilities {"spam", "ham"}, text
             }
 
+

@@ -78,6 +78,13 @@ do
       if not (categories) then
         return nil, available_words
       end
+      return error(categories)
+    end,
+    text_probabilities_old = function(self, ...)
+      local categories, available_words, words = self:count_words(...)
+      if not (categories) then
+        return nil, available_words
+      end
       local default_prob = self.opts.default_prob or 0.1
       local sum_counts = 0
       for _index_0 = 1, #categories do
