@@ -54,7 +54,9 @@ do
       local categories_by_name
       do
         local _tbl_0 = { }
-        local _list_0 = Categories:find_all(categories, "name")
+        local _list_0 = Categories:find_all(categories, {
+          key = "name"
+        })
         for _index_0 = 1, #_list_0 do
           local c = _list_0[_index_0]
           _tbl_0[c.name] = c
@@ -66,10 +68,15 @@ do
         local _len_0 = 1
         for _index_0 = 1, #categories do
           local name = categories[_index_0]
-          _accum_0[_len_0] = categories_by_name[name]
-          _len_0 = _len_0 + 1
+          if categories_by_name[name] then
+            _accum_0[_len_0] = categories_by_name[name]
+            _len_0 = _len_0 + 1
+          end
         end
         categories = _accum_0
+      end
+      if not (#categories == num_categories) then
+        return nil, "missing categories"
       end
       local tokenize_text
       tokenize_text = require("lapis.bayes.tokenizer").tokenize_text

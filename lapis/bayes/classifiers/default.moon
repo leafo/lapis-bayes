@@ -36,8 +36,10 @@ class DefaultClassifier
 
     num_categories = #categories
 
-    categories_by_name = {c.name, c for c in *Categories\find_all categories, "name" }
-    categories = [categories_by_name[name] for name in *categories]
+    categories_by_name = {c.name, c for c in *Categories\find_all categories, key: "name" }
+    categories = [categories_by_name[name] for name in *categories when categories_by_name[name]]
+
+    return nil, "missing categories" unless #categories == num_categories
 
     import tokenize_text from require "lapis.bayes.tokenizer"
 
