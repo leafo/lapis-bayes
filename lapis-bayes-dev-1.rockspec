@@ -22,6 +22,7 @@ build = {
     ["lapis.bayes"] = "lapis/bayes.lua",
     ["lapis.bayes.classifiers.base"] = "lapis/bayes/classifiers/base.lua",
     ["lapis.bayes.classifiers.bayes"] = "lapis/bayes/classifiers/bayes.lua",
+    ["lapis.bayes.classifiers.bayes_mod"] = "lapis/bayes/classifiers/bayes_mod.lua",
     ["lapis.bayes.classifiers.default"] = "lapis/bayes/classifiers/default.lua",
     ["lapis.bayes.classifiers.test"] = "lapis/bayes/classifiers/test.lua",
     ["lapis.bayes.migrations"] = "lapis/bayes/migrations.lua",

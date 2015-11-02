@@ -62,6 +62,10 @@ describe "lapis.bayes", ->
       res = assert TestClassifier({})\text_probabilities {"spam", "ham"}, "good game zone love them game at the beach"
       assert.same "ham", res[1][1]
 
+    it "classifies with bayes mod classifier #ddd", ->
+      BayesMod = require "lapis.bayes.classifiers.bayes_mod"
+      error BayesMod({})\text_probabilities {"spam", "ham"}, "good game zone love them game at the beach"
+
     for classification, texts in pairs {
       spam: {
         [[prom rolex watches for cheap sale]]
