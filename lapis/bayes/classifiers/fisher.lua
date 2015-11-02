@@ -10,7 +10,7 @@ inv_chi2 = function(chi, df)
   end
   return math.min(sum, 1)
 end
-local ChiClassifier
+local FisherClassifier
 do
   local _parent_0 = require("lapis.bayes.classifiers.base")
   local _base_0 = {
@@ -22,7 +22,8 @@ do
       a, b = categories[1], categories[2]
       local s = 1
       local x = 0.5
-      local mul = nil
+      local mul_a = nil
+      local mul_b = nil
       for _index_0 = 1, #available_words do
         local word = available_words[_index_0]
         local a_count = a.word_counts and a.word_counts[word] or 0
@@ -30,21 +31,25 @@ do
         local p = a_count / (a_count + b_count)
         local n = a_count + b_count
         local val = ((s * x) + (n * p)) / (s + n)
-        if mul then
-          mul = mul * val
+        if mul_a then
+          mul_a = mul_a * val
+          mul_b = mul_b * (1 - val)
         else
-          mul = val
+          mul_a = val
+          mul_b = 1 - val
         end
       end
-      local ph = inv_chi2(-2 * math.log(mul), 2 * (a.total_count + b.total_count))
+      local pa = inv_chi2(-2 * math.log(mul_a), 2 * #available_words)
+      local pb = inv_chi2(-2 * math.log(mul_b), 2 * #available_words)
+      local p = (1 + pa - pb) / 2
       local tuples = {
         {
           a.name,
-          ph
+          p
         },
         {
           b.name,
-          1 - ph
+          1 - p
         }
       }
       table.sort(tuples, function(a, b)
@@ -60,7 +65,7 @@ do
       return _parent_0.__init(self, ...)
     end,
     __base = _base_0,
-    __name = "ChiClassifier",
+    __name = "FisherClassifier",
     __parent = _parent_0
   }, {
     __index = function(cls, name)
@@ -81,6 +86,6 @@ do
   if _parent_0.__inherited then
     _parent_0.__inherited(_parent_0, _class_0)
   end
-  ChiClassifier = _class_0
+  FisherClassifier = _class_0
   return _class_0
 end

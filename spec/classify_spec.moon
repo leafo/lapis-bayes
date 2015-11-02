@@ -57,14 +57,22 @@ describe "lapis.bayes", ->
       }
         train_text c, text
 
-    it "classifies with test classifier", ->
-      TestClassifier = require "lapis.bayes.classifiers.test"
-      res = assert TestClassifier({})\text_probabilities {"spam", "ham"}, "good game zone love them game at the beach"
-      assert.same "ham", res[1][1]
 
-    it "classifies with bayes mod classifier #ddd", ->
-      BayesMod = require "lapis.bayes.classifiers.bayes_mod"
-      error BayesMod({})\text_probabilities {"spam", "ham"}, "good game zone love them game at the beach"
+    classifiers = {
+      "lapis.bayes.classifiers.test"
+      "lapis.bayes.classifiers.bayes"
+      "lapis.bayes.classifiers.bayes_mod"
+      "lapis.bayes.classifiers.fisher"
+    }
+
+    for cmod in *classifiers
+      it "classifies with #{cmod} #ddd", ->
+        C = require cmod
+        res = C!\text_probabilities {"spam", "ham"},
+          "good game zone love them game at the beach"
+
+        error res
+
 
     for classification, texts in pairs {
       spam: {
@@ -81,7 +89,7 @@ describe "lapis.bayes", ->
       for text in *texts
         categories = {"spam", "ham"}
 
-        it "classifies '#{text}' as '#{classification}' #ddd", ->
+        it "classifies '#{text}' as '#{classification}'", ->
           got = classify_text categories, text
           unless got == classification
             tokens = tokenize_text text

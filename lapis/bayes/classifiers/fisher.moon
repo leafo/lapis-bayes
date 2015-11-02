@@ -10,7 +10,7 @@ inv_chi2 = (chi, df) ->
 
   math.min sum, 1
 
-class ChiClassifier extends require "lapis.bayes.classifiers.base"
+class FisherClassifier extends require "lapis.bayes.classifiers.base"
   word_probabilities: (categories, available_words) =>
     return nil, "only two categories supported at once" unless #categories == 2
 
@@ -19,7 +19,8 @@ class ChiClassifier extends require "lapis.bayes.classifiers.base"
     s = 1
     x = 0.5
 
-    mul = nil
+    mul_a = nil
+    mul_b = nil
     for word in *available_words
       a_count = a.word_counts and a.word_counts[word] or 0
       b_count = b.word_counts and b.word_counts[word] or 0
@@ -28,17 +29,21 @@ class ChiClassifier extends require "lapis.bayes.classifiers.base"
       n = a_count + b_count
       val = ((s * x) + (n * p)) / (s + n)
 
-      if mul
-        mul *= val
+      if mul_a
+        mul_a *= val
+        mul_b *= 1 - val
       else
-        mul = val
+        mul_a = val
+        mul_b = 1 - val
 
+    pa = inv_chi2 -2 * math.log(mul_a), 2 * #available_words
+    pb = inv_chi2 -2 * math.log(mul_b), 2 * #available_words
 
-    ph = inv_chi2 -2 * math.log(mul), 2 * (a.total_count + b.total_count)
+    p = (1 + pa - pb) / 2
 
     tuples = {
-      {a.name, ph}
-      {b.name, 1 -ph}
+      {a.name, p}
+      {b.name, 1 - p}
     }
 
     table.sort tuples, (a,b) -> a[2] > b[2]
