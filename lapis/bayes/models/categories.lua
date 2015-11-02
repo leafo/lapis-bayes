@@ -83,7 +83,7 @@ do
       counts = encode_tuples(counts)
       db.query("\n      update " .. tostring(tbl) .. "\n      set count = " .. tostring(tbl) .. ".count + foo.count\n      from (" .. tostring(counts) .. ") foo(category_id, word, count)\n      where foo.category_id = " .. tostring(tbl) .. ".category_id and foo.word = " .. tostring(tbl) .. ".word\n    ")
       self:increment(total_count)
-      return words
+      return total_count
     end
   }
   _base_0.__index = _base_0

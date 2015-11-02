@@ -1,4 +1,5 @@
 DefaultClassifier = require "lapis.bayes.classifiers.default"
+error "fixme"
 
 average = (nums) ->
   sum = 0

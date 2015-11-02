@@ -1,4 +1,5 @@
 local DefaultClassifier = require("lapis.bayes.classifiers.default")
+error("fixme")
 local average
 average = function(nums)
   local sum = 0

@@ -75,5 +75,5 @@ class Categories extends Model
     "
 
     @increment total_count
-    words
+    total_count
 
