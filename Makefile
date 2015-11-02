@@ -7,6 +7,7 @@ local: build
 	luarocks make --local *-dev-1.rockspec
 
 build:
+	-rm $$(find lapis -type f | grep '\.lua$$')
 	moonc lapis
 	moonc *.moon
 

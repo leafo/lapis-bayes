@@ -1,5 +1,3 @@
-local DefaultClassifier = require("lapis.bayes.classifiers.default")
-error("fixme")
 local average
 average = function(nums)
   local sum = 0
@@ -31,47 +29,11 @@ weighted_avg = function(tuples)
   end
   return avg
 end
-local NewClassifier
+local TestClassifier
 do
-  local _parent_0 = DefaultClassifier
+  local _parent_0 = require("lapis.bayes.classifiers.base")
   local _base_0 = {
-    debug_probabilities = function(self, categories, text)
-      local available_words, words
-      categories, available_words, words = self:count_words(categories, text)
-      if not (categories) then
-        return nil, available_words
-      end
-      for _index_0 = 1, #categories do
-        local c = categories[_index_0]
-        local tuples
-        do
-          local _accum_0 = { }
-          local _len_0 = 1
-          for _index_1 = 1, #available_words do
-            local word = available_words[_index_1]
-            local cat_count = c.word_counts and c.word_counts[word] or 0
-            local _value_0 = {
-              word,
-              cat_count
-            }
-            _accum_0[_len_0] = _value_0
-            _len_0 = _len_0 + 1
-          end
-          tuples = _accum_0
-        end
-        local columnize
-        columnize = require("lapis.cmd.util").columnize
-        print()
-        print(tostring(c.name))
-        print(columnize(tuples))
-      end
-    end,
-    text_probabilities = function(self, categories, text)
-      local available_words, words
-      categories, available_words, words = self:count_words(categories, text)
-      if not (categories) then
-        return nil, available_words
-      end
+    word_probabilities = function(self, categories, available_words)
       local total_counts = { }
       for _index_0 = 1, #categories do
         local _continue_0 = false
@@ -126,13 +88,7 @@ do
       table.sort(probs, function(a, b)
         return a[2] > b[2]
       end)
-      for _index_0 = 1, #probs do
-        local _des_0 = probs[_index_0]
-        local c, p
-        c, p = _des_0[1], _des_0[2]
-        probs[c] = p
-      end
-      return probs, #available_words / #words
+      return probs
     end
   }
   _base_0.__index = _base_0
@@ -142,7 +98,7 @@ do
       return _parent_0.__init(self, ...)
     end,
     __base = _base_0,
-    __name = "NewClassifier",
+    __name = "TestClassifier",
     __parent = _parent_0
   }, {
     __index = function(cls, name)
@@ -163,6 +119,6 @@ do
   if _parent_0.__inherited then
     _parent_0.__inherited(_parent_0, _class_0)
   end
-  NewClassifier = _class_0
+  TestClassifier = _class_0
   return _class_0
 end

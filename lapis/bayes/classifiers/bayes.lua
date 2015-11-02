@@ -1,8 +1,8 @@
 local BayesClassifier
 do
-  local _parent_0 = require("bayes.classifiers.base")
+  local _parent_0 = require("lapis.bayes.classifiers.base")
   local _base_0 = {
-    text_probabilities = function(self, categories, available_words)
+    word_probabilities = function(self, categories, available_words)
       if not (#categories == 2) then
         return nil, "only two categories supported at once"
       end

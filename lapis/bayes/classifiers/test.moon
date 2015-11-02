@@ -1,6 +1,3 @@
-DefaultClassifier = require "lapis.bayes.classifiers.default"
-error "fixme"
-
 average = (nums) ->
   sum = 0
   for n in *nums
@@ -25,29 +22,8 @@ weighted_avg = (tuples) ->
 
   avg
 
-class NewClassifier extends DefaultClassifier
-  debug_probabilities: (categories, text) =>
-    categories, available_words, words = @count_words categories, text
-
-    unless categories
-      return nil, available_words
-
-    for c in *categories
-      tuples = for word in *available_words
-        cat_count = c.word_counts and c.word_counts[word] or 0
-        {word, cat_count}
-
-      import columnize from require "lapis.cmd.util"
-      print!
-      print "#{c.name}"
-      print columnize tuples
-
-  text_probabilities: (categories, text) =>
-    categories, available_words, words = @count_words categories, text
-
-    unless categories
-      return nil, available_words
-
+class TestClassifier extends require "lapis.bayes.classifiers.base"
+  word_probabilities: (categories, available_words) =>
     total_counts = {}
     for c in *categories
       continue unless c.word_counts
@@ -66,10 +42,6 @@ class NewClassifier extends DefaultClassifier
     table.sort probs, (a,b) ->
       a[2] > b[2]
 
-    -- also make probs available in hash
-    for {c, p} in *probs
-      probs[c] = p
-
-    probs, #available_words / #words
+    probs
 
 

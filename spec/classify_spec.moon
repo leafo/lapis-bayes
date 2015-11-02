@@ -57,6 +57,10 @@ describe "lapis.bayes", ->
       }
         train_text c, text
 
+    it "classifies with test classifier", ->
+      TestClassifier = require "lapis.bayes.classifiers.test"
+      res = assert TestClassifier({})\text_probabilities {"spam", "ham"}, "good game zone love them game at the beach"
+      assert.same "ham", res[1][1]
 
     for classification, texts in pairs {
       spam: {

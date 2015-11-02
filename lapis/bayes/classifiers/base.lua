@@ -1,7 +1,11 @@
 local BaseClassifier
 do
   local _base_0 = {
-    classify = function(self, category_names, text)
+    classify = function(self, ...)
+      local probs, err = self:text_probabilities(...)
+      return error("not yet")
+    end,
+    text_probabilities = function(self, category_names, text)
       local categories, err = self:find_categories(category_names)
       if not (categories) then
         return nil, err
@@ -17,10 +21,14 @@ do
       if not (words and next(words)) then
         return nil, "failed to generate tokens for text"
       end
-      local available_words = self:count_words(categories, words)
+      local available_words
+      available_words, err = self:count_words(categories, words)
+      if not (available_words) then
+        return nil, err
+      end
       local token_ratio = #available_words / #words
       local probs
-      probs, err = self:text_probabilities(categories, available_words)
+      probs, err = self:word_probabilities(categories, available_words)
       if not (probs) then
         return nil, err
       end
@@ -51,11 +59,10 @@ do
       do
         local _accum_0 = { }
         local _len_0 = 1
-        local _list_0 = categories
-        for _index_0 = 1, #_list_0 do
-          local name = _list_0[_index_0]
-          if categories_by_name[name] then
-            _accum_0[_len_0] = categories_by_name[name]
+        for _index_0 = 1, #category_names do
+          local n = category_names[_index_0]
+          if categories_by_name[n] then
+            _accum_0[_len_0] = categories_by_name[n]
             _len_0 = _len_0 + 1
           end
         end
