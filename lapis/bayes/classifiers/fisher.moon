@@ -19,8 +19,8 @@ class FisherClassifier extends require "lapis.bayes.classifiers.base"
     s = 1
     x = 0.5
 
-    mul_a = nil
-    mul_b = nil
+    mul_a = 0
+    mul_b = 0
     for word in *available_words
       a_count = a.word_counts and a.word_counts[word] or 0
       b_count = b.word_counts and b.word_counts[word] or 0
@@ -29,15 +29,11 @@ class FisherClassifier extends require "lapis.bayes.classifiers.base"
       n = a_count + b_count
       val = ((s * x) + (n * p)) / (s + n)
 
-      if mul_a
-        mul_a *= val
-        mul_b *= 1 - val
-      else
-        mul_a = val
-        mul_b = 1 - val
+      mul_a += math.log val
+      mul_b += math.log 1 - val
 
-    pa = inv_chi2 -2 * math.log(mul_a), 2 * #available_words
-    pb = inv_chi2 -2 * math.log(mul_b), 2 * #available_words
+    pa = inv_chi2 -2 * mul_a, 2 * #available_words
+    pb = inv_chi2 -2 * mul_b, 2 * #available_words
 
     p = (1 + pa - pb) / 2
 

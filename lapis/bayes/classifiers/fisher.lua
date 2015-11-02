@@ -22,8 +22,8 @@ do
       a, b = categories[1], categories[2]
       local s = 1
       local x = 0.5
-      local mul_a = nil
-      local mul_b = nil
+      local mul_a = 0
+      local mul_b = 0
       for _index_0 = 1, #available_words do
         local word = available_words[_index_0]
         local a_count = a.word_counts and a.word_counts[word] or 0
@@ -31,16 +31,11 @@ do
         local p = a_count / (a_count + b_count)
         local n = a_count + b_count
         local val = ((s * x) + (n * p)) / (s + n)
-        if mul_a then
-          mul_a = mul_a * val
-          mul_b = mul_b * (1 - val)
-        else
-          mul_a = val
-          mul_b = 1 - val
-        end
+        mul_a = mul_a + math.log(val)
+        mul_b = mul_b + math.log(1 - val)
       end
-      local pa = inv_chi2(-2 * math.log(mul_a), 2 * #available_words)
-      local pb = inv_chi2(-2 * math.log(mul_b), 2 * #available_words)
+      local pa = inv_chi2(-2 * mul_a, 2 * #available_words)
+      local pb = inv_chi2(-2 * mul_b, 2 * #available_words)
       local p = (1 + pa - pb) / 2
       local tuples = {
         {
