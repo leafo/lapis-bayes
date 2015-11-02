@@ -11,13 +11,18 @@ inv_chi2 = (chi, df) ->
   math.min sum, 1
 
 class FisherClassifier extends require "lapis.bayes.classifiers.base"
+  @default_options: {
+    robs: 1
+    robx: 0.5
+  }
+
   word_probabilities: (categories, available_words) =>
     return nil, "only two categories supported at once" unless #categories == 2
 
     {a, b} = categories
 
-    s = 1
-    x = 0.5
+    s = @opts.robs
+    x = @opts.robx
 
     mul_a = 0
     mul_b = 0

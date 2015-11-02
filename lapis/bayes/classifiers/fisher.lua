@@ -20,8 +20,8 @@ do
       end
       local a, b
       a, b = categories[1], categories[2]
-      local s = 1
-      local x = 0.5
+      local s = self.opts.robs
+      local x = self.opts.robx
       local mul_a = 0
       local mul_b = 0
       for _index_0 = 1, #available_words do
@@ -78,6 +78,11 @@ do
     end
   })
   _base_0.__class = _class_0
+  local self = _class_0
+  self.default_options = {
+    robs = 1,
+    robx = 0.5
+  }
   if _parent_0.__inherited then
     _parent_0.__inherited(_parent_0, _class_0)
   end
