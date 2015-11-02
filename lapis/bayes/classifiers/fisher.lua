@@ -22,8 +22,10 @@ do
       a, b = categories[1], categories[2]
       local s = self.opts.robs
       local x = self.opts.robx
+      local min_dev = self.opts.min_dev
       local mul_a = 0
       local mul_b = 0
+      local kept_tokens = 0
       for _index_0 = 1, #available_words do
         local word = available_words[_index_0]
         local a_count = a.word_counts and a.word_counts[word] or 0
@@ -31,11 +33,17 @@ do
         local p = a_count / (a_count + b_count)
         local n = a_count + b_count
         local val = ((s * x) + (n * p)) / (s + n)
-        mul_a = mul_a + math.log(val)
-        mul_b = mul_b + math.log(1 - val)
+        if not min_dev or math.abs(val - 0.5) > min_dev then
+          mul_a = mul_a + math.log(val)
+          mul_b = mul_b + math.log(1 - val)
+          kept_tokens = kept_tokens + 1
+        end
       end
-      local pa = inv_chi2(-2 * mul_a, 2 * #available_words)
-      local pb = inv_chi2(-2 * mul_b, 2 * #available_words)
+      if kept_tokens == 0 then
+        return nil, "not enough strong signals to decide"
+      end
+      local pa = inv_chi2(-2 * mul_a, 2 * kept_tokens)
+      local pb = inv_chi2(-2 * mul_b, 2 * kept_tokens)
       local p = (1 + pa - pb) / 2
       local tuples = {
         {
@@ -81,7 +89,8 @@ do
   local self = _class_0
   self.default_options = {
     robs = 1,
-    robx = 0.5
+    robx = 0.5,
+    min_dev = 0.3
   }
   if _parent_0.__inherited then
     _parent_0.__inherited(_parent_0, _class_0)
