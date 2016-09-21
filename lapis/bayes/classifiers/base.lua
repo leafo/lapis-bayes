@@ -1,5 +1,6 @@
 local BaseClassifier
 do
+  local _class_0
   local _base_0 = {
     classify = function(self, ...)
       local probs, err = self:text_probabilities(...)
@@ -169,7 +170,7 @@ do
     end
   }
   _base_0.__index = _base_0
-  local _class_0 = setmetatable({
+  _class_0 = setmetatable({
     __init = function(self, opts)
       if opts == nil then
         opts = { }

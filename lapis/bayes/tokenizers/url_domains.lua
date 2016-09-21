@@ -4,6 +4,7 @@ trim = function(str)
 end
 local UrlDomainsTokenizer
 do
+  local _class_0
   local _base_0 = {
     ignore_domain = function(self, domain)
       if not (self.opts and self.opts.ignore_domains) then
@@ -115,7 +116,7 @@ do
     end
   }
   _base_0.__index = _base_0
-  local _class_0 = setmetatable({
+  _class_0 = setmetatable({
     __init = function(self, opts)
       self.opts = opts
     end,
