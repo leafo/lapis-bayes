@@ -20,6 +20,13 @@ class Categories extends Model
   @find_or_create: (name) =>
     @find(:name) or @create(:name)
 
+  delete: =>
+    if super!
+      import WordClassifications from require "lapis.bayes.models"
+      db.delete WordClassifications\table_name!, {
+        category_id: @id
+      }
+
   increment: (amount) =>
     amount = assert tonumber(amount), "expecting number"
     @update {

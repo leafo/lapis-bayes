@@ -83,6 +83,14 @@ describe "lapis.bayes", ->
       assert.same 12, wc_by_name.height.count
       assert.same 8, wc_by_name.green.count
 
+    it "deletes category #ddd", ->
+      c = Categories\find_or_create "hello"
+      c\increment_words {
+        color: 23
+        height: 2
+      }
+      c\delete!
+
   describe "tokenize_text", ->
     import tokenize_text from require "lapis.bayes.tokenizer"
 

@@ -66,7 +66,7 @@ describe "lapis.bayes", ->
     }
 
     for cmod in *classifiers
-      it "classifies with #{cmod} #ddd", ->
+      it "classifies with #{cmod}", ->
         C = require cmod
         res = assert C!\text_probabilities {"spam", "ham"},
           "good game zone love them game at the beach"

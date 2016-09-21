@@ -9,6 +9,15 @@ do
   local _class_0
   local _parent_0 = Model
   local _base_0 = {
+    delete = function(self)
+      if _class_0.__parent.__base.delete(self) then
+        local WordClassifications
+        WordClassifications = require("lapis.bayes.models").WordClassifications
+        return db.delete(WordClassifications:table_name(), {
+          category_id = self.id
+        })
+      end
+    end,
     increment = function(self, amount)
       amount = assert(tonumber(amount), "expecting number")
       return self:update({
