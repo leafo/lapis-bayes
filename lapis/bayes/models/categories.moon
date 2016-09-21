@@ -2,6 +2,18 @@
 db = require "lapis.db"
 import Model, encode_tuples from require "lapis.bayes.model"
 
+-- Generated schema dump: (do not edit)
+--
+-- CREATE TABLE lapis_bayes_categories (
+--   id integer NOT NULL,
+--   name text NOT NULL,
+--   total_count integer DEFAULT 0 NOT NULL,
+--   created_at timestamp without time zone NOT NULL,
+--   updated_at timestamp without time zone NOT NULL
+-- );
+-- ALTER TABLE ONLY lapis_bayes_categories
+--   ADD CONSTRAINT lapis_bayes_categories_pkey PRIMARY KEY (id);
+--
 class Categories extends Model
   @timestamp: true
 

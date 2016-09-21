@@ -14,6 +14,16 @@ delete_and_return = =>
   else
     false
 
+-- Generated schema dump: (do not edit)
+--
+-- CREATE TABLE lapis_bayes_word_classifications (
+--   category_id integer NOT NULL,
+--   word text NOT NULL,
+--   count integer DEFAULT 0 NOT NULL
+-- );
+-- ALTER TABLE ONLY lapis_bayes_word_classifications
+--   ADD CONSTRAINT lapis_bayes_word_classifications_pkey PRIMARY KEY (category_id, word);
+--
 class WordClassifications extends Model
   @primary_key: {"category_id", "word"}
 
