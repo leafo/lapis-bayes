@@ -31,5 +31,7 @@ import prefix_table from require "lapis.bayes.model"
       "PRIMARY KEY (category_id, word)"
     }
 
+  [1474434614]: =>
+    create_index prefix_table("categories"), "name"
 }
 
