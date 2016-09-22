@@ -1,0 +1,30 @@
+language: c
+
+sudo: false
+
+addons:
+  postgresql: "9.3"
+
+env:
+  global:
+    - LUAROCKS=2.3.0
+  matrix:
+    - LUA=luajit2.1
+
+
+before_install:
+  - source .travis/setenv_lua.sh
+
+install:
+  - luarocks install busted
+  - luarocks install moonscript
+  - luarocks make
+
+script: 
+  - make test_db
+  - make migrate
+  - busted
+
+
+
+
