@@ -26,6 +26,7 @@ build = {
     ["lapis.bayes.classifiers.default"] = "lapis/bayes/classifiers/default.lua",
     ["lapis.bayes.classifiers.fisher"] = "lapis/bayes/classifiers/fisher.lua",
     ["lapis.bayes.classifiers.test"] = "lapis/bayes/classifiers/test.lua",
+    ["lapis.bayes.classifiers.weighted"] = "lapis/bayes/classifiers/weighted.lua",
     ["lapis.bayes.migrations"] = "lapis/bayes/migrations.lua",
     ["lapis.bayes.model"] = "lapis/bayes/model.lua",
     ["lapis.bayes.models"] = "lapis/bayes/models.lua",
