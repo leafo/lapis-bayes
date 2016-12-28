@@ -67,6 +67,24 @@ describe "lapis.bayes", ->
       assert.same 17, c1_count - c1.total_count
       assert.same 0, c2_count - c2.total_count
 
+    it "it increments an individual word", ->
+      wc = assert WordClassifications\find category_id: c1.id, word: "beta"
+
+      before_word_count = wc.count
+
+      wc\_increment 1
+      wc\refresh!
+      assert.same before_word_count + 1, wc.count
+
+    it "deletes word when being unincremented to 0", ->
+      wc = assert WordClassifications\find category_id: c1.id, word: "beta"
+      wc\_increment -wc.count
+
+      assert.nil (WordClassifications\find {
+        category_id: c1.id
+        word: "beta"
+      })
+
 
   describe "Categories", ->
     before_each ->

@@ -64,10 +64,18 @@ class WordClassifications extends Model
       true
 
 
-  increment: (amount) =>
+  -- note: this should not be called directly, use the associated method on the category model
+  _increment: (amount) =>
     amount = assert tonumber(amount), "expecting number"
-    @update {
+    res = unpack @update {
       count: db.raw "count + #{amount}"
-    }
+    }, "returning *"
+
+    if res.count == 0
+      db.delete @@table_name!, {
+        category_id: @category_id
+        word: @word
+        count: 0
+      }
 
 

@@ -60,7 +60,7 @@ class Categories extends Model
       category_id: @id
       :word
     }
-    w\increment count
+    w\_increment count
     @increment count
 
   increment_words: (counts) =>
