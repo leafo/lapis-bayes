@@ -17,6 +17,10 @@ import Model, encode_tuples from require "lapis.bayes.model"
 class Categories extends Model
   @timestamp: true
 
+  @relations: {
+    {"word_classifications", has_many: "WordClassifications"}
+  }
+
   @find_or_create: (name) =>
     @find(:name) or @create(:name)
 

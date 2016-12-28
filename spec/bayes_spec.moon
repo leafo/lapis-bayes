@@ -25,6 +25,21 @@ describe "lapis.bayes", ->
         triple: 27
       }
 
+    it "has the correct counts", ->
+      c1_words = {c.word, c.count for c in *c1\get_word_classifications!}
+      c2_words = {c.word, c.count for c in *c2\get_word_classifications!}
+
+      assert.same {
+        alpha: 17
+        beta: 19
+      }, c1_words
+
+      assert.same {
+        beta: 22
+        triple: 27
+      }, c2_words
+
+
     it "deletes word from category", ->
       c1_count = c1.total_count
       c2_count = c2.total_count

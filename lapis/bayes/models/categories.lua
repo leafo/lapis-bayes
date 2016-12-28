@@ -126,6 +126,12 @@ do
   _base_0.__class = _class_0
   local self = _class_0
   self.timestamp = true
+  self.relations = {
+    {
+      "word_classifications",
+      has_many = "WordClassifications"
+    }
+  }
   self.find_or_create = function(self, name)
     return self:find({
       name = name
