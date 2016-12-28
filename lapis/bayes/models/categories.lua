@@ -52,7 +52,7 @@ do
         category_id = self.id,
         word = word
       })
-      w:increment(count)
+      w:_increment(count)
       return self:increment(count)
     end,
     increment_words = function(self, counts)

@@ -85,6 +85,16 @@ describe "lapis.bayes", ->
         word: "beta"
       })
 
+    it "clears out words when decremeitng them", ->
+      words = c1\get_word_classifications!
+      for word in *words
+        c1\increment_word word.word, -word.count
+
+      assert.same 0, c1.total_count
+      c1\refresh!
+      assert.same {}, c1\get_word_classifications!
+
+
 
   describe "Categories", ->
     before_each ->

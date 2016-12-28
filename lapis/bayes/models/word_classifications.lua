@@ -30,20 +30,18 @@ do
         end
       end
     end,
-    increment = function(self, amount)
+    _increment = function(self, amount)
       amount = assert(tonumber(amount), "expecting number")
       local res = unpack(self:update({
         count = db.raw("count + " .. tostring(amount))
       }, "returning *"))
-      db.update(Categories:table_name(), {
-        total_count = db.raw(db.interpolate_query(" total_count + ?", deleted.count))
-      }, {
-        id = self.category_id
-      })
       if res.count == 0 then
-        local _ = nil
+        return db.delete(self.__class:table_name(), {
+          category_id = self.category_id,
+          word = self.word,
+          count = 0
+        })
       end
-      return db.query("update")
     end
   }
   _base_0.__index = _base_0
