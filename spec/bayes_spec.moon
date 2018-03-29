@@ -144,10 +144,10 @@ describe "lapis.bayes", ->
       assert.same {"hello", "world"}, tokenize_text "hello world"
 
     it "gets tokens with stems and no stop words", ->
-      assert.same {"eat", "burger"}, tokenize_text "i am eating burgers"
+      assert.same {"burger", "eat"}, tokenize_text "i am eating burgers"
 
-    it "gets tokens keeping dupes", ->
-      assert.same {"burger", "burger"}, tokenize_text "burgers are burgers"
+    it "doesn't keep dupes", ->
+      assert.same {"burger"}, tokenize_text "burgers are burgers"
 
     it "skips tokens that are too long or short", ->
       assert.same {"great"}, tokenize_text "a b c d e f g great eatingthebigriceball "
@@ -168,7 +168,14 @@ describe "lapis.bayes", ->
         tokenize_text "hello www.leafo.net website", :tokenizer
 
     it "splits on symbols with option", ->
-      assert.same {"wow", "super", "disgust", "buttz", "com", "power"},
+      assert.same {
+        "buttz"
+        "com"
+        "disgust"
+        "power"
+        "super"
+        "wow"
+      },
         tokenize_text "wow that was super-disgusting buttz.com power/up", symbols_split_tokens: true
 
     it "adds a custom prefilter", ->
@@ -200,7 +207,7 @@ describe "lapis.bayes", ->
       assert.same {
         { category_id: c.id, count: 1, word: "hello" }
         { category_id: c.id, count: 1, word: "love" }
-        { category_id: c.id, count: 2, word: "spam" }
+        { category_id: c.id, count: 1, word: "spam" }
       }, words
 
 
