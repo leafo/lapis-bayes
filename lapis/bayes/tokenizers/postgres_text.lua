@@ -47,6 +47,15 @@ do
         return _accum_0
       end)()
     end,
+    slow_pg_tokenize = function(self, text)
+      return db.query([[      select unnest(lexemes) as word
+      from ts_debug('english', ?);
+    ]], text)
+    end,
+    pg_tokenize = function(self, text)
+      return db.query([[      select unnest(tsvector_to_array(to_tsvector('english', ?))) as word
+    ]], text)
+    end,
     tokenize_text = function(self, text)
       local opts = self.opts
       local pre_filter = opts and opts.filter_text
@@ -61,9 +70,7 @@ do
       if opts and opts.symbols_split_tokens then
         text = text:gsub("[%!%@%#%$%%%^%&%*%(%)%[%]%{%}%|%\\%/%`%~%-%_%<%>%,%.]", " ")
       end
-      local res = db.query([[      select unnest(lexemes) as word
-      from ts_debug('english', ?);
-    ]], text)
+      local res = self:pg_tokenize(text)
       local tokens
       do
         local _accum_0 = { }

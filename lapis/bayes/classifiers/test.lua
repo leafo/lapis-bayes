@@ -45,8 +45,10 @@ do
             break
           end
           for word, count in pairs(c.word_counts) do
-            total_counts[word] = total_counts[word] or 0
-            total_counts[word] = total_counts[word] + count
+            local _update_0 = word
+            total_counts[_update_0] = total_counts[_update_0] or 0
+            local _update_1 = word
+            total_counts[_update_1] = total_counts[_update_1] + count
           end
           _continue_0 = true
         until true

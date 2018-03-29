@@ -38,8 +38,10 @@ do
       end
       for _index_0 = 1, #tokens do
         local word = tokens[_index_0]
-        words_by_counts[word] = words_by_counts[word] or 0
-        words_by_counts[word] = words_by_counts[word] + 1
+        local _update_0 = word
+        words_by_counts[_update_0] = words_by_counts[_update_0] or 0
+        local _update_1 = word
+        words_by_counts[_update_1] = words_by_counts[_update_1] + 1
         total_words = total_words + 1
       end
       self:increment_words(words_by_counts)
