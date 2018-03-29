@@ -31,19 +31,6 @@ class PostgresTextTokenizer
       continue if @opts and @opts.ignore_words and @opts.ignore_words[t]
       t
 
-  slow_pg_tokenize: (text) =>
-    -- this slower form will keep duplicate words
-    db.query [[
-      select unnest(lexemes) as word
-      from ts_debug('english', ?);
-    ]], text
-
-  pg_tokenize: (text) =>
-    -- much faster (50x), but loses duplicates
-    db.query [[
-      select unnest(tsvector_to_array(to_tsvector('english', ?))) as word
-    ]], text
-
   tokenize_text: (text) =>
     opts = @opts
     pre_filter = opts and opts.filter_text
@@ -58,7 +45,10 @@ class PostgresTextTokenizer
     if opts and opts.symbols_split_tokens
       text = text\gsub "[%!%@%#%$%%%^%&%*%(%)%[%]%{%}%|%\\%/%`%~%-%_%<%>%,%.]", " "
 
-    res = @pg_tokenize text
+    res = db.query [[
+      select unnest(lexemes) as word
+      from ts_debug('english', ?);
+    ]], text
 
     tokens = [r.word for r in *res]
     tokens = if opts and opts.filter_tokens
