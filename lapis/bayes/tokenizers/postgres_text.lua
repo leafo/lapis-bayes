@@ -70,7 +70,12 @@ do
       if opts and opts.symbols_split_tokens then
         text = text:gsub("[%!%@%#%$%%%^%&%*%(%)%[%]%{%}%|%\\%/%`%~%-%_%<%>%,%.]", " ")
       end
-      local res = self:pg_tokenize(text)
+      local res
+      if opts and opts.legacy_tokenizer then
+        res = self:slow_pg_tokenize(text)
+      else
+        res = self:pg_tokenize(text)
+      end
       local tokens
       do
         local _accum_0 = { }

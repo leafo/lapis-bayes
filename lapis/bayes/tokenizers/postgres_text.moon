@@ -39,7 +39,7 @@ class PostgresTextTokenizer
     ]], text
 
   pg_tokenize: (text) =>
-    -- much faster (50x), but loses duplicates
+    -- much faster (50x), but loses duplicates. Needs newer version of postgres
     db.query [[
       select unnest(tsvector_to_array(to_tsvector('english', ?))) as word
     ]], text
@@ -58,7 +58,10 @@ class PostgresTextTokenizer
     if opts and opts.symbols_split_tokens
       text = text\gsub "[%!%@%#%$%%%^%&%*%(%)%[%]%{%}%|%\\%/%`%~%-%_%<%>%,%.]", " "
 
-    res = @pg_tokenize text
+    res = if opts and opts.legacy_tokenizer
+      @slow_pg_tokenize text
+    else
+      @pg_tokenize text
 
     tokens = [r.word for r in *res]
     tokens = if opts and opts.filter_tokens
