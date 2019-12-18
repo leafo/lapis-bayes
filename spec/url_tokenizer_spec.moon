@@ -32,6 +32,11 @@ describe "lapis.bayes.tokenizer.url_tokenizer", ->
         "leafodad.com"
       }, tokenize_text "href='http://leafo.net&amp; ' http://google.com/p8sslord/da?what please help the good one www.leafodad.com yeah what the freak"
 
+    it "gets domain from iframe", ->
+      assert.same {
+        'youtube.com'
+      }, tokenize_text [[<iframe src="http://youtube.com/hello-world" frameborder="0"></iframe>]]
+
     it "ignore domains", ->
       tokens = UrlDomainsTokenizer({
         ignore_domains: {

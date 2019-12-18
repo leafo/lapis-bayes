@@ -100,7 +100,7 @@ do
       local raw_url = C(scheme * (P(1) - S(" \t\n")) ^ 1)
       local word = (alphanum + S("._-")) ^ 1
       local attr_value = C(word) + P('"') * C((1 - P('"')) ^ 0) * P('"') + P("'") * C((1 - P("'")) ^ 0) * P("'")
-      local href = case_insensitive("href") * space * P("=") * space * attr_value / function(v)
+      local href = (case_insensitive("href") + case_insensitive("src")) * space * P("=") * space * attr_value / function(v)
         return unescape_text:match(v) or ""
       end
       local simple = C(case_insensitive("www") * (P(".") * (1 - (S("./") + some_space)) ^ 1) ^ 1)

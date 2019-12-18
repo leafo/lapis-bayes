@@ -71,7 +71,7 @@ class UrlDomainsTokenizer
     word = (alphanum + S"._-")^1
     attr_value = C(word) + P'"' * C((1 - P'"')^0) * P'"' + P"'" * C((1 - P"'")^0) * P"'"
 
-    href = case_insensitive"href" * space * P"=" * space * attr_value / (v) -> unescape_text\match(v) or ""
+    href = (case_insensitive"href" + case_insensitive"src") * space * P"=" * space * attr_value / (v) -> unescape_text\match(v) or ""
 
     simple = C case_insensitive"www" * (P"." * (1 - (S"./" + some_space))^1)^1
 
