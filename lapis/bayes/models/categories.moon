@@ -38,12 +38,18 @@ class Categories extends Model
     }
 
   increment_text: (text, opts={}) =>
-    import tokenize_text from require "lapis.bayes.tokenizer"
-
     words_by_counts = {}
     total_words = 0
 
-    tokens = tokenize_text text, opts
+    tokens = switch type(text)
+      when "string"
+        import tokenize_text from require "lapis.bayes.tokenizer"
+        tokenize_text text, opts
+      when "table"
+        text -- array of tokens
+      else
+        error "unknown type for text: #{type text}"
+
     return 0 if #tokens == 0
 
     for word in *tokens

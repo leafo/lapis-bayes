@@ -28,11 +28,19 @@ do
       if opts == nil then
         opts = { }
       end
-      local tokenize_text
-      tokenize_text = require("lapis.bayes.tokenizer").tokenize_text
       local words_by_counts = { }
       local total_words = 0
-      local tokens = tokenize_text(text, opts)
+      local tokens
+      local _exp_0 = type(text)
+      if "string" == _exp_0 then
+        local tokenize_text
+        tokenize_text = require("lapis.bayes.tokenizer").tokenize_text
+        tokens = tokenize_text(text, opts)
+      elseif "table" == _exp_0 then
+        tokens = text
+      else
+        tokens = error("unknown type for text: " .. tostring(type(text)))
+      end
       if #tokens == 0 then
         return 0
       end
