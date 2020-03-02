@@ -68,23 +68,8 @@ do
     increment_words = function(self, counts)
       local WordClassifications
       WordClassifications = require("lapis.bayes.models").WordClassifications
-      local category_words
-      do
-        local _accum_0 = { }
-        local _len_0 = 1
-        for word in pairs(counts) do
-          _accum_0[_len_0] = {
-            self.id,
-            word
-          }
-          _len_0 = _len_0 + 1
-        end
-        category_words = _accum_0
-      end
-      category_words = encode_tuples(category_words)
-      local tbl = db.escape_identifier(WordClassifications:table_name())
-      db.query("\n      insert into " .. tostring(tbl) .. "\n      (category_id, word)\n      (\n        select * from (" .. tostring(category_words) .. ") foo(category_id, word)\n          where not exists(select 1 from " .. tostring(tbl) .. " as bar\n            where bar.word = foo.word and bar.category_id = foo.category_id)\n      )\n    ")
       local total_count = 0
+      local tuples
       do
         local _accum_0 = { }
         local _len_0 = 1
@@ -98,10 +83,13 @@ do
           _accum_0[_len_0] = _value_0
           _len_0 = _len_0 + 1
         end
-        counts = _accum_0
+        tuples = _accum_0
       end
-      counts = encode_tuples(counts)
-      db.query("\n      update " .. tostring(tbl) .. "\n      set count = " .. tostring(tbl) .. ".count + foo.count\n      from (" .. tostring(counts) .. ") foo(category_id, word, count)\n      where foo.category_id = " .. tostring(tbl) .. ".category_id and foo.word = " .. tostring(tbl) .. ".word\n    ")
+      if not (next(tuples)) then
+        return total_count
+      end
+      local tbl = db.escape_identifier(WordClassifications:table_name())
+      local res = db.query("\n    insert into " .. tostring(tbl) .. " (category_id, word, count) " .. tostring(encode_tuples(tuples)) .. "\n    on conflict (category_id, word) do update set count = " .. tostring(tbl) .. ".count + EXCLUDED.count\n    ")
       self:increment(total_count)
       return total_count
     end

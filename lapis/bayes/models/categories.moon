@@ -72,35 +72,19 @@ class Categories extends Model
   increment_words: (counts) =>
     import WordClassifications from require "lapis.bayes.models"
 
-    category_words = [{@id, word} for word in pairs counts]
-    category_words = encode_tuples category_words
-
-    tbl = db.escape_identifier WordClassifications\table_name!
-
-    -- insert
-    db.query "
-      insert into #{tbl}
-      (category_id, word)
-      (
-        select * from (#{category_words}) foo(category_id, word)
-          where not exists(select 1 from #{tbl} as bar
-            where bar.word = foo.word and bar.category_id = foo.category_id)
-      )
-    "
-
-    -- increment
     total_count = 0
-    counts =  for word, count in pairs counts
+    tuples = for word, count in pairs counts
       total_count += count
       {@id, word, count}
 
-    counts = encode_tuples counts
+    unless next tuples
+      return total_count
 
-    db.query "
-      update #{tbl}
-      set count = #{tbl}.count + foo.count
-      from (#{counts}) foo(category_id, word, count)
-      where foo.category_id = #{tbl}.category_id and foo.word = #{tbl}.word
+    tbl = db.escape_identifier WordClassifications\table_name!
+
+    res = db.query "
+    insert into #{tbl} (category_id, word, count) #{encode_tuples tuples}
+    on conflict (category_id, word) do update set count = #{tbl}.count + EXCLUDED.count
     "
 
     @increment total_count
