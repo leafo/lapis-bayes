@@ -100,34 +100,45 @@ Whenever a string is passed to any train or classify functions, it's passed thro
 * For training, the words are inserted directly into the database
 
 Tokenization is more complicated than just splitting the string by spaces, text
-can be normalized and and extraneous data can be stripped.
+can be normalized and extraneous data can be stripped.
 
-Sometimes, you may want to explicitly provide the words that are inserted and
-classified. You can bypass tokenization by passing an array of words in place
-of the string when classifying or training.
+Sometimes, you may want to explicitly provide the words for insertion and
+classification. You can bypass tokenization by passing an array of words in
+place of the string when calling any classify or train function.
 
-You can customizer the tokenizer by providing a `tokenize_text` option. This
+You can customize the tokenizer by providing a `tokenize_text` option. This
 should be a function that takes a single arugment, the string of text, and the
-return value is the tokens.
+return value is the tokens. For example:
+
+```lua
+local bayes = require("lapis.bayes")
+bayes.train_text("spam", "Cheap Prom Dresses 2014 - Buy discount Prom Dress", {
+  tokenize_text = function(text)
+    -- your custom tokenizer goes here
+    return {tok1, tok2, ...}
+  end
+})
+```
 
 ### Built-in tokenizers
 
-The default tokenizer used when no tokenizer is provided is the *Postgres Text* tokenizer.
+*Postgres Text* is the default tokenizer used when no tokenizer is provided.
 
 ####  Postgres Text
 
-Uses Postgres `tsvector` objects to normalize text. This will remove stop words
-and normalize capitalization and symbols, and convert words to lexemes.
+Uses Postgres `tsvector` objects to normalize text. This will remove stop
+words, normalize capitalization and symbols, and convert words to lexemes.
 Duplicates are removed.
 
 > Note: The characteristics of this tokenizer may not be appropriate for your
 > goals with spam detector: if you have very specific training data then
-> preserving symbols and capitalization and duplication would actually be
-> useful. This tokenizer tries to make spam text more general purpose to match wider range of text that might not have specific training.
+> preserving symbols, capitalization, and duplication would actually be useful.
+> This tokenizer tries to make spam text more general purpose to match wider
+> range of text that might not have specific training.
 
-This tokenizer requires an active connection to a Postgres database. It will
-issue queries when tokenizing. The tokenizer is uses a query that is specific
-to English:
+This tokenizer requires an active connection to a Postgres database (provided
+in the Lapis config). It will issue queries when tokenizing. The tokenizer is
+uses a query that is specific to English:
 
 
 ```sql
@@ -157,7 +168,6 @@ Tokenizer options:
 * `symbols_split_tokens`: split apart tokens that contain a symbol before tokenization, eg. `hello:world` goes to `hello world` (default `false`)
 * `filter_text`: custom pre-filter function to process incoming text, takes text as first argument, should return text (optional, default `nil`)
 * `filter_tokens`: custom post-filter function to process output tokens, takes token array, should return a token array (optional, default `nil`)
-
 
 ####  URL Domains
 
