@@ -92,6 +92,86 @@ The input text is normalized using the same tokenizer as the trainer: stop
 words are removed and stems are used. Only words that are available in at least
 one category are used for the classification.
 
+## Tokenization
+
+Whenever a string is passed to any train or classify functions, it's passed through the default tokenizer to turn the string into an array of *words*.
+
+* For classification, these words are used to check the database for existing probabilities
+* For training, the words are inserted directly into the database
+
+Tokenization is more complicated than just splitting the string by spaces, text
+can be normalized and and extraneous data can be stripped.
+
+Sometimes, you may want to explicitly provide the words that are inserted and
+classified. You can bypass tokenization by passing an array of words in place
+of the string when classifying or training.
+
+You can customizer the tokenizer by providing a `tokenize_text` option. This
+should be a function that takes a single arugment, the string of text, and the
+return value is the tokens.
+
+### Built-in tokenizers
+
+The default tokenizer used when no tokenizer is provided is the *Postgres Text* tokenizer.
+
+####  Postgres Text
+
+Uses Postgres `tsvector` objects to normalize text. This will remove stop words
+and normalize capitalization and symbols, and convert words to lexemes.
+Duplicates are removed.
+
+> Note: The characteristics of this tokenizer may not be appropriate for your
+> goals with spam detector: if you have very specific training data then
+> preserving symbols and capitalization and duplication would actually be
+> useful. This tokenizer tries to make spam text more general purpose to match wider range of text that might not have specific training.
+
+This tokenizer requires an active connection to a Postgres database. It will
+issue queries when tokenizing. The tokenizer is uses a query that is specific
+to English:
+
+
+```sql
+select unnest(tsvector_to_array(to_tsvector('english', 'my text here'))) as word
+```
+
+Example:
+
+
+```lua
+local Tokenizer = require "lapis.bayes.tokenizers.postgres_text"
+
+local t = Tokenizer(opts)
+
+local tokens = t:tokenize_text("Hello world This Is my tests example") --> {"exampl", "hello", "test", "world"}
+
+local tokens2 = t:tokenize_text([[
+  <div class='what is going on'>hello world<a href="http://leafo.net/hi.png">my image</a></div>
+]]) --> {"hello", "imag", "world"}
+```
+
+Tokenizer options:
+
+* `min_len`: minimum token length (default `2`)
+* `max_len`: maximum token length (default `2`), tokens that don't fulfill length requirements will be excluded, not truncated
+* `strip_numbers`: remove tokens that are numbers (default `true`)
+* `symbols_split_tokens`: split apart tokens that contain a symbol before tokenization, eg. `hello:world` goes to `hello world` (default `false`)
+* `filter_text`: custom pre-filter function to process incoming text, takes text as first argument, should return text (optional, default `nil`)
+* `filter_tokens`: custom post-filter function to process output tokens, takes token array, should return a token array (optional, default `nil`)
+
+
+####  URL Domains
+
+Extracts mentions of domains from the text text, all other text is ignored.
+
+```lua
+local Tokenizer = require "lapis.bayes.tokenizers.url_domains"
+
+local t = Tokenizer(opts)
+local tokens = t:tokenize_text([[
+  Please go to my https://leafo.net website <a href='itch.io'>hmm</a>
+]]) --> {"leafo.net", "itch.io"}
+```
+
 ## Schema
 
 `lapis-bayes` creates two tables:
