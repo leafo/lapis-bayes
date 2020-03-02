@@ -266,3 +266,24 @@ describe "lapis.bayes", ->
         {"spam", 5}
       }, probs
 
+  describe "models", ->
+    before_each ->
+      truncate_tables Categories, WordClassifications
+
+    it "increments text directly with array of words", ->
+      spam = Categories\create name: "spam"
+      spam\increment_text {
+        "first token"
+        "hello.world"
+        "http://leafo.net"
+        "hello.world"
+      }
+
+      words = [word.word for word in *WordClassifications\select!]
+
+      assert.same {
+        "first token"
+        "http://leafo.net"
+        "hello.world"
+      }, words
+
