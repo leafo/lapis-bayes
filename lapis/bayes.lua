@@ -4,6 +4,7 @@ do
   local _obj_0 = require("lapis.bayes.models")
   Categories, WordClassifications = _obj_0.Categories, _obj_0.WordClassifications
 end
+local VERSION = "1.0.0"
 local text_probabilities
 text_probabilities = function(categories, text, opts)
   if opts == nil then
@@ -28,5 +29,6 @@ end
 return {
   classify_text = classify_text,
   train_text = train_text,
-  text_probabilities = text_probabilities
+  text_probabilities = text_probabilities,
+  VERSION = VERSION
 }

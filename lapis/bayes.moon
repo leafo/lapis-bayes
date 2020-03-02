@@ -1,6 +1,8 @@
 db = require "lapis.db"
 import Categories, WordClassifications from require "lapis.bayes.models"
 
+VERSION = "1.0.0"
+
 text_probabilities = (categories, text, opts={}) ->
   DefaultClassifier = require "lapis.bayes.classifiers.default"
   DefaultClassifier(opts)\text_probabilities categories, text
@@ -16,4 +18,4 @@ train_text = (category, text, opts) ->
   category = Categories\find_or_create category
   category\increment_text text, opts
 
-{ :classify_text, :train_text, :text_probabilities}
+{ :classify_text, :train_text, :text_probabilities, :VERSION }
