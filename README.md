@@ -163,7 +163,7 @@ local tokens2 = t:tokenize_text([[
 Tokenizer options:
 
 * `min_len`: minimum token length (default `2`)
-* `max_len`: maximum token length (default `2`), tokens that don't fulfill length requirements will be excluded, not truncated
+* `max_len`: maximum token length (default `12`), tokens that don't fulfill length requirements will be excluded, not truncated
 * `strip_numbers`: remove tokens that are numbers (default `true`)
 * `symbols_split_tokens`: split apart tokens that contain a symbol before tokenization, eg. `hello:world` goes to `hello world` (default `false`)
 * `filter_text`: custom pre-filter function to process incoming text, takes text as first argument, should return text (optional, default `nil`)
