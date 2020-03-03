@@ -1,5 +1,4 @@
-
-trim = (str) -> tostring(str)\match "^%s*(.-)%s*$"
+import trim from require "lapis.util"
 
 class UrlDomainsTokenizer
   new: (@opts) =>

@@ -1,7 +1,5 @@
 local trim
-trim = function(str)
-  return tostring(str):match("^%s*(.-)%s*$")
-end
+trim = require("lapis.util").trim
 local UrlDomainsTokenizer
 do
   local _class_0
