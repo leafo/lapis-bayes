@@ -1,3 +1,5 @@
+import uniquify from require "lapis.util"
+
 class BaseClassifier
   new: (@opts={}) =>
     if @@default_options
@@ -86,6 +88,8 @@ class BaseClassifier
     import WordClassifications from require "lapis.bayes.models"
 
     categories_by_id = {c.id, c for c in *categories}
+
+    words = uniquify words
 
     wcs = WordClassifications\find_all words, {
       key: "word"

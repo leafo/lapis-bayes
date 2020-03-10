@@ -1,3 +1,5 @@
+local uniquify
+uniquify = require("lapis.util").uniquify
 local BaseClassifier
 do
   local _class_0
@@ -125,6 +127,7 @@ do
         end
         categories_by_id = _tbl_0
       end
+      words = uniquify(words)
       local wcs = WordClassifications:find_all(words, {
         key = "word",
         where = {
