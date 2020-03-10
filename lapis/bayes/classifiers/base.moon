@@ -53,7 +53,10 @@ class BaseClassifier
     import Categories from require "lapis.bayes.models"
     categories_by_name = {c.name, c for c in *Categories\find_all category_names, key: "name" }
     categories = [categories_by_name[n] for n in *category_names when categories_by_name[n]]
-    return nil, "missing categories" unless #categories == #category_names
+    unless #categories == #category_names
+      missing = [c for c in *category_names when not categories_by_name[c]]
+      return nil, "missing categories (#{table.concat missing, ", "})"
+
     categories
 
   -- reduce the set of available words by looking for polarizing words

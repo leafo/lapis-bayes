@@ -88,7 +88,20 @@ do
         categories = _accum_0
       end
       if not (#categories == #category_names) then
-        return nil, "missing categories"
+        local missing
+        do
+          local _accum_0 = { }
+          local _len_0 = 1
+          for _index_0 = 1, #category_names do
+            local c = category_names[_index_0]
+            if not categories_by_name[c] then
+              _accum_0[_len_0] = c
+              _len_0 = _len_0 + 1
+            end
+          end
+          missing = _accum_0
+        end
+        return nil, "missing categories (" .. tostring(table.concat(missing, ", ")) .. ")"
       end
       return categories
     end,
