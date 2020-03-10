@@ -29,7 +29,23 @@ do
       if not (available_words) then
         return nil, err
       end
-      local token_ratio = #available_words / #words
+      local available_words_set
+      do
+        local _tbl_0 = { }
+        for _index_0 = 1, #available_words do
+          local word = available_words[_index_0]
+          _tbl_0[word] = true
+        end
+        available_words_set = _tbl_0
+      end
+      local count = 0
+      for _index_0 = 1, #words do
+        local word = words[_index_0]
+        if available_words_set[word] then
+          count = count + 1
+        end
+      end
+      local token_ratio = count / #words
       local probs
       probs, err = self:word_probabilities(categories, available_words)
       if not (probs) then

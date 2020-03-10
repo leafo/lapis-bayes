@@ -31,7 +31,12 @@ class BaseClassifier
     unless available_words
       return nil, err
 
-    token_ratio = #available_words / #words
+    available_words_set = {word, true for word in *available_words}
+    count = 0
+    for word in *words
+      count +=1 if available_words_set[word]
+
+    token_ratio = count / #words
 
     probs, err = @word_probabilities categories, available_words
     unless probs
