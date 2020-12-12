@@ -15,6 +15,7 @@ jobs:
 
     steps:
     - name: postgres
+      shell: bash
       run: |
         psql -V
         su postgres -c 'echo "local all all   trust" >> /etc/postgresql/13/main/pg_hba.conf'
