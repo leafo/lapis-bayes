@@ -14,7 +14,7 @@ jobs:
     #     options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
-    - name: postgres
+    - name: postgres start
       run: |
         mkdir _postgres
         /usr/lib/postgresql/13/bin/initdb --locale en_US.UTF-8 -E UTF8 -D ./_postgres/
@@ -26,23 +26,27 @@ jobs:
 
     - uses: actions/checkout@master
 
-    - uses: leafo/gh-actions-lua@master
-      with:
-        luaVersion: "luajit-openresty"
-
-    - uses: leafo/gh-actions-luarocks@master
-
-    - name: build
-      run: |
-        luarocks install busted
-        luarocks install moonscript
-        luarocks make
-
-    - name: test
+    - name: postgres setup
       run: |
         make test_db
-        make migrate
-        busted # -o utfTerminal
+
+    # - uses: leafo/gh-actions-lua@master
+    #   with:
+    #     luaVersion: "luajit-openresty"
+
+    # - uses: leafo/gh-actions-luarocks@master
+
+    # - name: build
+    #   run: |
+    #     luarocks install busted
+    #     luarocks install moonscript
+    #     luarocks make
+
+    # - name: test
+    #   run: |
+    #     make test_db
+    #     make migrate
+    #     busted # -o utfTerminal
 
 
 
