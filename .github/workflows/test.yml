@@ -16,8 +16,7 @@ jobs:
     steps:
     - name: postgres
       run: |
-        dpkg-query -L postgresql
-        postgres -V
+        psql -VF
         echo "fsync = off" >> /var/lib/postgres/data/postgresql.conf
         echo "synchronous_commit = off" >> /var/lib/postgres/data/postgresql.conf
         echo "full_page_writes = off" >> /var/lib/postgres/data/postgresql.conf
@@ -30,7 +29,6 @@ jobs:
         luaVersion: "luajit-openresty"
 
     - uses: leafo/gh-actions-luarocks@master
-
 
     - name: build
       run: |
