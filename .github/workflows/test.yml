@@ -16,14 +16,19 @@ jobs:
     steps:
     - name: postgres
       run: |
-        sudo -u postgres sh -c 'echo "local all all   trust" >> /etc/postgresql/13/main/pg_hba.conf'
-        sudo -u postgres sh -c 'echo "host all all 127.0.0.1/32 trust" >> /etc/postgresql/13/main/pg_hba.conf'
-        sudo -u postgres sh -c 'echo "fsync = off" >> /etc/postgresql/13/main/postgresql.conf'
-        sudo -u postgres sh -c 'echo "synchronous_commit = off" >> /etc/postgresql/13/main/postgresql.conf'
-        sudo -u postgres sh -c 'echo "full_page_writes = off" >> /etc/postgresql/13/main/postgresql.conf'
-        sudo -u postgres sh -c 'cp /etc/postgresql/13/main/postgresql.conf /var/lib/postgresql/13/main'
-        sudo -u postgres sh -c 'cp /etc/postgresql/13/main/pg_hba.conf /var/lib/postgresql/13/main'
-        sudo -u postgres sh -c '/usr/lib/postgresql/13/bin/pg_ctl -s -D /var/lib/postgresql/13/main start -w -t 120'
+        mkdir _postgres
+        pwd
+        /usr/lib/postgresql/13/bin/initdb -D ./_postgres/
+
+        # '/usr/lib/postgresql/13/bin/pg_ctl -s -D /var/lib/postgresql/13/main start -w -t 120'
+        # sudo -u postgres sh -c 'echo "local all all   trust" >> /etc/postgresql/13/main/pg_hba.conf'
+        # sudo -u postgres sh -c 'echo "host all all 127.0.0.1/32 trust" >> /etc/postgresql/13/main/pg_hba.conf'
+        # sudo -u postgres sh -c 'echo "fsync = off" >> /etc/postgresql/13/main/postgresql.conf'
+        # sudo -u postgres sh -c 'echo "synchronous_commit = off" >> /etc/postgresql/13/main/postgresql.conf'
+        # sudo -u postgres sh -c 'echo "full_page_writes = off" >> /etc/postgresql/13/main/postgresql.conf'
+        # sudo -u postgres sh -c 'cp /etc/postgresql/13/main/postgresql.conf /var/lib/postgresql/13/main'
+        # sudo -u postgres sh -c 'cp /etc/postgresql/13/main/pg_hba.conf /var/lib/postgresql/13/main'
+        # sudo -u postgres sh -c '/usr/lib/postgresql/13/bin/pg_ctl -s -D /var/lib/postgresql/13/main start -w -t 120'
 
     - uses: actions/checkout@master
 
