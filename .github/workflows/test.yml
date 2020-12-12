@@ -35,22 +35,7 @@ jobs:
         sudo chown 'runner:runner' /var/run/postgresql
         /usr/lib/postgresql/13/bin/pg_ctl -s -D ./_postgres/ start -w -t 120
         createuser -s -d 'postgres'
-        psql -U postgres -c 'select 1'
+        # the original test block
         make test_db
         make migrate
-        busted # -o utfTerminal
-
-    # - name: build
-    #   run: |
-    #     luarocks install busted
-    #     luarocks install moonscript
-    #     luarocks make
-
-    # - name: test
-    #   run: |
-    #     make test_db
-    #     make migrate
-    #     busted # -o utfTerminal
-
-
-
+        busted -o utfTerminal
