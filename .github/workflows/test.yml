@@ -14,6 +14,20 @@ jobs:
     #     options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
+
+    - uses: actions/checkout@master
+    - uses: leafo/gh-actions-lua@master
+      with:
+        luaVersion: "luajit-openresty"
+
+    - uses: leafo/gh-actions-luarocks@master
+
+    - name: build
+      run: |
+        luarocks install busted
+        luarocks install moonscript
+        luarocks make
+
     - name: postgres start
       run: |
         mkdir _postgres
@@ -22,19 +36,9 @@ jobs:
         /usr/lib/postgresql/13/bin/pg_ctl -s -D ./_postgres/ start -w -t 120
         createuser -s -d 'postgres'
         psql -U postgres -c 'select 1'
-        createdb -U postgres lapis_bayes
-
-    - uses: actions/checkout@master
-
-    - name: postgres setup
-      run: |
         make test_db
-
-    # - uses: leafo/gh-actions-lua@master
-    #   with:
-    #     luaVersion: "luajit-openresty"
-
-    # - uses: leafo/gh-actions-luarocks@master
+        make migrate
+        busted # -o utfTerminal
 
     # - name: build
     #   run: |
