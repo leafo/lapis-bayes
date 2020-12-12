@@ -17,6 +17,7 @@ jobs:
     - name: postgres
       run: |
         psql -V
+        ls -lah /etc/postgresql/13/main/
         echo 'local all all   trust' > /etc/postgresql/13/main/pg_hba.conf
         echo 'host all all 127.0.0.1/32 trust' >> /etc/postgresql/13/main/pg_hba.conf
         chown 'postgres:postgres' /etc/postgresql/13/main/pg_hba.conf
