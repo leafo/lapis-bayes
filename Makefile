@@ -12,8 +12,8 @@ build:
 	moonc *.moon
 
 test_db:
-	-dropdb -U postgres lapis_bayes
-	createdb -U postgres lapis_bayes
+	-dropdb -U postgres -h localhost lapis_bayes
+	createdb -U postgres -h localhost lapis_bayes
 
 lint::
 	moonc lint_config.moon
