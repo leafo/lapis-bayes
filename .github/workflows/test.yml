@@ -1,0 +1,35 @@
+name: "test"
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres
+
+    steps:
+    - uses: actions/checkout@master
+
+    - uses: leafo/gh-actions-lua@master
+      with:
+        luaVersion: "luajit-openresty"
+
+    - uses: leafo/gh-actions-luarocks@master
+
+    - name: build
+      run: |
+        luarocks install busted
+        luarocks install moonscript
+        luarocks make
+
+    - name: test
+      run: |
+        make test_db
+        make migrate
+        busted # -o utfTerminal
+
+
+
