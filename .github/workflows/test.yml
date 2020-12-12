@@ -24,7 +24,7 @@ jobs:
 
     - name: postgres
       run: |
-        dpkg-query -L postgres
+        dpkg-query -L postgresql
         postgres -V
         echo "fsync = off" >> /var/lib/postgres/data/postgresql.conf
         echo "synchronous_commit = off" >> /var/lib/postgres/data/postgresql.conf
