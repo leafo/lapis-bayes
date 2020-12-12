@@ -20,6 +20,7 @@ jobs:
         /usr/lib/postgresql/13/bin/initdb -D ./_postgres/
         sudo chown 'runner:runner' /var/run/postgresql
         /usr/lib/postgresql/13/bin/pg_ctl -s -D ./_postgres/ start -w -t 120
+        psql -c 'select 1'
 
         # '/usr/lib/postgresql/13/bin/pg_ctl -s -D /var/lib/postgresql/13/main start -w -t 120'
         # sudo -u postgres sh -c 'echo "local all all   trust" >> /etc/postgresql/13/main/pg_hba.conf'
