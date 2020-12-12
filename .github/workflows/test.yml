@@ -17,14 +17,11 @@ jobs:
     - name: postgres
       run: |
         psql -V
-        whoami
-        ls -lah /etc/postgresql/13/main/
-        echo 'local all all   trust' >> /etc/postgresql/13/main/pg_hba.conf
-        echo 'host all all 127.0.0.1/32 trust' >> /etc/postgresql/13/main/pg_hba.conf
-        # chown 'postgres:postgres' /etc/postgresql/13/main/pg_hba.conf
-        echo "fsync = off" >> /etc/postgresql/13/main/postgresql.conf
-        echo "synchronous_commit = off" >> /etc/postgresql/13/main/postgresql.conf
-        echo "full_page_writes = off" >> /etc/postgresql/13/main/postgresql.conf
+        su postgres -c 'echo "local all all   trust" >> /etc/postgresql/13/main/pg_hba.conf'
+        su postgres -c 'echo "host all all 127.0.0.1/32 trust" >> /etc/postgresql/13/main/pg_hba.conf'
+        su postgres -c 'echo "fsync = off" >> /etc/postgresql/13/main/postgresql.conf'
+        su postgres -c 'echo "synchronous_commit = off" >> /etc/postgresql/13/main/postgresql.conf'
+        su postgres -c 'echo "full_page_writes = off" >> /etc/postgresql/13/main/postgresql.conf'
         su postgres -c '/usr/lib/postgresql/13/bin/pg_ctl -s -D /var/lib/postgresql/13/main start -w -t 120'
 
     - uses: actions/checkout@master
