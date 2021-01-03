@@ -6,6 +6,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGHOST: 127.0.0.1
+
     services:
       postgres:
         image: postgres
@@ -29,8 +34,8 @@ jobs:
 
     - name: setup db
       run: |
-        PGUSER=postgres PGPASSWORD=postgres psql -c 'create database lapis_bayes'
-        PGUSER=postgres PGPASSWORD=postgres lapis migrate
+        psql -c 'create database lapis_bayes'
+        lapis migrate
 
     - name: test
       run: |
