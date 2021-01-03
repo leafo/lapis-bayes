@@ -37,6 +37,7 @@ jobs:
     - name: setup db
       run: |
         psql -c 'create database lapis_bayes'
+        moonc *.moon
         lapis migrate
 
     - name: test
