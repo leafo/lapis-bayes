@@ -126,7 +126,7 @@ describe "lapis.bayes", ->
       assert.same 12, wc_by_name.height.count
       assert.same 8, wc_by_name.green.count
 
-    it "deletes category #ddd", ->
+    it "deletes category", ->
       c = Categories\find_or_create "hello"
       c\increment_words {
         color: 23
@@ -279,11 +279,11 @@ describe "lapis.bayes", ->
         "hello.world"
       }
 
-      words = [word.word for word in *WordClassifications\select!]
+      words = [word.word for word in *WordClassifications\select "order by word asc"]
 
       assert.same {
         "first token"
-        "http://leafo.net"
         "hello.world"
+        "http://leafo.net"
       }, words
 
