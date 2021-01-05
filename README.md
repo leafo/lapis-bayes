@@ -1,6 +1,6 @@
 # lapis-bayes
 
-[![Build Status](https://travis-ci.org/leafo/lapis-bayes.svg?branch=master)](https://travis-ci.org/leafo/lapis-bayes)
+![test](https://github.com/leafo/lapis-bayes/workflows/test/badge.svg)
 
 `lapis-bayes` is a [Naive Bayes
 classifier](https://en.wikipedia.org/wiki/Naive_Bayes_classifier) for use in
