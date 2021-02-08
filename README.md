@@ -14,7 +14,7 @@ data.
 ## Install
 
 ```bash
-$ luarocks install --server=http://luarocks.org/dev lapis-bayes
+$ luarocks install lapis-bayes
 ```
 
 ## Quick start
