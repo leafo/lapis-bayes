@@ -1,7 +1,7 @@
 db = require "lapis.db"
 import Categories, WordClassifications from require "lapis.bayes.models"
 
-VERSION = "1.0.1"
+VERSION = "1.1.0"
 
 text_probabilities = (categories, text, opts={}) ->
   DefaultClassifier = require "lapis.bayes.classifiers.default"
