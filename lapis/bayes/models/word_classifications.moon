@@ -2,18 +2,6 @@
 db = require "lapis.db"
 import Model from require "lapis.bayes.model"
 
-delete_and_return = =>
-  res = db.query "
-    delete from #{db.escape_identifier @@table_name!}
-    where #{db.encode_clause @_primary_cond!}
-    returning *
-  "
-
-  if res.affected_rows and res.affected_rows > 0
-    @@load unpack res
-  else
-    false
-
 -- Generated schema dump: (do not edit)
 --
 -- CREATE TABLE lapis_bayes_word_classifications (
@@ -54,24 +42,29 @@ class WordClassifications extends Model
     count > 0, count
 
   delete: =>
-    if deleted = delete_and_return @
+    deleted, res = super db.raw "*"
+
+    if deleted
+      removed_row = @@load (unpack res)
+
       import Categories from require "lapis.bayes.models"
       db.update Categories\table_name!, {
-        total_count: db.raw db.interpolate_query " total_count - ?", deleted.count
+        total_count: db.raw db.interpolate_query " total_count - ?", removed_row.count
       }, {
         id: @category_id
       }
+
       true
 
 
   -- note: this should not be called directly, use the associated method on the category model
   _increment: (amount) =>
     amount = assert tonumber(amount), "expecting number"
-    res = unpack @update {
+    @update {
       count: db.raw "count + #{amount}"
-    }, "returning *"
+    }
 
-    if res.count == 0
+    if @count == 0
       db.delete @@table_name!, {
         category_id: @category_id
         word: @word

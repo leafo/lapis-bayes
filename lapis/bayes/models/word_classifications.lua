@@ -1,41 +1,31 @@
 local db = require("lapis.db")
 local Model
 Model = require("lapis.bayes.model").Model
-local delete_and_return
-delete_and_return = function(self)
-  local res = db.query("\n    delete from " .. tostring(db.escape_identifier(self.__class:table_name())) .. "\n    where " .. tostring(db.encode_clause(self:_primary_cond())) .. "\n    returning *\n  ")
-  if res.affected_rows and res.affected_rows > 0 then
-    return self.__class:load(unpack(res))
-  else
-    return false
-  end
-end
 local WordClassifications
 do
   local _class_0
   local _parent_0 = Model
   local _base_0 = {
     delete = function(self)
-      do
-        local deleted = delete_and_return(self)
-        if deleted then
-          local Categories
-          Categories = require("lapis.bayes.models").Categories
-          db.update(Categories:table_name(), {
-            total_count = db.raw(db.interpolate_query(" total_count - ?", deleted.count))
-          }, {
-            id = self.category_id
-          })
-          return true
-        end
+      local deleted, res = _class_0.__parent.__base.delete(self, db.raw("*"))
+      if deleted then
+        local removed_row = self.__class:load((unpack(res)))
+        local Categories
+        Categories = require("lapis.bayes.models").Categories
+        db.update(Categories:table_name(), {
+          total_count = db.raw(db.interpolate_query(" total_count - ?", removed_row.count))
+        }, {
+          id = self.category_id
+        })
+        return true
       end
     end,
     _increment = function(self, amount)
       amount = assert(tonumber(amount), "expecting number")
-      local res = unpack(self:update({
+      self:update({
         count = db.raw("count + " .. tostring(amount))
-      }, "returning *"))
-      if res.count == 0 then
+      })
+      if self.count == 0 then
         return db.delete(self.__class:table_name(), {
           category_id = self.category_id,
           word = self.word,

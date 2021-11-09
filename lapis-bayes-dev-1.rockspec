@@ -13,7 +13,7 @@ description = {
 
 dependencies = {
   "lua == 5.1",
-  "lapis"
+  "lapis >= 1.8.2"
 }
 
 build = {
