@@ -48,16 +48,31 @@ class BaseClassifier
 
     probs, token_ratio
 
-  -- find category objects for category names
+  -- query the category objects by category name
+  -- returns an array of category records in the same order as the input
   find_categories: (category_names) =>
     import Categories from require "lapis.bayes.models"
-    categories_by_name = {c.name, c for c in *Categories\find_all category_names, key: "name" }
-    categories = [categories_by_name[n] for n in *category_names when categories_by_name[n]]
-    unless #categories == #category_names
-      missing = [c for c in *category_names when not categories_by_name[c]]
-      return nil, "missing categories (#{table.concat missing, ", "})"
+    db = Categories.db
 
-    categories
+    categories = Categories\select "where name in ?", db.list category_names
+    by_name = {c.name, c for c in *categories}
+
+    local missing
+
+    result = for name in *category_names
+      c = by_name[name]
+
+      unless c
+        missing or= {}
+        table.insert missing, name
+        continue
+
+      c
+
+    if missing and next missing
+      return nil, "find_categories: missing categories (#{table.concat missing, ", "})"
+
+    result
 
   -- reduce the set of available words by looking for polarizing words
   -- categories: array of category objects

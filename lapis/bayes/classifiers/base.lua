@@ -62,48 +62,48 @@ do
     find_categories = function(self, category_names)
       local Categories
       Categories = require("lapis.bayes.models").Categories
-      local categories_by_name
+      local db = Categories.db
+      local categories = Categories:select("where name in ?", db.list(category_names))
+      local by_name
       do
         local _tbl_0 = { }
-        local _list_0 = Categories:find_all(category_names, {
-          key = "name"
-        })
-        for _index_0 = 1, #_list_0 do
-          local c = _list_0[_index_0]
+        for _index_0 = 1, #categories do
+          local c = categories[_index_0]
           _tbl_0[c.name] = c
         end
-        categories_by_name = _tbl_0
+        by_name = _tbl_0
       end
-      local categories
+      local missing
+      local result
       do
         local _accum_0 = { }
         local _len_0 = 1
         for _index_0 = 1, #category_names do
-          local n = category_names[_index_0]
-          if categories_by_name[n] then
-            _accum_0[_len_0] = categories_by_name[n]
-            _len_0 = _len_0 + 1
-          end
-        end
-        categories = _accum_0
-      end
-      if not (#categories == #category_names) then
-        local missing
-        do
-          local _accum_0 = { }
-          local _len_0 = 1
-          for _index_0 = 1, #category_names do
-            local c = category_names[_index_0]
-            if not categories_by_name[c] then
-              _accum_0[_len_0] = c
-              _len_0 = _len_0 + 1
+          local _continue_0 = false
+          repeat
+            local name = category_names[_index_0]
+            local c = by_name[name]
+            if not (c) then
+              missing = missing or { }
+              table.insert(missing, name)
+              _continue_0 = true
+              break
             end
+            local _value_0 = c
+            _accum_0[_len_0] = _value_0
+            _len_0 = _len_0 + 1
+            _continue_0 = true
+          until true
+          if not _continue_0 then
+            break
           end
-          missing = _accum_0
         end
-        return nil, "missing categories (" .. tostring(table.concat(missing, ", ")) .. ")"
+        result = _accum_0
       end
-      return categories
+      if missing and next(missing) then
+        return nil, "find_categories: missing categories (" .. tostring(table.concat(missing, ", ")) .. ")"
+      end
+      return result
     end,
     candidate_words = function(self, categories, available_words, count)
       if #available_words <= count then
