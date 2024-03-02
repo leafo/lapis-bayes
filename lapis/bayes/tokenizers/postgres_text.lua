@@ -48,13 +48,11 @@ do
       end)()
     end,
     slow_pg_tokenize = function(self, text)
-      return db.query([[      select unnest(lexemes) as word
-      from ts_debug('english', ?);
-    ]], text)
+      return db.query([[SELECT unnest(lexemes) AS word FROM ts_debug('english', ?)]], text)
     end,
     pg_tokenize = function(self, text)
-      return db.query([[      select unnest(tsvector_to_array(to_tsvector('english', ?))) as word
-    ]], text)
+      local regconfig = opts and self.opts.regconfig or "english"
+      return db.query([[SELECT unnest(tsvector_to_array(to_tsvector(?, ?))) AS word]], regconfig, text)
     end,
     tokenize_text = function(self, text)
       local opts = self.opts

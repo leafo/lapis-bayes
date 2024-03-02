@@ -4,23 +4,40 @@ local BaseClassifier
 do
   local _class_0
   local _base_0 = {
-    classify = function(self, ...)
-      local probs, err = self:text_probabilities(...)
-      return error("not yet")
+    default_tokenizer = "lapis.bayes.tokenizers.postgres_text",
+    word_probabilities = function(self, categories, words)
+      return error("word_probabilities: subclass must implement")
+    end,
+    classify_text = function(self, ...)
+      local counts, word_rate_or_err = self:text_probabilities(...)
+      if not (counts) then
+        return nil, word_rate_or_err
+      end
+      return counts[1][1], counts[1][2], word_rate_or_err
+    end,
+    tokenize_text = function(self, text)
+      assert(text, "missing text to tokenize")
+      if not (type(text) == "string") then
+        return text
+      end
+      if self.opts.tokenize_text then
+        return self.opts.tokenize_text(text, self.opts)
+      end
+      local tokenizer
+      if self.opts.tokenizer then
+        tokenizer = self.opts.tokenizer
+      else
+        local Tokenizer = require(self.default_tokenizer)
+        tokenizer = Tokenizer(self.opts)
+      end
+      return tokenizer:tokenize_text(text)
     end,
     text_probabilities = function(self, category_names, text)
       local categories, err = self:find_categories(category_names)
       if not (categories) then
         return nil, err
       end
-      local words
-      if type(text) == "string" then
-        local tokenize_text
-        tokenize_text = require("lapis.bayes.tokenizer").tokenize_text
-        words = tokenize_text(text, self.opts)
-      else
-        words = text
-      end
+      local words = self:tokenize_text(text)
       if not (words and next(words)) then
         return nil, "failed to generate tokens for text"
       end

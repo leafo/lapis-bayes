@@ -28,32 +28,7 @@ do
       if opts == nil then
         opts = { }
       end
-      local words_by_counts = { }
-      local total_words = 0
-      local tokens
-      local _exp_0 = type(text)
-      if "string" == _exp_0 then
-        local tokenize_text
-        tokenize_text = require("lapis.bayes.tokenizer").tokenize_text
-        tokens = tokenize_text(text, opts)
-      elseif "table" == _exp_0 then
-        tokens = text
-      else
-        tokens = error("unknown type for text: " .. tostring(type(text)))
-      end
-      if #tokens == 0 then
-        return 0
-      end
-      for _index_0 = 1, #tokens do
-        local word = tokens[_index_0]
-        local _update_0 = word
-        words_by_counts[_update_0] = words_by_counts[_update_0] or 0
-        local _update_1 = word
-        words_by_counts[_update_1] = words_by_counts[_update_1] + 1
-        total_words = total_words + 1
-      end
-      self:increment_words(words_by_counts)
-      return total_words
+      return error("This method has been removed, use increment_words instead")
     end,
     increment_word = function(self, word, count)
       local WordClassifications
@@ -66,14 +41,28 @@ do
       return self:increment(count)
     end,
     increment_words = function(self, counts)
-      local WordClassifications
-      WordClassifications = require("lapis.bayes.models").WordClassifications
+      if not (counts) then
+        return nil, "missing counts"
+      end
+      local merged_counts = { }
+      for k, v in pairs(counts) do
+        local word, count
+        if type(k) == "string" then
+          word, count = k, v
+        else
+          word, count = v, 1
+        end
+        local _update_0 = word
+        merged_counts[_update_0] = merged_counts[_update_0] or 0
+        local _update_1 = word
+        merged_counts[_update_1] = merged_counts[_update_1] + count
+      end
       local total_count = 0
       local tuples
       do
         local _accum_0 = { }
         local _len_0 = 1
-        for word, count in pairs(counts) do
+        for word, count in pairs(merged_counts) do
           total_count = total_count + count
           local _value_0 = {
             self.id,
@@ -88,8 +77,10 @@ do
       if not (next(tuples)) then
         return total_count
       end
+      local WordClassifications
+      WordClassifications = require("lapis.bayes.models").WordClassifications
       local tbl = db.escape_identifier(WordClassifications:table_name())
-      local res = db.query("\n    insert into " .. tostring(tbl) .. " (category_id, word, count) " .. tostring(encode_tuples(tuples)) .. "\n    on conflict (category_id, word) do update set count = " .. tostring(tbl) .. ".count + EXCLUDED.count\n    ")
+      local res = db.query("\n    INSERT INTO " .. tostring(tbl) .. " (category_id, word, count) " .. tostring(encode_tuples(tuples)) .. "\n    ON CONFLICT (category_id, word) DO UPDATE SET count = " .. tostring(tbl) .. ".count + EXCLUDED.count\n    ")
       self:increment(total_count)
       return total_count
     end
