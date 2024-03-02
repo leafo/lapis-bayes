@@ -94,8 +94,6 @@ describe "lapis.bayes", ->
       c1\refresh!
       assert.same {}, c1\get_word_classifications!
 
-
-
   describe "Categories", ->
     before_each ->
       truncate_tables Categories, WordClassifications
@@ -250,10 +248,10 @@ describe "lapis.bayes", ->
 
     it "works when there is some data", ->
       spam = Categories\create name: "spam"
-      spam\increment_text "hello world"
+      spam\increment_words {"hello", "world"}
 
       ham = Categories\create name: "ham"
-      ham\increment_text "butt world"
+      ham\increment_words {"butt", "world"}
 
       probs, rate = text_probabilities {"spam", "ham"}, "butt zone"
       assert.same 0.5, rate
@@ -270,20 +268,75 @@ describe "lapis.bayes", ->
     before_each ->
       truncate_tables Categories, WordClassifications
 
-    it "increments text directly with array of words", ->
+    it "increment_words", ->
       spam = Categories\create name: "spam"
-      spam\increment_text {
+      count = spam\increment_words {
         "first token"
         "hello.world"
         "http://leafo.net"
         "hello.world"
+        zone: 77
       }
 
-      words = [word.word for word in *WordClassifications\select "order by word asc"]
+      assert.same 81, count
+
+      words = WordClassifications\select "order by word asc", fields: "category_id, word, count"
 
       assert.same {
-        "first token"
-        "hello.world"
-        "http://leafo.net"
+        {
+          category_id: spam.id
+          count: 1
+          word: "first token"
+        }
+        {
+          category_id: spam.id
+          count: 2
+          word: "hello.world"
+        },
+        {
+          category_id: spam.id
+          count: 1
+          word: "http://leafo.net"
+        },
+        {
+          category_id: spam.id
+          count: 77
+          word: "zone"
+        }
       }, words
 
+
+      count = spam\increment_words {
+        "hello.world"
+        "hello.world"
+        "zone"
+        "hello.world": 3
+      }
+
+      assert.same 6, count
+
+      words = WordClassifications\select "order by word asc", fields: "category_id, word, count"
+
+
+      assert.same {
+        {
+          category_id: spam.id
+          count: 1
+          word: "first token"
+        }
+        {
+          category_id: spam.id
+          count: 7
+          word: "hello.world"
+        },
+        {
+          category_id: spam.id
+          count: 1
+          word: "http://leafo.net"
+        },
+        {
+          category_id: spam.id
+          count: 78
+          word: "zone"
+        }
+      }, words

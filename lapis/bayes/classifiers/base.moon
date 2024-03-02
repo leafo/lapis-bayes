@@ -1,13 +1,41 @@
 import uniquify from require "lapis.util"
 
 class BaseClassifier
+  default_tokenizer: "lapis.bayes.tokenizers.postgres_text"
+
   new: (@opts={}) =>
     if @@default_options
       @opts = setmetatable {k,v for k,v in pairs @opts}, __index: @@default_options
 
-  classify: (...) =>
-    probs, err = @text_probabilities ...
-    error "not yet"
+  word_probabilities: (categories, words) =>
+    error "word_probabilities: subclass must implement"
+
+  classify_text: (...) =>
+    counts, word_rate_or_err = @text_probabilities ...
+    unless counts
+      return nil, word_rate_or_err
+
+    counts[1][1], counts[1][2], word_rate_or_err
+
+  tokenize_text: (text) =>
+    assert text, "missing text to tokenize"
+
+    -- text is some object that is already tokenized
+    unless type(text) == "string"
+      return text
+
+    -- custom tokenizer function passed
+    if @opts.tokenize_text
+      return @opts.tokenize_text text, @opts
+
+    -- tokenizer instance passed
+    tokenizer = if @opts.tokenizer
+      @opts.tokenizer
+    else
+      Tokenizer = require @default_tokenizer
+      Tokenizer(@opts)
+
+    tokenizer\tokenize_text text
 
   -- categories: a lua array of categories names
   -- text: string of text to classify, or an array of tokens to classify
@@ -17,11 +45,7 @@ class BaseClassifier
     unless categories
       return nil, err
 
-    words = if type(text) == "string"
-      import tokenize_text from require "lapis.bayes.tokenizer"
-      tokenize_text text, @opts
-    else
-      text
+    words = @tokenize_text text
 
     unless words and next words
       return nil, "failed to generate tokens for text"

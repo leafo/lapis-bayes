@@ -33,16 +33,12 @@ class PostgresTextTokenizer
 
   slow_pg_tokenize: (text) =>
     -- this slower form will keep duplicate words
-    db.query [[
-      select unnest(lexemes) as word
-      from ts_debug('english', ?);
-    ]], text
+    db.query [[SELECT unnest(lexemes) AS word FROM ts_debug('english', ?)]], text
 
+  -- much faster (50x), but loses duplicates. Needs newer version of postgres
   pg_tokenize: (text) =>
-    -- much faster (50x), but loses duplicates. Needs newer version of postgres
-    db.query [[
-      select unnest(tsvector_to_array(to_tsvector('english', ?))) as word
-    ]], text
+    regconfig = opts and @opts.regconfig or "english"
+    db.query [[SELECT unnest(tsvector_to_array(to_tsvector(?, ?))) AS word]], regconfig, text
 
   tokenize_text: (text) =>
     opts = @opts

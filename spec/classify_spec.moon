@@ -79,12 +79,14 @@ describe "lapis.bayes", ->
         results = ["#{r.category_id}:#{r.word}:#{r.count}" for r in *res]
         table.sort results
 
-        assert.same {
+        expected = {
           "#{first.id}:hello:2"
           "#{second.id}:hello:8"
           "#{second.id}:zone:4"
-        }, results
+        }
 
+        table.sort expected
+        assert.same expected, results
 
   describe "classify_text", ->
     import train_text, classify_text, text_probabilities from require "lapis.bayes"

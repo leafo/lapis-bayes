@@ -37,29 +37,11 @@ class Categories extends Model
       total_count: db.raw "total_count + #{amount}"
     }
 
+  -- NOTE: this was removed since it was tied to a specific tokenizer
   increment_text: (text, opts={}) =>
-    words_by_counts = {}
-    total_words = 0
+    error "This method has been removed, use increment_words instead"
 
-    tokens = switch type(text)
-      when "string"
-        import tokenize_text from require "lapis.bayes.tokenizer"
-        tokenize_text text, opts
-      when "table"
-        text -- array of tokens
-      else
-        error "unknown type for text: #{type text}"
-
-    return 0 if #tokens == 0
-
-    for word in *tokens
-      words_by_counts[word] or= 0
-      words_by_counts[word] += 1
-      total_words += 1
-
-    @increment_words words_by_counts
-    total_words
-
+  -- increment a single word by count
   increment_word: (word, count) =>
     import WordClassifications from require "lapis.bayes.models"
     w = WordClassifications\find_or_create {
@@ -69,22 +51,37 @@ class Categories extends Model
     w\_increment count
     @increment count
 
+  -- issue a single query to increment all WordClassifications for this
+  -- category with the list of words
+  -- counts: table in the format {word = count, ... word1, word2, ...}
   increment_words: (counts) =>
-    import WordClassifications from require "lapis.bayes.models"
+    return nil, "missing counts" unless counts
+
+    -- combine hash and array words into summed count
+    merged_counts = {}
+    for k,v in pairs counts
+      word, count = if type(k) == "string"
+        k, v
+      else
+        v, 1
+
+      merged_counts[word] or= 0
+      merged_counts[word] += count
 
     total_count = 0
-    tuples = for word, count in pairs counts
+    tuples = for word, count in pairs merged_counts
       total_count += count
       {@id, word, count}
 
     unless next tuples
       return total_count
 
+    import WordClassifications from require "lapis.bayes.models"
     tbl = db.escape_identifier WordClassifications\table_name!
 
     res = db.query "
-    insert into #{tbl} (category_id, word, count) #{encode_tuples tuples}
-    on conflict (category_id, word) do update set count = #{tbl}.count + EXCLUDED.count
+    INSERT INTO #{tbl} (category_id, word, count) #{encode_tuples tuples}
+    ON CONFLICT (category_id, word) DO UPDATE SET count = #{tbl}.count + EXCLUDED.count
     "
 
     @increment total_count
