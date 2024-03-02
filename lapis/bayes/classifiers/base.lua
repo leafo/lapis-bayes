@@ -105,6 +105,15 @@ do
       end
       return result
     end,
+    find_word_classifications = function(self, words, category_ids)
+      if not (next(words) and next(category_ids)) then
+        return { }
+      end
+      local WordClassifications
+      WordClassifications = require("lapis.bayes.models").WordClassifications
+      local db = WordClassifications.db
+      return WordClassifications:select("where word in ? and category_id in ?", db.list(words), db.list(category_ids))
+    end,
     candidate_words = function(self, categories, available_words, count)
       if #available_words <= count then
         return available_words
@@ -144,9 +153,6 @@ do
       return _accum_0
     end,
     count_words = function(self, categories, words)
-      local db = require("lapis.db")
-      local WordClassifications
-      WordClassifications = require("lapis.bayes.models").WordClassifications
       local categories_by_id
       do
         local _tbl_0 = { }
@@ -157,21 +163,16 @@ do
         categories_by_id = _tbl_0
       end
       words = uniquify(words)
-      local wcs = WordClassifications:find_all(words, {
-        key = "word",
-        where = {
-          category_id = db.list((function()
-            local _accum_0 = { }
-            local _len_0 = 1
-            for _index_0 = 1, #categories do
-              local c = categories[_index_0]
-              _accum_0[_len_0] = c.id
-              _len_0 = _len_0 + 1
-            end
-            return _accum_0
-          end)())
-        }
-      })
+      local wcs = self:find_word_classifications(words, (function()
+        local _accum_0 = { }
+        local _len_0 = 1
+        for _index_0 = 1, #categories do
+          local c = categories[_index_0]
+          _accum_0[_len_0] = c.id
+          _len_0 = _len_0 + 1
+        end
+        return _accum_0
+      end)())
       local available_words
       do
         local _accum_0 = { }

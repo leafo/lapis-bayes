@@ -5,16 +5,13 @@ import Categories, WordClassifications from require "lapis.bayes.models"
 describe "lapis.bayes", ->
 
   describe "BaseClassifier", ->
+    local classifier
     before_each ->
       truncate_tables Categories, WordClassifications
+      BaseClassifier = require "lapis.bayes.classifiers.base"
+      classifier = BaseClassifier!
 
     describe "find_categories", ->
-
-      local classifier
-      before_each ->
-        BaseClassifier = require "lapis.bayes.classifiers.base"
-        classifier = BaseClassifier!
-
       it "handles invalid categories", ->
         assert.same {
           nil, "find_categories: missing categories (first, second)"
@@ -41,6 +38,52 @@ describe "lapis.bayes", ->
         -- confirm the result objects are in correct order
         assert.same first.id, results[1].id, "correct category order"
         assert.same second.id, results[2].id, "correct category order"
+
+    describe "find_word_classifications", ->
+      it "finds empty set", ->
+        first = Categories\find_or_create "first"
+        second = Categories\find_or_create "second"
+
+        assert.same {}, classifier\find_word_classifications {"myword"}, {first.id, second.id}
+
+      it "finds partial results", ->
+        first = Categories\find_or_create "first"
+        second = Categories\find_or_create "second"
+
+        WordClassifications\create {
+          category_id: first.id
+          word: "hello"
+          count: 2
+        }
+
+        WordClassifications\create {
+          category_id: second.id
+          word: "hello"
+          count: 8
+        }
+
+        WordClassifications\create {
+          category_id: second.id
+          word: "zone"
+          count: 4
+        }
+
+        WordClassifications\create {
+          category_id: second.id
+          word: "yum"
+          count: 3
+        }
+
+        res = classifier\find_word_classifications {"hello", "zone"}, {first.id, second.id}
+
+        results = ["#{r.category_id}:#{r.word}:#{r.count}" for r in *res]
+        table.sort results
+
+        assert.same {
+          "#{first.id}:hello:2"
+          "#{second.id}:hello:8"
+          "#{second.id}:zone:4"
+        }, results
 
 
   describe "classify_text", ->

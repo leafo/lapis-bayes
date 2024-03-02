@@ -74,6 +74,16 @@ class BaseClassifier
 
     result
 
+  -- query for WordClassifications for the requested category ids
+  -- both arguments are arrays
+  -- returns WordClassifications in no particular order
+  find_word_classifications: (words, category_ids) =>
+    return {} unless next(words) and next category_ids
+
+    import WordClassifications from require "lapis.bayes.models"
+    db = WordClassifications.db
+    WordClassifications\select "where word in ? and category_id in ?", db.list(words), db.list(category_ids)
+
   -- reduce the set of available words by looking for polarizing words
   -- categories: array of category objects
   -- available_words: array of available words
@@ -107,19 +117,10 @@ class BaseClassifier
   -- categories: array of categories
   -- words: array of tokens
   count_words: (categories, words) =>
-    db = require "lapis.db"
-    import WordClassifications from require "lapis.bayes.models"
-
     categories_by_id = {c.id, c for c in *categories}
-
     words = uniquify words
 
-    wcs = WordClassifications\find_all words, {
-      key: "word"
-      where: {
-        category_id: db.list [c.id for c in *categories]
-      }
-    }
+    wcs = @find_word_classifications words, [c.id for c in *categories]
 
     available_words = [word for word in pairs {wc.word, true for wc in *wcs}]
 
