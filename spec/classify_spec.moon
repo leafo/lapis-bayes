@@ -90,7 +90,6 @@ describe "lapis.bayes", ->
 
   describe "classify_text", ->
     import train_text, classify_text, text_probabilities from require "lapis.bayes"
-    import tokenize_text from require "lapis.bayes.tokenizer"
 
     setup ->
       truncate_tables Categories, WordClassifications
@@ -173,7 +172,9 @@ describe "lapis.bayes", ->
         it "classifies '#{text}' as '#{classification}'", ->
           got = classify_text categories, text
           unless got == classification
-            tokens = tokenize_text text
+            BaseClassifier = require "lapis.bayes.classifiers.base"
+            tokens = BaseClassifier!\tokenize_text text
+
             error {
               "got #{got}, expected #{classification}"
               categories: Categories\find_all categories, "name"

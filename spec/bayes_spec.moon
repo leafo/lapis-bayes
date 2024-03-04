@@ -132,59 +132,105 @@ describe "lapis.bayes", ->
       }
       c\delete!
 
-  describe "tokenize_text", ->
-    import tokenize_text from require "lapis.bayes.tokenizer"
+  describe "tokenize text", ->
+    describe "default tokenizer", ->
+      tokenize_text = (text, ...) ->
+        if ...
+          error "Got expected additional arguments for tokenize text"
 
-    it "gets tokens for empty string", ->
-      assert.same {}, tokenize_text ""
+        BaseClassifier = require "lapis.bayes.classifiers.base"
+        BaseClassifier!\tokenize_text text
 
-    it "gets tokens for basic string", ->
-      assert.same {"hello", "world"}, tokenize_text "hello world"
+      it "gets tokens for empty string", ->
+        assert.same {}, tokenize_text ""
 
-    it "gets tokens with stems and no stop words", ->
-      assert.same {"burger", "eat"}, tokenize_text "i am eating burgers"
+      it "gets tokens for basic string", ->
+        assert.same {"hello", "world"}, tokenize_text "hello world"
 
-    it "doesn't keep dupes", ->
-      assert.same {"burger"}, tokenize_text "burgers are burgers"
+      it "gets tokens with stems and no stop words", ->
+        assert.same {"burger", "eat"}, tokenize_text "i am eating burgers"
 
-    it "skips tokens that are too long or short", ->
-      assert.same {"great"}, tokenize_text "a b c d e f g great eatingthebigriceball "
+      it "doesn't keep dupes", ->
+        assert.same {"burger"}, tokenize_text "burgers are burgers"
 
-    it "strips numbers", ->
-      assert.same {"delisho", "hodoc"}, tokenize_text "12 delisho hodocs for $5.99"
+      it "skips tokens that are too long or short", ->
+        assert.same {"great"}, tokenize_text "a b c d e f g great eatingthebigriceball "
 
-    it "skips words in ignore list", ->
-      assert.same {"delisho"}, tokenize_text "12 delisho hodocs for $5.99", {
-        ignore_words: {
-          hodoc: true
+      it "strips numbers", ->
+        assert.same {"delisho", "hodoc"}, tokenize_text "12 delisho hodocs for $5.99"
+
+      it "uses custom tokenizer as classifier option", ->
+        BaseClassifier = require "lapis.bayes.classifiers.base"
+        c = BaseClassifier {
+          tokenizer: require "lapis.bayes.tokenizers.url_domains"
         }
-      }
 
-    it "uses custom tokenizer", ->
-      tokenizer = require "lapis.bayes.tokenizers.url_domains"
-      assert.same {"leafo.net"},
-        tokenize_text "hello www.leafo.net website", :tokenizer
+        assert.same {"leafo.net"}, c\tokenize_text "hello www.leafo.net website"
 
-    it "splits on symbols with option", ->
-      assert.same {
-        "buttz"
-        "com"
-        "disgust"
-        "power"
-        "super"
-        "wow"
-      },
-        tokenize_text "wow that was super-disgusting buttz.com power/up", symbols_split_tokens: true
+      it "users custom tokenize function", ->
+        BaseClassifier = require "lapis.bayes.classifiers.base"
+        c = BaseClassifier {
+          tokenize_text: (text) ->
+            [t for t in text\gmatch "."]
+        }
 
-    it "adds a custom prefilter", ->
-      assert.same {"goodzoo", "greatzoo", "stuffzoo", "wowzoo"},
-        tokenize_text "good great stuff wow", filter_text: (text) ->
-          text\gsub "[%w]+", "%1zoo"
+        assert.same {
+          "h", "e", "l", "l", "o"
+        }, c\tokenize_text "hello"
+
+
+    describe "tokenizers.postgres_text", ->
+      it "skips words in ignore list", ->
+        PostgresTextTokenizer = require "lapis.bayes.tokenizers.postgres_text"
+
+        t = PostgresTextTokenizer {
+          ignore_words: {
+            hodoc: true
+          }
+        }
+
+        assert.same {"delisho"}, t\tokenize_text "12 delisho hodocs for $5.99"
+
+
+      it "splits on symbols with option", ->
+        PostgresTextTokenizer = require "lapis.bayes.tokenizers.postgres_text"
+
+        t = PostgresTextTokenizer {
+          symbols_split_tokens: true
+        }
+
+        assert.same {
+          "buttz"
+          "com"
+          "disgust"
+          "power"
+          "super"
+          "wow"
+        },
+          t\tokenize_text "wow that was super-disgusting buttz.com power/up"
+
+      it "adds a custom prefilter", ->
+        PostgresTextTokenizer = require "lapis.bayes.tokenizers.postgres_text"
+
+        t = PostgresTextTokenizer {
+          filter_text: (text) ->
+            text\gsub "[%w]+", "%1zoo"
+        }
+
+        assert.same {"goodzoo", "greatzoo", "stuffzoo", "wowzoo"},
+          t\tokenize_text "good great stuff wow"
 
     it "adds a custom token filter", ->
-      assert.same {"doog", "taerg", "ffuts", "wow"},
-        tokenize_text "good great stuff wow", filter_tokens: (tokens) ->
+      PostgresTextTokenizer = require "lapis.bayes.tokenizers.postgres_text"
+
+      t = PostgresTextTokenizer {
+        filter_tokens: (tokens) ->
           [t\reverse! for t in *tokens]
+      }
+
+      assert.same {"doog", "taerg", "ffuts", "wow"},
+        t\tokenize_text "good great stuff wow"
+
 
   describe "train_text", ->
     import train_text from require "lapis.bayes"
