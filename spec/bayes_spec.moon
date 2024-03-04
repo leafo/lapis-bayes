@@ -179,6 +179,12 @@ describe "lapis.bayes", ->
         }, c\tokenize_text "hello"
 
 
+      it "passes tokens through if already table", ->
+        BaseClassifier = require "lapis.bayes.classifiers.base"
+        c = BaseClassifier { }
+
+        assert.same { "one", "two" }, c\tokenize_text {"one", "two"}
+
     describe "tokenizers.postgres_text", ->
       it "skips words in ignore list", ->
         PostgresTextTokenizer = require "lapis.bayes.tokenizers.postgres_text"
