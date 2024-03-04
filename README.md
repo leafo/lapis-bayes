@@ -59,6 +59,15 @@ assert("spam" == bayes.classify_text({"spam", "ham"}, "discount rolex watch"))
 
 ## Reference
 
+The `lapis.bayes` module includes a set of functions that operate on the
+default classifier and tokenizer:
+
+* `BayesClassifier`
+* `PostgresTextTokenizer`
+
+If the classifier or tokenizer need to be customized, then the classes will
+need to be manually instantiated.
+
 #### `num_words = bayes.train_text(category, text)`
 
 ```lua
@@ -123,6 +132,16 @@ bayes.train_text("spam", "Cheap Prom Dresses 2014 - Buy discount Prom Dress", {
 ### Built-in tokenizers
 
 *Postgres Text* is the default tokenizer used when no tokenizer is provided.
+You can customize the tokenizer when instantiating the classifer:
+
+```lua
+BayesClassifier = require "lapis.bayes.classifiers.bayes"
+classifier = BayesClassifier({
+  tokenizer = <tokenizer instance>
+})
+
+local result = classifier:classify_text(...)
+```
 
 ####  Postgres Text
 
@@ -130,11 +149,11 @@ Uses Postgres `tsvector` objects to normalize text. This will remove stop
 words, normalize capitalization and symbols, and convert words to lexemes.
 Duplicates are removed.
 
-> Note: The characteristics of this tokenizer may not be appropriate for your
-> goals with spam detector: if you have very specific training data then
-> preserving symbols, capitalization, and duplication would actually be useful.
-> This tokenizer tries to make spam text more general purpose to match wider
-> range of text that might not have specific training.
+> Note: The characteristics of this tokenizer may not be suitable for your
+> objectives with spam detection. If you have very specific training data,
+> preserving symbols, capitalization, and duplication could be beneficial. This
+> tokenizer aims to generalize spam text to match a wider range of text that
+> may not have specific training.
 
 This tokenizer requires an active connection to a Postgres database (provided
 in the Lapis config). It will issue queries when tokenizing. The tokenizer is
