@@ -1,6 +1,6 @@
 unpack_fn = table.unpack or unpack
 
-unaccent = require "lapis.bayes.unaccent"
+unaccent = require "lapis.bayes.text.unaccent"
 import extract_text from require "web_sanitize"
 
 class SpamTokenizer extends require "lapis.bayes.tokenizers.base"

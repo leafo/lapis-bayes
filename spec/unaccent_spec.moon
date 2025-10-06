@@ -1,7 +1,7 @@
 
-unaccent = require "lapis.bayes.unaccent"
+unaccent = require "lapis.bayes.text.unaccent"
 
-describe "lapis.bayes.unaccent", ->
+describe "lapis.bayes.text.unaccent", ->
   describe "unaccent_string", ->
     it "passes through basic ASCII unchanged", ->
       assert.same "hello world", unaccent.unaccent_string "hello world"

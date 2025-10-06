@@ -1,5 +1,5 @@
 local unpack_fn = table.unpack or unpack
-local unaccent = require("lapis.bayes.unaccent")
+local unaccent = require("lapis.bayes.text.unaccent")
 local extract_text
 extract_text = require("web_sanitize").extract_text
 local SpamTokenizer
