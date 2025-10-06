@@ -13,7 +13,7 @@ description = {
 
 dependencies = {
   "lua == 5.1",
-  "lapis >= 1.8.2"
+  "lapis >= 1.16.0"
 }
 
 build = {
@@ -34,7 +34,9 @@ build = {
     ["lapis.bayes.models.word_classifications"] = "lapis/bayes/models/word_classifications.lua",
     ["lapis.bayes.schema"] = "lapis/bayes/schema.lua",
     ["lapis.bayes.tokenizers.postgres_text"] = "lapis/bayes/tokenizers/postgres_text.lua",
+    ["lapis.bayes.tokenizers.spam"] = "lapis/bayes/tokenizers/spam.lua",
     ["lapis.bayes.tokenizers.url_domains"] = "lapis/bayes/tokenizers/url_domains.lua",
+    ["lapis.bayes.unaccent"] = "lapis/bayes/unaccent.lua",
   }
 }
 
