@@ -188,6 +188,67 @@ Tokenizer options:
 * `filter_text`: custom pre-filter function to process incoming text, takes text as first argument, should return text (optional, default `nil`)
 * `filter_tokens`: custom post-filter function to process output tokens, takes token array, should return a token array (optional, default `nil`)
 
+####  Spam Tokenizer
+
+`SpamTokenizer = require "lapis.bayes.tokenizers.spam"`
+
+A tokenization specially designed to generate token arrays that are effective
+at spam classification. This includes normalizing accented characters,
+extracting URLs separately, working with HTML markup, generating bigrams,
+generating market tokens for punctuation and number types used, and more.
+
+Token types include:
+
+* lowercase word tokens (with apostrophes removed and optional unaccenting)
+* `caps:<word>` for words containing uppercase letters
+* `punct:<char><run-length>` chunks for repeated punctuation
+* `number:<value>` and `number_bucket:<short|medium|long>` buckets
+* `currency:<symbol>` and `percent:<value>` wrappers around detected numbers
+* URL and domain family tokens: `url:`, `domain:`, `root_domain:`, `host_label:`, `tld:`
+* email tokens: `email:` and `email_user:`
+* optional word bigrams (`word1 word2`) when enabled
+
+Options:
+
+* `min_word_length` / `max_word_length`: bounds applied before emitting word tokens (defaults `2` / `32`)
+* `ignore_words` / `ignore_tokens`: omit words before normalization or final tokens by exact match
+* `dedupe`: defaults to `true`; set `false` to keep duplicate tokens
+* `bigram_tokens`: when `true`, append sequential word bigrams (skips tokens containing `:`)
+* `sample_at_most`: keeps at most N word tokens and, if enabled, at most N bigrams (deterministic prefix sample)
+* `unaccent`: defaults to `true`; set to `false` to keep original accents
+* `filter_text` / `filter_tokens`: custom hooks that receive the raw string or token array respectively
+
+```lua
+local SpamTokenizer = require "lapis.bayes.tokenizers.spam"
+
+local tokenizer = SpamTokenizer {
+  bigram_tokens: true,
+  sample_at_most: 128
+}
+
+local tokens = tokenizer:tokenize_text([[<div>Limited time offer! Visit https://example.com</div>]])
+```
+
+Produces tokens:
+
+```lua
+{
+  "limited",
+  "time",
+  "offer",
+  "visit",
+  "url:example.com",
+  "domain:example.com",
+  "host_label:example",
+  "host_label:com",
+  "root_domain:example.com",
+  "tld:com",
+  "limited time",
+  "time offer",
+  "offer visit"
+}
+```
+
 ####  URL Domains
 
 Extracts mentions of domains from the text text, all other text is ignored.
@@ -277,5 +338,3 @@ Author: Leaf Corcoran (leafo) ([@moonscript](http://twitter.com/moonscript))
 Email: leafot@gmail.com  
 Homepage: <http://leafo.net>  
 License: MIT
-
-
