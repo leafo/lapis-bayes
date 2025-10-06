@@ -9,8 +9,8 @@ db = require "lapis.db"
 --   max_len: number -- max length of token (default 12)
 --   strip_numbers: bool -- remove tokens that are a number (including decimal)
 -- }
-class PostgresTextTokenizer
-  new: (@opts) =>
+class PostgresTextTokenizer extends require "lapis.bayes.tokenizers.base"
+  new: (@opts = {}) =>
 
   filter_tokens: (tokens) =>
     opts = @opts

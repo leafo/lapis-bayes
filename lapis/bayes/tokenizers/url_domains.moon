@@ -1,7 +1,7 @@
 import trim from require "lapis.util"
 
-class UrlDomainsTokenizer
-  new: (@opts) =>
+class UrlDomainsTokenizer extends require "lapis.bayes.tokenizers.base"
+  new: (@opts = {}) =>
 
   ignore_domain: (domain) =>
     return unless @opts and @opts.ignore_domains
@@ -81,4 +81,3 @@ class UrlDomainsTokenizer
     matches = @grammar\match text
     return nil, "failed to parse text" unless matches
     @filter_tokens matches
-

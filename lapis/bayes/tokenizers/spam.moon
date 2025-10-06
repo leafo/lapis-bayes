@@ -3,7 +3,7 @@ unpack_fn = table.unpack or unpack
 unaccent = require "lapis.bayes.unaccent"
 import extract_text from require "web_sanitize"
 
-class SpamTokenizer
+class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
   new: (@opts = {}) =>
 
   filter_tokens: (tokens) =>
