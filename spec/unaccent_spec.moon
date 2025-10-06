@@ -83,9 +83,6 @@ describe "lapis.bayes.unaccent", ->
       result = unaccent.unaccent_string "hello-world_test"
       assert.same "hello-world_test", result
 
-    it "converts O to 0 (letter O to number zero)", ->
-      assert.same "0", unaccent.unaccent_string "O"
-
     it "handles ligatures", ->
       assert.same "fi", unaccent.unaccent_string "ﬁ"
       assert.same "fl", unaccent.unaccent_string "ﬂ"
@@ -113,7 +110,7 @@ describe "lapis.bayes.unaccent", ->
         {"b ＡΜ ｗ А Ｒ 7．ｃＯм", "bAMwAR7.com"}
         {"ｂａｍｗａｒ７.ｃｏｍ", "bamwar7.com"}
         {"ＢＡＭ〉ＷＡＲ７.ｃｏｍ", "BAM>WAR7.com"}
-        {"B A M W A R 7ㆍCOM", "BAMWAR7.C0M"}
+        {"B A M W A R 7ㆍCOM", "BAMWAR7.COM"}
         {"ＢＡＭＷＡＲ７.ＣＯＭ", "BAMWAR7.CoM"}
         {"〚ｂａｍ〛ｗａｒ７.〚ｃｏｍ〛", "[bam]war7.[com]"}
         {"⒲⒲⒲.⒝⒜⒨⒲⒜⒭⑺.⒞⒪⒨", "(w)(w)(w).(b)(a)(m)(w)(a)(r)(7).(c)(o)(m)"}
@@ -121,10 +118,10 @@ describe "lapis.bayes.unaccent", ->
         {"🇱🅔🅰🄵", "leaf"}
         {"ero588，C0M", "ero588,C0M"}
         {"RK772。CoM", "RK772.CoM"}
-        {"MIO652。CoM", "MI0652.CoM"}
+        {"MIO652。CoM", "MIO652.CoM"}
         {"ＫＢＳ４５４。ＣＯＭ", "KBS454.CoM"}
         {"MI738。CoM", "MI738.CoM"}
-        {"mkmk35。COM", "mkmk35.C0M"}
+        {"mkmk35。COM", "mkmk35.COM"}
         {"79ESA。CｏM", "79ESA.CoM"}
         {"APA82。CoM", "APA82.CoM"}
         {"𝚟𝚘𝚙.𝚜𝚞", "vop.su"}
