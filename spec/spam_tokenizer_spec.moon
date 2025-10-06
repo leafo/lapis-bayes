@@ -29,17 +29,11 @@ describe "lapis.bayes.tokenizers.spam", ->
       "email:sales@example.com"
       "email_user:sales"
       "domain:example.com"
-      "host_label:example"
-      "host_label:com"
-      "root_domain:example.com"
-      "tld:com"
-      "for"
       "percent:50"
       "number:50"
       "number_bucket:short"
       "off"
       "caps:off"
-      "punct:!3"
     }, tokens
 
   it "adds bigrams when enabled", ->
@@ -55,6 +49,65 @@ describe "lapis.bayes.tokenizers.spam", ->
       "buy cheap"
       "cheap meds"
       "meds now"
+    }, tokens
+
+  it "dedupes tokens by default", ->
+    tokenizer = SpamTokenizer!
+
+    tokens = tokenizer\tokenize_text "spam spam SPAM"
+
+    assert.same {
+      "spam"
+      "caps:spam"
+    }, tokens
+
+  it "allows duplicates when dedupe disabled", ->
+    tokenizer = SpamTokenizer { dedupe: false }
+
+    tokens = tokenizer\tokenize_text "spam spam"
+
+    assert.same {
+      "spam"
+      "spam"
+    }, tokens
+
+  it "limits tokens with sample_at_most", ->
+    tokenizer = SpamTokenizer { sample_at_most: 2, dedupe: false }
+
+    tokens = tokenizer\tokenize_text "alpha beta gamma delta"
+
+    assert.same {
+      "alpha"
+      "beta"
+    }, tokens
+
+  it "limits bigrams with sample_at_most", ->
+    tokenizer = SpamTokenizer { sample_at_most: 2, bigram_tokens: true, dedupe: false }
+
+    tokens = tokenizer\tokenize_text "alpha beta gamma"
+
+    assert.same {
+      "alpha"
+      "beta"
+      "alpha beta"
+    }, tokens
+
+  it "handles Chinese spam mix", ->
+    tokenizer = SpamTokenizer!
+
+    tokens = tokenizer\tokenize_text "点击这里获取 50% 折扣!!! http://spam.cn/deal"
+
+    assert.same {
+      "percent:50"
+      "number:50"
+      "number_bucket:short"
+      "punct:!3"
+      "url:spam.cn"
+      "domain:spam.cn"
+      "host_label:spam"
+      "host_label:cn"
+      "root_domain:spam.cn"
+      "tld:cn"
     }, tokens
 
   it "strips html content", ->
@@ -75,9 +128,8 @@ describe "lapis.bayes.tokenizers.spam", ->
       "tld:com"
     }, tokens
 
-  it "supports dedupe and ignored words", ->
+  it "supports dedupe with ignored words", ->
     tokenizer = SpamTokenizer {
-      dedupe: true
       ignore_words: {
         deal: true
       }

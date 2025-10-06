@@ -9,7 +9,9 @@ class SpamTokenizer
   filter_tokens: (tokens) =>
     return {} unless tokens
 
-    dedupe = @opts and @opts.dedupe
+    dedupe = true
+    if @opts and @opts.dedupe != nil
+      dedupe = @opts.dedupe
     ignore_tokens = @opts and @opts.ignore_tokens
 
     out = {}
@@ -25,8 +27,14 @@ class SpamTokenizer
 
       table.insert out, token
 
+    sample_limit = @opts and @opts.sample_at_most
+    out = if sample_limit
+      @sample_tokens out, sample_limit
+    else
+      out
+
     if @opts and @opts.bigram_tokens
-      @add_bigrams out, dedupe and seen or nil, dedupe, ignore_tokens
+      @add_bigrams out, dedupe and seen or nil, dedupe, ignore_tokens, sample_limit
 
     out
 
@@ -195,7 +203,7 @@ class SpamTokenizer
     domain_label = (alphanum + P"-")^1
     domain_pattern = domain_label * (P"." * domain_label)^1
 
-    not_path = S" \t\r\n\"'<>()[\]{}?#"
+    not_path = S[[ \t\r\n\"'<>()[\]{}?#]]
     port_part = (P":" * digit^1)^-1
     path_part = (P"/" * (1 - not_path)^0)^0
     query_part = (P"?" * (1 - not_path)^0)^-1
@@ -244,7 +252,21 @@ class SpamTokenizer
 
     out
 
-  add_bigrams: (tokens, seen, dedupe, ignore_tokens) =>
+  sample_tokens: (tokens, limit) =>
+    return {} unless tokens
+    return tokens unless limit
+    limit = math.floor limit
+    return {} if limit <= 0
+    count = #tokens
+    return tokens if count <= limit
+
+    sampled = {}
+    for i = 1, limit
+      sampled[#sampled + 1] = tokens[i]
+
+    sampled
+
+  add_bigrams: (tokens, seen, dedupe, ignore_tokens, sample_limit) =>
     return tokens unless @opts and @opts.bigram_tokens
     return tokens unless tokens
 
@@ -253,13 +275,17 @@ class SpamTokenizer
 
     original_count = count
     bigram_seen = if dedupe then seen or {} else nil
-    
+
+    bigrams = {}
+
     for i = 1, original_count - 1
       first = tokens[i]
       second = tokens[i + 1]
       continue unless first and second
-      continue if (first\find ":") or (second\find ":")
-      continue unless (first\match "%a") and (second\match "%a")
+      continue if first\find ":"
+      continue if second\find ":"
+      continue unless first\match "%a"
+      continue unless second\match "%a"
 
       bigram = first .. " " .. second
       continue if ignore_tokens and ignore_tokens[bigram]
@@ -270,6 +296,12 @@ class SpamTokenizer
         continue if bigram_seen[bigram]
         bigram_seen[bigram] = true
 
+      table.insert bigrams, bigram
+
+    if sample_limit
+      bigrams = @sample_tokens bigrams, sample_limit
+
+    for bigram in *bigrams
       table.insert tokens, bigram
 
     tokens

@@ -10,7 +10,10 @@ do
       if not (tokens) then
         return { }
       end
-      local dedupe = self.opts and self.opts.dedupe
+      local dedupe = true
+      if self.opts and self.opts.dedupe ~= nil then
+        dedupe = self.opts.dedupe
+      end
       local ignore_tokens = self.opts and self.opts.ignore_tokens
       local out = { }
       local seen = { }
@@ -40,8 +43,14 @@ do
           break
         end
       end
+      local sample_limit = self.opts and self.opts.sample_at_most
+      if sample_limit then
+        out = self:sample_tokens(out, sample_limit)
+      else
+        out = out
+      end
       if self.opts and self.opts.bigram_tokens then
-        self:add_bigrams(out, dedupe and seen or nil, dedupe, ignore_tokens)
+        self:add_bigrams(out, dedupe and seen or nil, dedupe, ignore_tokens, sample_limit)
       end
       return out
     end,
@@ -255,7 +264,7 @@ do
       local punct_pattern = punct_chars ^ 3 * punct_chars ^ 0
       local domain_label = (alphanum + P("-")) ^ 1
       local domain_pattern = domain_label * (P(".") * domain_label) ^ 1
-      local not_path = S(" \t\r\n\"'<>()[\]{}?#")
+      local not_path = S([[ \t\r\n\"'<>()[\]{}?#]])
       local port_part = (P(":") * digit ^ 1) ^ -1
       local path_part = (P("/") * (1 - not_path) ^ 0) ^ 0
       local query_part = (P("?") * (1 - not_path) ^ 0) ^ -1
@@ -316,7 +325,28 @@ do
       end
       return out
     end,
-    add_bigrams = function(self, tokens, seen, dedupe, ignore_tokens)
+    sample_tokens = function(self, tokens, limit)
+      if not (tokens) then
+        return { }
+      end
+      if not (limit) then
+        return tokens
+      end
+      limit = math.floor(limit)
+      if limit <= 0 then
+        return { }
+      end
+      local count = #tokens
+      if count <= limit then
+        return tokens
+      end
+      local sampled = { }
+      for i = 1, limit do
+        sampled[#sampled + 1] = tokens[i]
+      end
+      return sampled
+    end,
+    add_bigrams = function(self, tokens, seen, dedupe, ignore_tokens, sample_limit)
       if not (self.opts and self.opts.bigram_tokens) then
         return tokens
       end
@@ -334,6 +364,7 @@ do
       else
         bigram_seen = nil
       end
+      local bigrams = { }
       for i = 1, original_count - 1 do
         local _continue_0 = false
         repeat
@@ -343,11 +374,19 @@ do
             _continue_0 = true
             break
           end
-          if (first:find(":")) or (second:find(":")) then
+          if first:find(":") then
             _continue_0 = true
             break
           end
-          if not ((first:match("%a")) and (second:match("%a"))) then
+          if second:find(":") then
+            _continue_0 = true
+            break
+          end
+          if not (first:match("%a")) then
+            _continue_0 = true
+            break
+          end
+          if not (second:match("%a")) then
             _continue_0 = true
             break
           end
@@ -366,12 +405,19 @@ do
             end
             bigram_seen[bigram] = true
           end
-          table.insert(tokens, bigram)
+          table.insert(bigrams, bigram)
           _continue_0 = true
         until true
         if not _continue_0 then
           break
         end
+      end
+      if sample_limit then
+        bigrams = self:sample_tokens(bigrams, sample_limit)
+      end
+      for _index_0 = 1, #bigrams do
+        local bigram = bigrams[_index_0]
+        table.insert(tokens, bigram)
       end
       return tokens
     end,
