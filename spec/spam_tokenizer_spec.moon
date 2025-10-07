@@ -125,6 +125,14 @@ describe "lapis.bayes.tokenizers.spam", ->
     "caps:cbd"
   }
 
+  it_tokenizes "subscript characters", "Advanced CO₂ Extraction:", {
+    "advanced"
+    "co"
+    "₂"
+    "extraction"
+    "caps:co"
+  }
+
   it_tokenizes "ignored words", "Deal DEAL!!! Limited deal now NOW 10% NOW!!!", {
     "limited"
     "now"
