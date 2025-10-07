@@ -102,6 +102,111 @@ do
     tagged_token_to_string = function(self, token)
       return tostring(token.tag) .. ":" .. tostring(token.value)
     end,
+    normalize_domain_string = function(self, domain)
+      if not (domain and domain ~= "") then
+        return 
+      end
+      domain = tostring(domain)
+      domain = domain:gsub("^%s+", ""):gsub("%s+$", "")
+      domain = domain:gsub("%.+$", "")
+      if domain == "" then
+        return 
+      end
+      local labels = { }
+      for label in domain:gmatch("[^%.]+") do
+        if label == "" then
+          return 
+        end
+        local encoded = punycode.punycode_encode(label)
+        encoded = encoded or label
+        table.insert(labels, encoded:lower())
+      end
+      if not (next(labels)) then
+        return 
+      end
+      return table.concat(labels, ".")
+    end,
+    build_ignored_domains = function(self)
+      local entries = self.opts.ignore_domains
+      if not (entries and #entries > 0) then
+        return false
+      end
+      local exact = { }
+      local suffix = { }
+      for _index_0 = 1, #entries do
+        local _continue_0 = false
+        repeat
+          local domain = entries[_index_0]
+          if not (type(domain) == "string") then
+            _continue_0 = true
+            break
+          end
+          domain = domain:gsub("^%s+", ""):gsub("%s+$", "")
+          if domain == "" then
+            _continue_0 = true
+            break
+          end
+          local is_suffix = domain:sub(1, 1) == "."
+          if is_suffix then
+            domain = domain:sub(2)
+          end
+          if domain == "" then
+            _continue_0 = true
+            break
+          end
+          local normalized = self:normalize_domain_string(domain)
+          if not (normalized) then
+            _continue_0 = true
+            break
+          end
+          if is_suffix then
+            suffix[normalized] = true
+          else
+            exact[normalized] = true
+          end
+          _continue_0 = true
+        until true
+        if not _continue_0 then
+          break
+        end
+      end
+      if not (next(exact) or next(suffix)) then
+        return false
+      end
+      return {
+        exact = exact,
+        suffix = suffix
+      }
+    end,
+    should_ignore_domain = function(self, domain)
+      if not (self.opts.ignore_domains) then
+        return false
+      end
+      if self.ignored_domains == nil then
+        self.ignored_domains = self:build_ignored_domains()
+      end
+      if not (self.ignored_domains) then
+        return false
+      end
+      local normalized = self:normalize_domain_string(domain)
+      if not (normalized) then
+        return false
+      end
+      if self.ignored_domains.exact[normalized] then
+        return true
+      end
+      for suffix in pairs(self.ignored_domains.suffix) do
+        if normalized == suffix then
+          return true
+        end
+        if #normalized > #suffix then
+          if normalized:sub(-(#suffix + 1)) == "." .. tostring(suffix) then
+            return true
+          end
+        end
+      end
+      return false
+    end,
     build_grammar = function(self)
       local P, S, R, C, Ct
       do
@@ -251,6 +356,9 @@ do
         end
         if fragment == nil then
           fragment = ""
+        end
+        if self:should_ignore_domain(domain) then
+          return 
         end
         local tokens = { }
         local _list_0 = extract_url_words(path, query, fragment)
@@ -432,23 +540,35 @@ do
       if not (tokens) then
         return { }
       end
-      local out = { }
-      for _index_0 = 1, #tokens do
-        local _continue_0 = false
-        repeat
-          local token = tokens[_index_0]
-          if not (type(token) == "table") then
+      local out
+      do
+        local _accum_0 = { }
+        local _len_0 = 1
+        for _index_0 = 1, #tokens do
+          local _continue_0 = false
+          repeat
+            local token = tokens[_index_0]
+            if not (type(token) == "table") then
+              _continue_0 = true
+              break
+            end
+            local _value_0
+            local _exp_0 = token.tag
+            if "domain" == _exp_0 or "email" == _exp_0 or "email_user" == _exp_0 then
+              _value_0 = token
+            else
+              _continue_0 = true
+              break
+            end
+            _accum_0[_len_0] = _value_0
+            _len_0 = _len_0 + 1
             _continue_0 = true
+          until true
+          if not _continue_0 then
             break
           end
-          if token.tag == "domain" or token.tag == "email" or token.tag == "email_user" then
-            table.insert(out, self:tagged_token_to_string(token))
-          end
-          _continue_0 = true
-        until true
-        if not _continue_0 then
-          break
         end
+        out = _accum_0
       end
       return out
     end,

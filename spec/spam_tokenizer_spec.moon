@@ -114,6 +114,13 @@ describe "lapis.bayes.tokenizers.spam", ->
     "domain:.com"
   }
 
+  it_tokenizes "mixed links", [[
+    <ul><li><a href="https://love2d.org/">https://love2d.org/</a></li><li><a href="http://moonscript.org/">http://moonscript.org/</a></li><li><a href="https://github.com/leafo/lovekit">LoveKit</a></li></ul>
+  ]], {
+  }, {
+    bigram_tokens: true
+  }
+
   it_tokenizes "html with nbsp entity", [[<a href="https://example.com/weed-gummies/">&nbsp;Green Street Origins CBD Gummies Canada</a>]], {
     "green"
     "street"
@@ -178,6 +185,55 @@ describe "lapis.bayes.tokenizers.spam", ->
     "domain:discount-store.net"
     "domain:.net"
   }
+
+  describe "ignore domains", ->
+    it_tokenizes "ignores exact domain only", "Visit https://example.com/deal now", {
+      "visit"
+      "now"
+    }, {
+      ignore_domains: {"example.com"}
+    }
+
+    it_tokenizes "still tokenizes subdomain with exact ignore", "Visit https://shop.example.com/deal now", {
+      "visit"
+      "deal"
+      "now"
+      "domain:shop.example.com"
+      "domain:.example.com"
+      "domain:.com"
+    }, {
+      ignore_domains: {"example.com"}
+    }
+
+    it_tokenizes "ignores suffix domain including root", "Visit https://shop.example.com/deal now", {
+      "visit"
+      "now"
+    }, {
+      ignore_domains: {".example.com"}
+    }
+
+    it_tokenizes "allows other domains", "Visit https://another.com/deal now", {
+      "visit"
+      "deal"
+      "now"
+      "domain:another.com"
+      "domain:.com"
+    }, {
+      ignore_domains: {".example.com"}
+    }
+
+    it_tokenizes "respects mixed exact and suffix ignores", "Visit https://example.com/deal https://safe.example.com/deal https://another.net/deal now", {
+      "visit"
+      "deal"
+      "now"
+      "domain:another.net"
+      "domain:.net"
+    }, {
+      ignore_domains: {
+        "example.com"
+        ".safe.example.com"
+      }
+    }
 
   it_tokenizes "subscript characters", "Advanced CO₂ Extraction:", {
     "advanced"

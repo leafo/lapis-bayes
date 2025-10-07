@@ -66,6 +66,7 @@ dithered = do
 --   unaccent: bool -- enable unaccenting (default true)
 --   dedupe: bool -- enable deduplication (default true)
 --   ignore_tokens: table -- table of tokens to ignore
+--   ignore_domains: {string} -- domains to ignore (`example.com` exact, `.example.com` includes subdomains)
 --   sample_at_most: number -- limit number of sampled tokens
 --   dither: bool -- enable dithering when sampling (default true)
 --   bigram_tokens: bool -- enable bigram generation
@@ -76,6 +77,76 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
   tagged_token_to_string: (token) =>
     "#{token.tag}:#{token.value}"
+
+  normalize_domain_string: (domain) =>
+    return unless domain and domain != ""
+    domain = tostring domain
+    domain = domain\gsub("^%s+", "")\gsub("%s+$", "")
+    domain = domain\gsub("%.+$", "")
+    return if domain == ""
+
+    labels = {}
+    for label in domain\gmatch "[^%.]+"
+      return if label == ""
+      encoded = punycode.punycode_encode label
+      encoded or= label
+      table.insert labels, encoded\lower!
+
+    return unless next labels
+    table.concat labels, "."
+
+  build_ignored_domains: =>
+    entries = @opts.ignore_domains
+    return false unless entries and #entries > 0
+
+    exact = {}
+    suffix = {}
+
+    for domain in *entries
+      continue unless type(domain) == "string"
+      domain = domain\gsub("^%s+", "")\gsub("%s+$", "")
+      continue if domain == ""
+
+      is_suffix = domain\sub(1, 1) == "."
+      domain = domain\sub(2) if is_suffix
+      continue if domain == ""
+
+      normalized = @normalize_domain_string domain
+      continue unless normalized
+
+      if is_suffix
+        suffix[normalized] = true
+      else
+        exact[normalized] = true
+
+    return false unless next(exact) or next(suffix)
+
+    {
+      exact: exact
+      suffix: suffix
+    }
+
+  should_ignore_domain: (domain) =>
+    return false unless @opts.ignore_domains
+
+    if @ignored_domains == nil
+      @ignored_domains = @build_ignored_domains!
+
+
+    return false unless @ignored_domains
+    normalized = @normalize_domain_string domain
+    return false unless normalized
+
+    if @ignored_domains.exact[normalized]
+      return true
+
+    for suffix in pairs @ignored_domains.suffix
+      return true if normalized == suffix
+      if #normalized > #suffix
+        if normalized\sub(-(#suffix + 1)) == ".#{suffix}"
+          return true
+
+    false
 
   build_grammar: =>
     import P, S, R, C, Ct from require "lpeg"
@@ -167,6 +238,8 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       out
 
     handle_url = (domain, path="", query="", fragment="") ->
+      return if @should_ignore_domain domain
+
       tokens = {}
 
       for word in *extract_url_words path, query, fragment
@@ -304,6 +377,8 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     printable = utf8.printable_character
     Ct (tokens + printable + (C(P(1)) / handle_invalid_byte))^0
 
+  -- this is processed on the test before HTML is stripped to get any URLs that
+  -- might exist in attributes or in the markup
   collect_url_tokens: (text) =>
     return {} unless text and text != ""
 
@@ -311,12 +386,13 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     tokens = @grammar\match text
     return {} unless tokens
 
-    out = {}
-    for token in *tokens
+    out = for token in *tokens
       continue unless type(token) == "table"
-      if token.tag == "domain" or token.tag == "email" or token.tag == "email_user"
-        table.insert out, @tagged_token_to_string token
-
+      switch token.tag
+        when "domain", "email", "email_user"
+          token
+        else
+          continue
     out
 
   dedupe_tokens: (tokens) =>
