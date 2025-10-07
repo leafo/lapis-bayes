@@ -31,43 +31,6 @@ handle_invalid_byte = function(byte)
     value = tostring(string.byte(byte))
   }
 end
-local handle_domain_token
-handle_domain_token = function(domain)
-  local labels
-  do
-    local _accum_0 = { }
-    local _len_0 = 1
-    for label in domain:gmatch("[^%.]+") do
-      _accum_0[_len_0] = punycode.punycode_encode(label)
-      _len_0 = _len_0 + 1
-    end
-    labels = _accum_0
-  end
-  local tokens = {
-    {
-      tag = "domain",
-      value = table.concat(labels, "."):lower()
-    }
-  }
-  if #labels >= 2 then
-    for i = 2, #labels do
-      local suffix = table.concat((function()
-        local _accum_0 = { }
-        local _len_0 = 1
-        for j = i, #labels do
-          _accum_0[_len_0] = labels[j]
-          _len_0 = _len_0 + 1
-        end
-        return _accum_0
-      end)(), ".")
-      table.insert(tokens, {
-        tag = "domain",
-        value = "." .. tostring(suffix:lower())
-      })
-    end
-  end
-  return unpack_fn(tokens)
-end
 local SpamTokenizer
 do
   local _class_0
@@ -135,6 +98,50 @@ do
         end
         return word
       end
+      local handle_domain_token
+      handle_domain_token = function(domain)
+        local labels
+        do
+          local _accum_0 = { }
+          local _len_0 = 1
+          for label in domain:gmatch("[^%.]+") do
+            local encoded = punycode.punycode_encode(label)
+            local _value_0
+            if #encoded > max_len then
+              _value_0 = truncate:transform(encoded)
+            else
+              _value_0 = encoded
+            end
+            _accum_0[_len_0] = _value_0
+            _len_0 = _len_0 + 1
+          end
+          labels = _accum_0
+        end
+        local tokens = {
+          {
+            tag = "domain",
+            value = truncate:transform(table.concat(labels, "."):lower())
+          }
+        }
+        if #labels >= 2 then
+          for i = 2, #labels do
+            local suffix = table.concat((function()
+              local _accum_0 = { }
+              local _len_0 = 1
+              for j = i, #labels do
+                _accum_0[_len_0] = labels[j]
+                _len_0 = _len_0 + 1
+              end
+              return _accum_0
+            end)(), ".")
+            table.insert(tokens, {
+              tag = "domain",
+              value = truncate:transform("." .. tostring(suffix:lower()))
+            })
+          end
+        end
+        return unpack_fn(tokens)
+      end
       local handle_email
       handle_email = function(email)
         email = email:lower()
@@ -142,7 +149,7 @@ do
         local tokens = {
           {
             tag = "email",
-            value = email
+            value = truncate:transform(email)
           }
         }
         if user then
@@ -167,7 +174,15 @@ do
       end
       local handle_number
       handle_number = function(value)
-        return normalize_number(value)
+        local normalized = normalize_number(value)
+        if not (normalized) then
+          return 
+        end
+        if #normalized > max_len then
+          return truncate:transform(normalized)
+        else
+          return normalized
+        end
       end
       local handle_currency
       handle_currency = function(value)
@@ -175,6 +190,9 @@ do
         symbol = symbol or value:sub(1, 1)
         rest = rest or ""
         local normalized_number = normalize_number(rest)
+        if normalized_number and #normalized_number > max_len then
+          normalized_number = truncate:transform(normalized_number)
+        end
         if symbol and symbol ~= "" then
           if normalized_number then
             return {
@@ -195,6 +213,9 @@ do
         local normalized = normalize_number(number_part)
         if not (normalized) then
           return 
+        end
+        if #normalized > max_len - 1 then
+          normalized = truncate:transform(normalized)
         end
         return tostring(normalized) .. "%"
       end

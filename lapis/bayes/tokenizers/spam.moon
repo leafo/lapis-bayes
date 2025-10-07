@@ -21,23 +21,6 @@ handle_punct = (chars) ->
 handle_invalid_byte = (byte) ->
   {tag: "invalid_byte", value: tostring(string.byte(byte))}
 
-handle_domain_token = (domain) ->
-  -- convert subdomains to punycode
-  labels = for label in domain\gmatch "[^%.]+"
-    punycode.punycode_encode label
-
-  tokens = {
-    {tag: "domain", value: table.concat(labels, ".")\lower!}
-  }
-
-  -- Generate hierarchical domain tokens with leading dots for subdomains
-  if #labels >= 2
-    for i = 2, #labels
-      suffix = table.concat [labels[j] for j = i, #labels], "."
-      table.insert tokens, {tag: "domain", value: ".#{suffix\lower!}"}
-
-  unpack_fn tokens
-
 class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
   new: (@opts = {}) =>
 
@@ -94,11 +77,32 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
       word
 
+    handle_domain_token = (domain) ->
+      -- convert subdomains to punycode
+      labels = for label in domain\gmatch "[^%.]+"
+        encoded = punycode.punycode_encode label
+        if #encoded > max_len
+          truncate\transform encoded
+        else
+          encoded
+
+      tokens = {
+        {tag: "domain", value: truncate\transform table.concat(labels, ".")\lower!}
+      }
+
+      -- Generate hierarchical domain tokens with leading dots for subdomains
+      if #labels >= 2
+        for i = 2, #labels
+          suffix = table.concat [labels[j] for j = i, #labels], "."
+          table.insert tokens, {tag: "domain", value: truncate\transform ".#{suffix\lower!}"}
+
+      unpack_fn tokens
+
     handle_email = (email) ->
       email = email\lower!
       user, domain = email\match "^([^@]+)@(.+)$"
 
-      tokens = {{tag: "email", value: email}}
+      tokens = {{tag: "email", value: truncate\transform email}}
 
       if user
         user_token = normalize_word user
@@ -111,7 +115,12 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       unpack_fn tokens
 
     handle_number = (value) ->
-      normalize_number value
+      normalized = normalize_number value
+      return unless normalized
+      if #normalized > max_len
+        truncate\transform normalized
+      else
+        normalized
 
     handle_currency = (value) ->
       symbol, rest = value\match "^([%$£€¥]+)%s*(.+)$"
@@ -119,6 +128,8 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       rest or= ""
 
       normalized_number = normalize_number rest
+      if normalized_number and #normalized_number > max_len
+        normalized_number = truncate\transform normalized_number
 
       if symbol and symbol != ""
         if normalized_number
@@ -130,6 +141,8 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       number_part = value\sub 1, #value - 1
       normalized = normalize_number number_part
       return unless normalized
+      if #normalized > max_len - 1  -- reserve 1 char for %
+        normalized = truncate\transform normalized
       "#{normalized}%"
 
     handle_caps_word = (word) ->

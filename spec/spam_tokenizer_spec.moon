@@ -420,6 +420,45 @@ describe "lapis.bayes.tokenizers.spam", ->
       max_word_length: 30
     }
 
+    it_tokenizes "truncates long domain names", "Visit http://thisisaverylongsubdomainnamethatshouldbetruncated.example.com now", {
+      "visit"
+      "now"
+      "domain:thisisaverylongsubdomainnameth"
+      "domain:.example.com"
+      "domain:.com"
+    }, {
+      max_word_length: 30
+    }
+
+    it_tokenizes "truncates long email addresses", "Contact verylongemailaddressthatshouldbetruncated@example.com today", {
+      "contact"
+      "today"
+      "email:verylongemailaddressthatshould"
+      "email_user:verylongemailaddressthatshould"
+      "domain:example.com"
+      "domain:.com"
+    }, {
+      max_word_length: 30
+    }
+
+    it_tokenizes "truncates very long numbers", "Price is $123456789012345678901234567890.99 wow", {
+      "price"
+      "is"
+      "123456789012345678901234567890"
+      "wow"
+      "currency:$"
+    }, {
+      max_word_length: 30
+    }
+
+    it_tokenizes "truncates long percent values", "Save 12345678901234567890123456789012% today", {
+      "save"
+      "123456789012345678901234567890%"
+      "today"
+    }, {
+      max_word_length: 30
+    }
+
   describe "build_grammar", ->
     it "grammar types", ->
       tokenizer = SpamTokenizer!
