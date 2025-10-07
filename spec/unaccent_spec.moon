@@ -21,6 +21,11 @@ describe "lapis.bayes.text.unaccent", ->
       assert.same "xyz", unaccent.unaccent_string "𝚡𝚢𝚣"
       assert.same "ABC", unaccent.unaccent_string "𝓐𝓑𝓒"
 
+    it "converts mathematical bold letters", ->
+      assert.same "SaleIsLiveCheckNow", unaccent.unaccent_string "𝐒𝐚𝐥𝐞𝐈𝐬𝐋𝐢𝐯𝐞𝐂𝐡𝐞𝐜𝐤𝐍𝐨𝐰"
+      assert.same "ABC", unaccent.unaccent_string "𝐀𝐁𝐂"
+      assert.same "xyz", unaccent.unaccent_string "𝐱𝐲𝐳"
+
     it "removes accents from Latin characters", ->
       assert.same "aeiou", unaccent.unaccent_string "àéíóú"
       assert.same "AEIOU", unaccent.unaccent_string "ÀÉÍÓÚ"
