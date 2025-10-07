@@ -1,5 +1,11 @@
 SpamTokenizer = require "lapis.bayes.tokenizers.spam"
 
+it_tokenizes = (label, input, expected_tokens, opts=nil) ->
+  it "tokenizes #{label}", ->
+    tokenizer = SpamTokenizer opts
+    tokens = tokenizer\tokenize_text input
+    assert.same expected_tokens, tokens, "Tokens for #{input\sub 1, 80}"
+
 describe "lapis.bayes.tokenizers.spam", ->
   it "tokenizes spam-like text", ->
     tokenizer = SpamTokenizer!
@@ -36,254 +42,225 @@ describe "lapis.bayes.tokenizers.spam", ->
       "caps:off"
     }, tokens
 
-  it "adds bigrams when enabled", ->
-    tokenizer = SpamTokenizer { bigram_tokens: true }
+  it_tokenizes "with bigrams", "Buy Cheap meds now", {
+    "buy"
+    "cheap"
+    "meds"
+    "now"
+    "buy cheap"
+    "cheap meds"
+    "meds now"
+  }, {
+    bigram_tokens: true
+  }
 
-    tokens = tokenizer\tokenize_text "Buy Cheap meds now"
+  it_tokenizes "with default dedupe", "spam spam SPAM", {
+    "spam"
+    "caps:spam"
+  }
 
-    assert.same {
-      "buy"
-      "cheap"
-      "meds"
-      "now"
-      "buy cheap"
-      "cheap meds"
-      "meds now"
-    }, tokens
+  it_tokenizes "wit  duplicates when dedupe disabled", "spam spam", {
+    "spam"
+    "spam"
+  }, {
+    dedupe: false
+  }
 
-  it "dedupes tokens by default", ->
-    tokenizer = SpamTokenizer!
+  it_tokenizes "limits tokens with sample_at_most", "alpha beta gamma delta", {
+    "alpha"
+    "beta"
+  }, {
+    sample_at_most: 2, dedupe: false
+  }
 
-    tokens = tokenizer\tokenize_text "spam spam SPAM"
+  it_tokenizes "single word with bigrams enabled", "alpha", {
+    "alpha"
+  }, {
+    bigram_tokens: true
+  }
 
-    assert.same {
+  it_tokenizes "limits bigrams with sample_at_most", "alpha beta gamma", {
+    "alpha"
+    "beta"
+    "alpha beta"
+    "beta gamma"
+  }, {
+    sample_at_most: 2, bigram_tokens: true, dedupe: false
+  }
+
+  it_tokenizes "chinese with url", "点击这里获取 50% 折扣!!! http://spam.cn/deal", {
+    "percent:50"
+    "number:50"
+    "number_bucket:short"
+    "punct:!3"
+    "url:spam.cn"
+    "domain:spam.cn"
+    "host_label:spam"
+    "host_label:cn"
+    "root_domain:spam.cn"
+    "tld:cn"
+  }
+
+  it_tokenizes "html content", [[
+    <div><p>Limited <strong>Offer</strong> <a href="http://example.com">Click</a> now!</p></div>
+  ]], {
+    "limited"
+    "offer"
+    "click"
+    "now"
+    "url:example.com"
+    "domain:example.com"
+    "host_label:example"
+    "host_label:com"
+    "root_domain:example.com"
+    "tld:com"
+  }
+
+  it_tokenizes "ignored words", "Deal DEAL!!! Limited deal now NOW 10% NOW!!!", {
+    "limited"
+    "now"
+    "punct:!3"
+    "caps:now"
+    "percent:10"
+    "number:10"
+    "number_bucket:short"
+  }, {
+    ignore_words: {
+      deal: true
+    }
+  }
+
+  it_tokenizes "Esperanto sentence", "Eble ĉiu ĵaŭdo ŝanĝiĝos al pli agrabla tago", {
+    "eble"
+    "ciu"
+    "jaudo"
+    "sangigos"
+    "al"
+    "pli"
+    "agrabla"
+    "tago"
+  }
+
+  it_tokenizes "Spanish sentence", "el juego esta disponible en español?", {
+    "el"
+    "juego"
+    "esta"
+    "disponible"
+    "en"
+    "espanol"
+  }
+
+  it_tokenizes "capitalized sentence", "MY GAME NOT WORKING. ERROR: LICENSE NOT FOUND. PLEASE HELP!", {
+    "my"
+    "game"
+    "not"
+    "working"
+    "error"
+    "license"
+    "found"
+    "please"
+    "help"
+    "caps:my"
+    "caps:game"
+    "caps:not"
+    "caps:working"
+    "caps:error"
+    "caps:license"
+    "caps:found"
+    "caps:please"
+    "caps:help"
+  }
+
+  describe "bigram dedupe", ->
+    it_tokenizes "with bigrams with dupes", "spam spam spam", {
       "spam"
-      "caps:spam"
-    }, tokens
-
-  it "allows duplicates when dedupe disabled", ->
-    tokenizer = SpamTokenizer { dedupe: false }
-
-    tokens = tokenizer\tokenize_text "spam spam"
-
-    assert.same {
       "spam"
       "spam"
-    }, tokens
-
-  it "limits tokens with sample_at_most", ->
-    tokenizer = SpamTokenizer { sample_at_most: 2, dedupe: false }
-
-    tokens = tokenizer\tokenize_text "alpha beta gamma delta"
-
-    assert.same {
-      "alpha"
-      "beta"
-    }, tokens
-
-  it "limits bigrams with sample_at_most", ->
-    tokenizer = SpamTokenizer { sample_at_most: 2, bigram_tokens: true, dedupe: false }
-
-    tokens = tokenizer\tokenize_text "alpha beta gamma"
-
-    assert.same {
-      "alpha"
-      "beta"
-      "alpha beta"
-      "beta gamma"
-    }, tokens
-
-  it "handles Chinese spam mix", ->
-    tokenizer = SpamTokenizer!
-
-    tokens = tokenizer\tokenize_text "点击这里获取 50% 折扣!!! http://spam.cn/deal"
-
-    assert.same {
-      "percent:50"
-      "number:50"
-      "number_bucket:short"
-      "punct:!3"
-      "url:spam.cn"
-      "domain:spam.cn"
-      "host_label:spam"
-      "host_label:cn"
-      "root_domain:spam.cn"
-      "tld:cn"
-    }, tokens
-
-  it "strips html content", ->
-    tokenizer = SpamTokenizer!
-
-    tokens = tokenizer\tokenize_text [[<div><p>Limited <strong>Offer</strong> <a href="http://example.com">Click</a> now!</p></div>]]
-
-    assert.same {
-      "limited"
-      "offer"
-      "click"
-      "now"
-      "url:example.com"
-      "domain:example.com"
-      "host_label:example"
-      "host_label:com"
-      "root_domain:example.com"
-      "tld:com"
-    }, tokens
-
-  it "supports dedupe with ignored words", ->
-    tokenizer = SpamTokenizer {
-      ignore_words: {
-        deal: true
-      }
+      "spam spam"
+      "spam spam"
+    }, {
+      bigram_tokens: true, dedupe: false
     }
 
-    tokens = tokenizer\tokenize_text "Deal DEAL!!! Limited deal now NOW 10% NOW!!!"
 
-    assert.same {
-      "limited"
-      "now"
-      "punct:!3"
-      "caps:now"
-      "percent:10"
-      "number:10"
-      "number_bucket:short"
-    }, tokens
-
-  it "tokenizes Esperanto sentence", ->
-    tokenizer = SpamTokenizer!
-
-    tokens = tokenizer\tokenize_text "Eble ĉiu ĵaŭdo ŝanĝiĝos al pli agrabla tago"
-
-    assert.same {
-     'eble'
-     'ciu'
-     'jaudo'
-     'sangigos'
-     'al'
-     'pli'
-     'agrabla'
-     'tago'
-    }, tokens
-
-  describe "bigram generation order", ->
-    it "generates bigrams from undeduped word list with dedupe disabled", ->
-      tokenizer = SpamTokenizer { bigram_tokens: true, dedupe: false }
-
-      tokens = tokenizer\tokenize_text "spam spam spam"
-
-      assert.same {
-        "spam"
-        "spam"
-        "spam"
-        "spam spam"
-        "spam spam"
-      }, tokens
-
-    it "generates bigrams before dedupe is applied with dedupe enabled", ->
-      tokenizer = SpamTokenizer { bigram_tokens: true, dedupe: true }
-
-      tokens = tokenizer\tokenize_text "spam spam spam"
-
-      -- Bigrams should be generated from "spam spam spam" (3 words)
-      -- producing ["spam spam", "spam spam"] before dedupe
-      -- After dedupe: ["spam", "spam spam"]
-      assert.same {
-        "spam"
-        "spam spam"
-      }, tokens
+    it_tokenizes "with bigrams without dupes", "spam spam spam", {
+      "spam"
+      "spam spam"
+    }, {
+      bigram_tokens: true, dedupe: true
+    }
 
   describe "with stemming", ->
-    it "stems word tokens", ->
-      tokenizer = SpamTokenizer { stem_words: true }
+    it_tokenizes "with stems", "running dogs created connections", {
+      "run"
+      "dog"
+      "creat"
+      "connect"
+    }, {
+      stem_words: true
+    }
 
-      tokens = tokenizer\tokenize_text "running dogs created connections"
+    it_tokenizes "with stems & caps", "RUNNING Dogs", {
+      "run"
+      "dog"
+      "caps:run"
+    }, {
+      stem_words: true
+    }
 
-      assert.same {
-        "run"
-        "dog"
-        "creat"
-        "connect"
-      }, tokens
+    it_tokenizes "with stems and bigrams", "running dogs", {
+      "run"
+      "dog"
+      "run dog"
+    }, {
+      stem_words: true, bigram_tokens: true
+    }
 
-    it "stems caps words", ->
-      tokenizer = SpamTokenizer { stem_words: true }
+    it_tokenizes "with deduped stems", "running runs run", {
+      "run"
+    }, {
+      stem_words: true
+    }
 
-      tokens = tokenizer\tokenize_text "RUNNING Dogs"
+    it_tokenizes "with bigrams and matching stems", "running runs run", {
+      "run"
+      "run run"
+    }, {
+      stem_words: true, bigram_tokens: true
+    }
 
-      assert.same {
-        "run"
-        "dog"
-        "caps:run"
-      }, tokens
+    it_tokenizes "with bigrams not deduped", "running runs run", {
+      "run"
+      "run"
+      "run"
+      "run run"
+      "run run"
+    }, {
+      stem_words: true, bigram_tokens: true, dedupe: false
+    }
 
-    it "stems words in bigrams", ->
-      tokenizer = SpamTokenizer { stem_words: true, bigram_tokens: true }
-
-      tokens = tokenizer\tokenize_text "running dogs"
-
-      assert.same {
-        "run"
-        "dog"
-        "run dog"
-      }, tokens
-
-    it "dedupes stemmed words", ->
-      tokenizer = SpamTokenizer { stem_words: true }
-
-      tokens = tokenizer\tokenize_text "running runs run"
-
-      assert.same {
-        "run"
-      }, tokens
-
-    it "stems word tokens with duplicate stems", ->
-      tokenizer = SpamTokenizer { stem_words: true, bigram_tokens: true }
-
-      tokens = tokenizer\tokenize_text "running runs run"
-
-      assert.same {
-        "run"
-        "run run"
-      }, tokens
-
-    it "stems with bigrames not deduped", ->
-      tokenizer = SpamTokenizer { stem_words: true, bigram_tokens: true, dedupe: false }
-
-      tokens = tokenizer\tokenize_text "running runs run"
-
-      assert.same {
-        "run"
-        "run"
-        "run"
-        "run run"
-        "run run"
-      }, tokens
-
-    it "stemming combined with tagged tokens", ->
-      tokenizer = SpamTokenizer { stem_words: true }
-
-      tokens = tokenizer\tokenize_text "running at http://examples.com with $199.99 for sales@example.com"
-
-      assert.same {
-        "run"
-        "at"
-        "with"
-        "for"
-        "url:examples.com"
-        "domain:examples.com"
-        "host_label:examples"
-        "host_label:com"
-        "root_domain:examples.com"
-        "tld:com"
-        "currency:$"
-        "number:199.99"
-        "number_bucket:long"
-        "email:sales@example.com"
-        "email_user:sales"
-        "domain:example.com"
-        "host_label:example"
-        "root_domain:example.com"
-      }, tokens
-
+    it_tokenizes "stemming combined with tagged tokens", "running at http://examples.com with $199.99 for sales@example.com", {
+      "run"
+      "at"
+      "with"
+      "for"
+      "url:examples.com"
+      "domain:examples.com"
+      "host_label:examples"
+      "host_label:com"
+      "root_domain:examples.com"
+      "tld:com"
+      "currency:$"
+      "number:199.99"
+      "number_bucket:long"
+      "email:sales@example.com"
+      "email_user:sales"
+      "domain:example.com"
+      "host_label:example"
+      "root_domain:example.com"
+    }, {
+      stem_words: true
+    }
 
 
 
