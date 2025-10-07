@@ -166,6 +166,6 @@ describe "lapis.bayes.text.unaccent", ->
       assert.same "n", unaccent.unaccent_table["π"]
 
     it "maps mathematical alphanumerics", ->
-      assert.true unaccent.unaccent_table["𝕒"] ~= nil
-      assert.true unaccent.unaccent_table["𝓐"] ~= nil
-      assert.true unaccent.unaccent_table["𝚊"] ~= nil
+      assert.true unaccent.unaccent_table["𝕒"] != nil
+      assert.true unaccent.unaccent_table["𝓐"] != nil
+      assert.true unaccent.unaccent_table["𝚊"] != nil
