@@ -3,8 +3,49 @@ unpack_fn = table.unpack or unpack
 unaccent = require "lapis.bayes.text.unaccent"
 import extract_text from require "web_sanitize"
 
+make_number_tokens = (value) ->
+  return unless value and value != ""
+
+  normalized = value\gsub("[,%s]", "")
+  digits_only = normalized\gsub("[^%d]", "")
+  return if digits_only == ""
+
+  digit_count = #digits_only
+  bucket = if digit_count <= 2
+    "short"
+  elseif digit_count <= 4
+    "medium"
+  else
+    "long"
+
+  {{tag: "number", value: normalized}, {tag: "number_bucket", value: bucket}}
+
+handle_punct = (chars) ->
+  char = chars\sub 1, 1
+  {tag: "punct", value: char .. tostring(#chars)}
+
+handle_domain_token = (domain) ->
+  domain = domain\lower!
+
+  tokens = {{tag: "domain", value: domain}}
+  labels = {}
+
+  for label in domain\gmatch "[^%.]+"
+    table.insert labels, label
+
+  -- Generate hierarchical domain tokens with leading dots for subdomains
+  if #labels >= 2
+    for i = 2, #labels
+      suffix = table.concat [labels[j] for j = i, #labels], "."
+      table.insert tokens, {tag: "domain", value: ".#{suffix}"}
+
+  unpack_fn tokens
+
 class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
   new: (@opts = {}) =>
+
+  tagged_token_to_string: (token) =>
+    "#{token.tag}:#{token.value}"
 
   build_grammar: =>
     import P, S, R, C, Ct from require "lpeg"
@@ -49,65 +90,21 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
       word
 
-    emit_domain_tokens = (domain) ->
-      domain = domain\lower!
-
-      tokens = {"domain:" .. domain}
-      labels = {}
-
-      for label in domain\gmatch "[^%.]+"
-        table.insert labels, label
-        keep_label = normalize_word label
-        table.insert tokens, "host_label:" .. keep_label if keep_label
-
-      if #labels >= 2
-        root = "#{labels[#labels - 1]}.#{labels[#labels]}"
-        table.insert tokens, "root_domain:" .. root
-        table.insert tokens, "tld:" .. labels[#labels]
-      elseif #labels == 1
-        table.insert tokens, "tld:" .. labels[1]
-
-      tokens
-
-    handle_domain_token = (domain, prefix = nil) ->
-      domain = domain\lower!
-      tokens = emit_domain_tokens domain
-      if prefix
-        table.insert tokens, 1, "#{prefix}:" .. domain
-      unpack_fn tokens
-
     handle_email = (email) ->
       email = email\lower!
       user, domain = email\match "^([^@]+)@(.+)$"
 
-      tokens = {"email:" .. email}
+      tokens = {{tag: "email", value: email}}
 
       if user
         user_token = normalize_word user
-        table.insert tokens, "email_user:" .. user_token if user_token
+        table.insert tokens, {tag: "email_user", value: user_token} if user_token
 
       if domain
-        for token in *emit_domain_tokens domain
+        for token in *{handle_domain_token domain}
           table.insert tokens, token
 
       unpack_fn tokens
-
-    make_number_tokens = (value) ->
-      return unless value and value != ""
-
-      normalized = value\gsub("[,%s]", "")
-      digits_only = normalized\gsub("[^%d]", "")
-      return if digits_only == ""
-
-      digit_count = #digits_only
-      bucket = if digit_count <= 2
-        "short"
-      elseif digit_count <= 4
-        "medium"
-      else
-        "long"
-
-      {"number:" .. normalized, "number_bucket:" .. bucket}
 
     handle_number = (value) ->
       tokens = make_number_tokens value
@@ -123,7 +120,7 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       tokens = {}
 
       if symbol and symbol != ""
-        table.insert tokens, "currency:" .. symbol
+        table.insert tokens, {tag: "currency", value: symbol}
 
       if number_tokens
         for token in *number_tokens
@@ -136,7 +133,7 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       number_tokens = make_number_tokens number_part
       return unless number_tokens
       normalized = number_part\gsub("[,%s]", "")
-      tokens = {"percent:" .. normalized}
+      tokens = {{tag: "percent", value: normalized}}
       for token in *number_tokens
         table.insert tokens, token
       unpack_fn tokens
@@ -149,7 +146,7 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
         stem(normalized) or normalized
       else
         normalized
-      stemmed, "caps:" .. stemmed
+      stemmed, {tag: "caps", value: stemmed}
 
     handle_word = (word) ->
       normalized = normalize_word word
@@ -158,10 +155,6 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
         stem(normalized) or normalized
       else
         normalized
-
-    handle_punct = (chars) ->
-      char = chars\sub 1, 1
-      "punct:" .. char .. tostring(#chars)
 
     whitespace = S " \t\r\n"
     alpha = R "az", "AZ"
@@ -202,8 +195,8 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     number_capture = C(number_body) * -(alpha)
 
     token_patterns = {
-      url_with_scheme / (domain) -> handle_domain_token domain, "url"
-      url_without_scheme / (domain) -> handle_domain_token domain, "url"
+      url_with_scheme / handle_domain_token
+      url_without_scheme / handle_domain_token
       email_pattern / handle_email
       C(currency_pattern) / handle_currency
       C(percent_pattern) / handle_percent
@@ -228,9 +221,9 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
     out = {}
     for token in *tokens
-      continue unless type(token) == "string"
-      if (token\match "^url:") or (token\match "^domain:") or (token\match "^host_label:") or (token\match "^root_domain:") or (token\match "^tld:") or (token\match "^email:") or (token\match "^email_user:")
-        table.insert out, token
+      continue unless type(token) == "table"
+      if token.tag == "domain" or token.tag == "email" or token.tag == "email_user"
+        table.insert out, @tagged_token_to_string token
 
     out
 
@@ -239,8 +232,14 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     seen = {}
     deduped = {}
     for token in *tokens
-      unless seen[token]
-        seen[token] = true
+      -- For table tokens, use string representation as key
+      key = if type(token) == "table"
+        @tagged_token_to_string token
+      else
+        token
+
+      unless seen[key]
+        seen[key] = true
         table.insert deduped, token
     deduped
 
@@ -297,10 +296,16 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     @grammar or= @build_grammar!
     tokens = @grammar\match text or {}
 
+    -- Build map of existing tokens (convert objects to strings for comparison)
     existing = {}
     for token in *tokens
-      existing[token] = true
+      key = if type(token) == "table"
+        @tagged_token_to_string token
+      else
+        token
+      existing[key] = true
 
+    -- Add raw URL tokens if they don't already exist
     if raw_url_tokens and #raw_url_tokens > 0
       for token in *raw_url_tokens
         continue if existing[token]
@@ -318,10 +323,11 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     word_tokens = {}
     tagged_tokens = {}
     for token in *tokens
-      continue unless token and token != ""
+      continue unless token
+      continue if token == ""
       continue if ignore_tokens and ignore_tokens[token]
 
-      if token\find ":"
+      if type(token) == "table"
         table.insert tagged_tokens, token
       else
         table.insert word_tokens, token
@@ -356,7 +362,7 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     for token in *bigram_tokens
       table.insert tokens, token
     for token in *tagged_tokens
-      table.insert tokens, token
+      table.insert tokens, @tagged_token_to_string token
 
     -- Apply custom filter at the very end if provided
     if @opts and @opts.filter_tokens

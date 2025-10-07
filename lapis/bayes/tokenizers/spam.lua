@@ -2,11 +2,84 @@ local unpack_fn = table.unpack or unpack
 local unaccent = require("lapis.bayes.text.unaccent")
 local extract_text
 extract_text = require("web_sanitize").extract_text
+local make_number_tokens
+make_number_tokens = function(value)
+  if not (value and value ~= "") then
+    return 
+  end
+  local normalized = value:gsub("[,%s]", "")
+  local digits_only = normalized:gsub("[^%d]", "")
+  if digits_only == "" then
+    return 
+  end
+  local digit_count = #digits_only
+  local bucket
+  if digit_count <= 2 then
+    bucket = "short"
+  elseif digit_count <= 4 then
+    bucket = "medium"
+  else
+    bucket = "long"
+  end
+  return {
+    {
+      tag = "number",
+      value = normalized
+    },
+    {
+      tag = "number_bucket",
+      value = bucket
+    }
+  }
+end
+local handle_punct
+handle_punct = function(chars)
+  local char = chars:sub(1, 1)
+  return {
+    tag = "punct",
+    value = char .. tostring(#chars)
+  }
+end
+local handle_domain_token
+handle_domain_token = function(domain)
+  domain = domain:lower()
+  local tokens = {
+    {
+      tag = "domain",
+      value = domain
+    }
+  }
+  local labels = { }
+  for label in domain:gmatch("[^%.]+") do
+    table.insert(labels, label)
+  end
+  if #labels >= 2 then
+    for i = 2, #labels do
+      local suffix = table.concat((function()
+        local _accum_0 = { }
+        local _len_0 = 1
+        for j = i, #labels do
+          _accum_0[_len_0] = labels[j]
+          _len_0 = _len_0 + 1
+        end
+        return _accum_0
+      end)(), ".")
+      table.insert(tokens, {
+        tag = "domain",
+        value = "." .. tostring(suffix)
+      })
+    end
+  end
+  return unpack_fn(tokens)
+end
 local SpamTokenizer
 do
   local _class_0
   local _parent_0 = require("lapis.bayes.tokenizers.base")
   local _base_0 = {
+    tagged_token_to_string = function(self, token)
+      return tostring(token.tag) .. ":" .. tostring(token.value)
+    end,
     build_grammar = function(self)
       local P, S, R, C, Ct
       do
@@ -64,86 +137,35 @@ do
         end
         return word
       end
-      local emit_domain_tokens
-      emit_domain_tokens = function(domain)
-        domain = domain:lower()
-        local tokens = {
-          "domain:" .. domain
-        }
-        local labels = { }
-        for label in domain:gmatch("[^%.]+") do
-          table.insert(labels, label)
-          local keep_label = normalize_word(label)
-          if keep_label then
-            table.insert(tokens, "host_label:" .. keep_label)
-          end
-        end
-        if #labels >= 2 then
-          local root = tostring(labels[#labels - 1]) .. "." .. tostring(labels[#labels])
-          table.insert(tokens, "root_domain:" .. root)
-          table.insert(tokens, "tld:" .. labels[#labels])
-        elseif #labels == 1 then
-          table.insert(tokens, "tld:" .. labels[1])
-        end
-        return tokens
-      end
-      local handle_domain_token
-      handle_domain_token = function(domain, prefix)
-        if prefix == nil then
-          prefix = nil
-        end
-        domain = domain:lower()
-        local tokens = emit_domain_tokens(domain)
-        if prefix then
-          table.insert(tokens, 1, tostring(prefix) .. ":" .. domain)
-        end
-        return unpack_fn(tokens)
-      end
       local handle_email
       handle_email = function(email)
         email = email:lower()
         local user, domain = email:match("^([^@]+)@(.+)$")
         local tokens = {
-          "email:" .. email
+          {
+            tag = "email",
+            value = email
+          }
         }
         if user then
           local user_token = normalize_word(user)
           if user_token then
-            table.insert(tokens, "email_user:" .. user_token)
+            table.insert(tokens, {
+              tag = "email_user",
+              value = user_token
+            })
           end
         end
         if domain then
-          local _list_0 = emit_domain_tokens(domain)
+          local _list_0 = {
+            handle_domain_token(domain)
+          }
           for _index_0 = 1, #_list_0 do
             local token = _list_0[_index_0]
             table.insert(tokens, token)
           end
         end
         return unpack_fn(tokens)
-      end
-      local make_number_tokens
-      make_number_tokens = function(value)
-        if not (value and value ~= "") then
-          return 
-        end
-        local normalized = value:gsub("[,%s]", "")
-        local digits_only = normalized:gsub("[^%d]", "")
-        if digits_only == "" then
-          return 
-        end
-        local digit_count = #digits_only
-        local bucket
-        if digit_count <= 2 then
-          bucket = "short"
-        elseif digit_count <= 4 then
-          bucket = "medium"
-        else
-          bucket = "long"
-        end
-        return {
-          "number:" .. normalized,
-          "number_bucket:" .. bucket
-        }
       end
       local handle_number
       handle_number = function(value)
@@ -161,7 +183,10 @@ do
         local number_tokens = make_number_tokens(rest)
         local tokens = { }
         if symbol and symbol ~= "" then
-          table.insert(tokens, "currency:" .. symbol)
+          table.insert(tokens, {
+            tag = "currency",
+            value = symbol
+          })
         end
         if number_tokens then
           for _index_0 = 1, #number_tokens do
@@ -180,7 +205,10 @@ do
         end
         local normalized = number_part:gsub("[,%s]", "")
         local tokens = {
-          "percent:" .. normalized
+          {
+            tag = "percent",
+            value = normalized
+          }
         }
         for _index_0 = 1, #number_tokens do
           local token = number_tokens[_index_0]
@@ -203,7 +231,10 @@ do
         else
           stemmed = normalized
         end
-        return stemmed, "caps:" .. stemmed
+        return stemmed, {
+          tag = "caps",
+          value = stemmed
+        }
       end
       local handle_word
       handle_word = function(word)
@@ -216,11 +247,6 @@ do
         else
           return normalized
         end
-      end
-      local handle_punct
-      handle_punct = function(chars)
-        local char = chars:sub(1, 1)
-        return "punct:" .. char .. tostring(#chars)
       end
       local whitespace = S(" \t\r\n")
       local alpha = R("az", "AZ")
@@ -249,12 +275,8 @@ do
       local email_pattern = C((alphanum + S(".%+_'-")) ^ 1 * P("@") * domain_pattern)
       local number_capture = C(number_body) * -(alpha)
       local token_patterns = {
-        url_with_scheme / function(domain)
-          return handle_domain_token(domain, "url")
-        end,
-        url_without_scheme / function(domain)
-          return handle_domain_token(domain, "url")
-        end,
+        url_with_scheme / handle_domain_token,
+        url_without_scheme / handle_domain_token,
         email_pattern / handle_email,
         C(currency_pattern) / handle_currency,
         C(percent_pattern) / handle_percent,
@@ -283,12 +305,12 @@ do
         local _continue_0 = false
         repeat
           local token = tokens[_index_0]
-          if not (type(token) == "string") then
+          if not (type(token) == "table") then
             _continue_0 = true
             break
           end
-          if (token:match("^url:")) or (token:match("^domain:")) or (token:match("^host_label:")) or (token:match("^root_domain:")) or (token:match("^tld:")) or (token:match("^email:")) or (token:match("^email_user:")) then
-            table.insert(out, token)
+          if token.tag == "domain" or token.tag == "email" or token.tag == "email_user" then
+            table.insert(out, self:tagged_token_to_string(token))
           end
           _continue_0 = true
         until true
@@ -306,8 +328,14 @@ do
       local deduped = { }
       for _index_0 = 1, #tokens do
         local token = tokens[_index_0]
-        if not (seen[token]) then
-          seen[token] = true
+        local key
+        if type(token) == "table" then
+          key = self:tagged_token_to_string(token)
+        else
+          key = token
+        end
+        if not (seen[key]) then
+          seen[key] = true
           table.insert(deduped, token)
         end
       end
@@ -393,7 +421,13 @@ do
       local existing = { }
       for _index_0 = 1, #tokens do
         local token = tokens[_index_0]
-        existing[token] = true
+        local key
+        if type(token) == "table" then
+          key = self:tagged_token_to_string(token)
+        else
+          key = token
+        end
+        existing[key] = true
       end
       if raw_url_tokens and #raw_url_tokens > 0 then
         for _index_0 = 1, #raw_url_tokens do
@@ -425,7 +459,11 @@ do
         local _continue_0 = false
         repeat
           local token = tokens[_index_0]
-          if not (token and token ~= "") then
+          if not (token) then
+            _continue_0 = true
+            break
+          end
+          if token == "" then
             _continue_0 = true
             break
           end
@@ -433,7 +471,7 @@ do
             _continue_0 = true
             break
           end
-          if token:find(":") then
+          if type(token) == "table" then
             table.insert(tagged_tokens, token)
           else
             table.insert(word_tokens, token)
@@ -474,7 +512,7 @@ do
       end
       for _index_0 = 1, #tagged_tokens do
         local token = tagged_tokens[_index_0]
-        table.insert(tokens, token)
+        table.insert(tokens, self:tagged_token_to_string(token))
       end
       if self.opts and self.opts.filter_tokens then
         tokens = self.opts.filter_tokens(tokens, self.opts)

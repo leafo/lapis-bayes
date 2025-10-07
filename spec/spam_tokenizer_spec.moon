@@ -26,13 +26,9 @@ describe "lapis.bayes.tokenizers.spam", ->
       "number:199.99"
       "number_bucket:long"
       "punct:!3"
-      "url:dealz.example.com"
       "domain:dealz.example.com"
-      "host_label:dealz"
-      "host_label:example"
-      "host_label:com"
-      "root_domain:example.com"
-      "tld:com"
+      "domain:.example.com"
+      "domain:.com"
       "email:sales@example.com"
       "email_user:sales"
       "domain:example.com"
@@ -93,12 +89,8 @@ describe "lapis.bayes.tokenizers.spam", ->
     "number:50"
     "number_bucket:short"
     "punct:!3"
-    "url:spam.cn"
     "domain:spam.cn"
-    "host_label:spam"
-    "host_label:cn"
-    "root_domain:spam.cn"
-    "tld:cn"
+    "domain:.cn"
   }
 
   it_tokenizes "html content", [[
@@ -108,12 +100,8 @@ describe "lapis.bayes.tokenizers.spam", ->
     "offer"
     "click"
     "now"
-    "url:example.com"
     "domain:example.com"
-    "host_label:example"
-    "host_label:com"
-    "root_domain:example.com"
-    "tld:com"
+    "domain:.com"
   }
 
   it_tokenizes "ignored words", "Deal DEAL!!! Limited deal now NOW 10% NOW!!!", {
@@ -244,23 +232,69 @@ describe "lapis.bayes.tokenizers.spam", ->
       "at"
       "with"
       "for"
-      "url:examples.com"
       "domain:examples.com"
-      "host_label:examples"
-      "host_label:com"
-      "root_domain:examples.com"
-      "tld:com"
+      "domain:.com"
       "currency:$"
       "number:199.99"
       "number_bucket:long"
       "email:sales@example.com"
       "email_user:sales"
       "domain:example.com"
-      "host_label:example"
-      "root_domain:example.com"
     }, {
       stem_words: true
     }
+
+  describe "colon character in text", ->
+    it_tokenizes "text with colons", "Note: this is important", {
+      "note"
+      "this"
+      "is"
+      "important"
+    }
+
+    it_tokenizes "multiple colons", "Warning: urgent: read this now", {
+      "warning"
+      "urgent"
+      "read"
+      "this"
+      "now"
+    }
+
+    it_tokenizes "ratio format", "Score is 10:1 or maybe 3:2", {
+      "score"
+      "is"
+      "or"
+      "maybe"
+      "number:10"
+      "number_bucket:short"
+      "number:1"
+      "number:3"
+      "number:2"
+    }
+
+    it_tokenizes "colons with url", "Check: http://example.com has deals", {
+      "check"
+      "has"
+      "deals"
+      "domain:example.com"
+      "domain:.com"
+    }
+
+  describe "build_grammar", ->
+    it "grammar types", ->
+      tokenizer = SpamTokenizer!
+      grammar = tokenizer\build_grammar!
+      out = grammar\match "hello http://cool.leafo.net/fart.png is here"
+      assert.same {
+        "hello"
+        {tag: "domain", value: "cool.leafo.net"}
+        {tag: "domain", value: ".leafo.net"}
+        {tag: "domain", value: ".net"}
+        "rt"
+        "png"
+        "is"
+        "here"
+      }, out
 
 
 
