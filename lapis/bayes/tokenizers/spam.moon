@@ -3,6 +3,7 @@ unpack_fn = table.unpack or unpack
 unaccent = require "lapis.bayes.text.unaccent"
 punycode = require "lapis.bayes.text.punycode"
 import extract_text from require "web_sanitize"
+types = require "lapis.validate.types"
 
 normalize_number = (value) ->
   return unless value and value != ""
@@ -53,6 +54,8 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     max_len = opts.max_word_length or 32
     ignore_words = opts.ignore_words
 
+    truncate = types.truncated_text max_len
+
     stem = if opts.stem_words
       require("lapis.bayes.text.stem").stem_word
     else
@@ -85,7 +88,8 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       word = word\gsub("'+", "")
 
       return if #word < min_len
-      return if #word > max_len
+      if #word > max_len
+        word = truncate\transform word
       return if ignore_words and ignore_words[word]
 
       word

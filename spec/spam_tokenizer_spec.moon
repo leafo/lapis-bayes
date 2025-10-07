@@ -381,6 +381,7 @@ describe "lapis.bayes.tokenizers.spam", ->
       "भारत"
       "का"
       "एक"
+      "प्रतिभाशाली"
       "गेम"
       "डेवलपर।"
       "मैंने"
@@ -396,6 +397,27 @@ describe "lapis.bayes.tokenizers.spam", ->
       "मजबूरन"
       "games&trade"
       "म"
+    }
+
+  describe "max_word_length truncation", ->
+    it_tokenizes "truncates long words to max length", "supercalifragilisticexpialidocious short", {
+      "supercalifragilisticexpialidoc"
+      "short"
+    }, {
+      max_word_length: 30
+    }
+
+    it_tokenizes "truncates long words with default max", "thisisaverylongwordthatexceedsthirtytwochars normal", {
+      "thisisaverylongwordthatexceedsth"
+      "normal"
+    }
+
+    it_tokenizes "truncates caps words", "VERYLONGCAPSWORDEXCEEDINGTHEMAXIMUMALLOWEDLENGTH ok", {
+      "verylongcapswordexceedingthema"
+      "ok"
+      "caps:verylongcapswordexceedingthema"
+    }, {
+      max_word_length: 30
     }
 
   describe "build_grammar", ->

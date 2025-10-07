@@ -3,6 +3,7 @@ local unaccent = require("lapis.bayes.text.unaccent")
 local punycode = require("lapis.bayes.text.punycode")
 local extract_text
 extract_text = require("web_sanitize").extract_text
+local types = require("lapis.validate.types")
 local normalize_number
 normalize_number = function(value)
   if not (value and value ~= "") then
@@ -86,6 +87,7 @@ do
       local min_len = opts.min_word_length or 2
       local max_len = opts.max_word_length or 32
       local ignore_words = opts.ignore_words
+      local truncate = types.truncated_text(max_len)
       local stem
       if opts.stem_words then
         stem = require("lapis.bayes.text.stem").stem_word
@@ -126,7 +128,7 @@ do
           return 
         end
         if #word > max_len then
-          return 
+          word = truncate:transform(word)
         end
         if ignore_words and ignore_words[word] then
           return 
