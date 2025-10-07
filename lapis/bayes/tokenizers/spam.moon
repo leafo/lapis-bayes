@@ -6,38 +6,6 @@ import extract_text from require "web_sanitize"
 class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
   new: (@opts = {}) =>
 
-  filter_tokens: (tokens) =>
-    return {} unless tokens
-
-    dedupe = true
-    if @opts and @opts.dedupe != nil
-      dedupe = @opts.dedupe
-    ignore_tokens = @opts and @opts.ignore_tokens
-
-    out = {}
-    seen = {}
-
-    for token in *tokens
-      continue unless token and token != ""
-      continue if ignore_tokens and ignore_tokens[token]
-
-      if dedupe
-        continue if seen[token]
-        seen[token] = true
-
-      table.insert out, token
-
-    sample_limit = @opts and @opts.sample_at_most
-    out = if sample_limit
-      @sample_tokens out, sample_limit
-    else
-      out
-
-    if @opts and @opts.bigram_tokens
-      @add_bigrams out, dedupe and seen or nil, dedupe, ignore_tokens, sample_limit
-
-    out
-
   build_grammar: =>
     import P, S, R, C, Ct from require "lpeg"
 
@@ -266,6 +234,36 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
     out
 
+  dedupe_tokens: (tokens) =>
+    return {} unless tokens
+    seen = {}
+    deduped = {}
+    for token in *tokens
+      unless seen[token]
+        seen[token] = true
+        table.insert deduped, token
+    deduped
+
+  generate_bigrams: (tokens, ignore_tokens) =>
+    return {} unless tokens
+    count = #tokens
+    return {} if count < 2
+
+    bigrams = {}
+    for i = 1, count - 1
+      first = tokens[i]
+      second = tokens[i + 1]
+      continue unless first and second
+      continue unless first\match "%a"
+      continue unless second\match "%a"
+
+      bigram = first .. " " .. second
+      continue if ignore_tokens and ignore_tokens[bigram]
+
+      table.insert bigrams, bigram
+
+    bigrams
+
   sample_tokens: (tokens, limit) =>
     return {} unless tokens
     return tokens unless limit
@@ -279,46 +277,6 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       sampled[#sampled + 1] = tokens[i]
 
     sampled
-
-  add_bigrams: (tokens, seen, dedupe, ignore_tokens, sample_limit) =>
-    return tokens unless @opts and @opts.bigram_tokens
-    return tokens unless tokens
-
-    count = #tokens
-    return tokens if count < 2
-
-    original_count = count
-    bigram_seen = if dedupe then seen or {} else nil
-
-    bigrams = {}
-
-    for i = 1, original_count - 1
-      first = tokens[i]
-      second = tokens[i + 1]
-      continue unless first and second
-      continue if first\find ":"
-      continue if second\find ":"
-      continue unless first\match "%a"
-      continue unless second\match "%a"
-
-      bigram = first .. " " .. second
-      continue if ignore_tokens and ignore_tokens[bigram]
-
-      if dedupe
-        unless bigram_seen
-          bigram_seen = {}
-        continue if bigram_seen[bigram]
-        bigram_seen[bigram] = true
-
-      table.insert bigrams, bigram
-
-    if sample_limit
-      bigrams = @sample_tokens bigrams, sample_limit
-
-    for bigram in *bigrams
-      table.insert tokens, bigram
-
-    tokens
 
   tokenize_text: (text) =>
     return {} unless text
@@ -349,15 +307,60 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
         table.insert tokens, token
         existing[token] = true
 
-    custom_filter = @opts and @opts.filter_tokens
+    -- Apply built-in token processing
+    dedupe = true
+    if @opts and @opts.dedupe != nil
+      dedupe = @opts.dedupe
+    ignore_tokens = @opts and @opts.ignore_tokens
+    sample_limit = @opts and @opts.sample_at_most
 
-    tokens = if custom_filter
-      @opts.filter_tokens tokens, @opts
-    else
-      @filter_tokens tokens
+    -- Split into word tokens and tagged tokens
+    word_tokens = {}
+    tagged_tokens = {}
+    for token in *tokens
+      continue unless token and token != ""
+      continue if ignore_tokens and ignore_tokens[token]
 
-    if custom_filter and @opts.bigram_tokens
-      @add_bigrams tokens, nil, false, @opts and @opts.ignore_tokens
+      if token\find ":"
+        table.insert tagged_tokens, token
+      else
+        table.insert word_tokens, token
+
+    -- Generate bigrams from undeduped word tokens
+    bigram_tokens = {}
+    if @opts and @opts.bigram_tokens
+      bigram_tokens = @generate_bigrams word_tokens, ignore_tokens
+
+    -- Process word tokens: dedupe then sample
+    if dedupe
+      word_tokens = @dedupe_tokens word_tokens
+
+    if sample_limit
+      word_tokens = @sample_tokens word_tokens, sample_limit
+
+    -- Process bigram tokens: dedupe then sample
+    if dedupe
+      bigram_tokens = @dedupe_tokens bigram_tokens
+
+    if sample_limit
+      bigram_tokens = @sample_tokens bigram_tokens, sample_limit
+
+    -- Process tagged tokens: dedupe (but not sample - we want all tagged tokens)
+    if dedupe
+      tagged_tokens = @dedupe_tokens tagged_tokens
+
+    -- Merge all token sets: words + bigrams + tagged tokens
+    tokens = {}
+    for token in *word_tokens
+      table.insert tokens, token
+    for token in *bigram_tokens
+      table.insert tokens, token
+    for token in *tagged_tokens
+      table.insert tokens, token
+
+    -- Apply custom filter at the very end if provided
+    if @opts and @opts.filter_tokens
+      tokens = @opts.filter_tokens tokens, @opts
 
     tokens
 

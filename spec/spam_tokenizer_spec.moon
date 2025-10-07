@@ -11,11 +11,15 @@ describe "lapis.bayes.tokenizers.spam", ->
       "rolex"
       "watches"
       "for"
+      "visit"
+      "now"
+      "or"
+      "email"
+      "off"
       "currency:$"
       "number:199.99"
       "number_bucket:long"
       "punct:!3"
-      "visit"
       "url:dealz.example.com"
       "domain:dealz.example.com"
       "host_label:dealz"
@@ -23,16 +27,12 @@ describe "lapis.bayes.tokenizers.spam", ->
       "host_label:com"
       "root_domain:example.com"
       "tld:com"
-      "now"
-      "or"
-      "email"
       "email:sales@example.com"
       "email_user:sales"
       "domain:example.com"
       "percent:50"
       "number:50"
       "number_bucket:short"
-      "off"
       "caps:off"
     }, tokens
 
@@ -90,6 +90,7 @@ describe "lapis.bayes.tokenizers.spam", ->
       "alpha"
       "beta"
       "alpha beta"
+      "beta gamma"
     }, tokens
 
   it "handles Chinese spam mix", ->
@@ -138,9 +139,9 @@ describe "lapis.bayes.tokenizers.spam", ->
     tokens = tokenizer\tokenize_text "Deal DEAL!!! Limited deal now NOW 10% NOW!!!"
 
     assert.same {
-      "punct:!3"
       "limited"
       "now"
+      "punct:!3"
       "caps:now"
       "percent:10"
       "number:10"
@@ -162,6 +163,33 @@ describe "lapis.bayes.tokenizers.spam", ->
      'agrabla'
      'tago'
     }, tokens
+
+  describe "bigram generation order", ->
+    it "generates bigrams from undeduped word list with dedupe disabled", ->
+      tokenizer = SpamTokenizer { bigram_tokens: true, dedupe: false }
+
+      tokens = tokenizer\tokenize_text "spam spam spam"
+
+      assert.same {
+        "spam"
+        "spam"
+        "spam"
+        "spam spam"
+        "spam spam"
+      }, tokens
+
+    it "generates bigrams before dedupe is applied with dedupe enabled", ->
+      tokenizer = SpamTokenizer { bigram_tokens: true, dedupe: true }
+
+      tokens = tokenizer\tokenize_text "spam spam spam"
+
+      -- Bigrams should be generated from "spam spam spam" (3 words)
+      -- producing ["spam spam", "spam spam"] before dedupe
+      -- After dedupe: ["spam", "spam spam"]
+      assert.same {
+        "spam"
+        "spam spam"
+      }, tokens
 
   describe "with stemming", ->
     it "stems word tokens when stem_words enabled", ->
@@ -193,8 +221,8 @@ describe "lapis.bayes.tokenizers.spam", ->
 
       assert.same {
         "run"
-        "caps:run"
         "dog"
+        "caps:run"
       }, tokens
 
     it "stems words in bigrams", ->
@@ -225,17 +253,17 @@ describe "lapis.bayes.tokenizers.spam", ->
       assert.same {
         "run"
         "at"
+        "with"
+        "for"
         "url:examples.com"
         "domain:examples.com"
         "host_label:examples"
         "host_label:com"
         "root_domain:examples.com"
         "tld:com"
-        "with"
         "currency:$"
         "number:199.99"
         "number_bucket:long"
-        "for"
         "email:sales@example.com"
         "email_user:sales"
         "domain:example.com"

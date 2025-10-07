@@ -7,54 +7,6 @@ do
   local _class_0
   local _parent_0 = require("lapis.bayes.tokenizers.base")
   local _base_0 = {
-    filter_tokens = function(self, tokens)
-      if not (tokens) then
-        return { }
-      end
-      local dedupe = true
-      if self.opts and self.opts.dedupe ~= nil then
-        dedupe = self.opts.dedupe
-      end
-      local ignore_tokens = self.opts and self.opts.ignore_tokens
-      local out = { }
-      local seen = { }
-      for _index_0 = 1, #tokens do
-        local _continue_0 = false
-        repeat
-          local token = tokens[_index_0]
-          if not (token and token ~= "") then
-            _continue_0 = true
-            break
-          end
-          if ignore_tokens and ignore_tokens[token] then
-            _continue_0 = true
-            break
-          end
-          if dedupe then
-            if seen[token] then
-              _continue_0 = true
-              break
-            end
-            seen[token] = true
-          end
-          table.insert(out, token)
-          _continue_0 = true
-        until true
-        if not _continue_0 then
-          break
-        end
-      end
-      local sample_limit = self.opts and self.opts.sample_at_most
-      if sample_limit then
-        out = self:sample_tokens(out, sample_limit)
-      else
-        out = out
-      end
-      if self.opts and self.opts.bigram_tokens then
-        self:add_bigrams(out, dedupe and seen or nil, dedupe, ignore_tokens, sample_limit)
-      end
-      return out
-    end,
     build_grammar = function(self)
       local P, S, R, C, Ct
       do
@@ -346,6 +298,61 @@ do
       end
       return out
     end,
+    dedupe_tokens = function(self, tokens)
+      if not (tokens) then
+        return { }
+      end
+      local seen = { }
+      local deduped = { }
+      for _index_0 = 1, #tokens do
+        local token = tokens[_index_0]
+        if not (seen[token]) then
+          seen[token] = true
+          table.insert(deduped, token)
+        end
+      end
+      return deduped
+    end,
+    generate_bigrams = function(self, tokens, ignore_tokens)
+      if not (tokens) then
+        return { }
+      end
+      local count = #tokens
+      if count < 2 then
+        return { }
+      end
+      local bigrams = { }
+      for i = 1, count - 1 do
+        local _continue_0 = false
+        repeat
+          local first = tokens[i]
+          local second = tokens[i + 1]
+          if not (first and second) then
+            _continue_0 = true
+            break
+          end
+          if not (first:match("%a")) then
+            _continue_0 = true
+            break
+          end
+          if not (second:match("%a")) then
+            _continue_0 = true
+            break
+          end
+          local bigram = first .. " " .. second
+          if ignore_tokens and ignore_tokens[bigram] then
+            _continue_0 = true
+            break
+          end
+          table.insert(bigrams, bigram)
+          _continue_0 = true
+        until true
+        if not _continue_0 then
+          break
+        end
+      end
+      return bigrams
+    end,
     sample_tokens = function(self, tokens, limit)
       if not (tokens) then
         return { }
@@ -366,81 +373,6 @@ do
         sampled[#sampled + 1] = tokens[i]
       end
       return sampled
-    end,
-    add_bigrams = function(self, tokens, seen, dedupe, ignore_tokens, sample_limit)
-      if not (self.opts and self.opts.bigram_tokens) then
-        return tokens
-      end
-      if not (tokens) then
-        return tokens
-      end
-      local count = #tokens
-      if count < 2 then
-        return tokens
-      end
-      local original_count = count
-      local bigram_seen
-      if dedupe then
-        bigram_seen = seen or { }
-      else
-        bigram_seen = nil
-      end
-      local bigrams = { }
-      for i = 1, original_count - 1 do
-        local _continue_0 = false
-        repeat
-          local first = tokens[i]
-          local second = tokens[i + 1]
-          if not (first and second) then
-            _continue_0 = true
-            break
-          end
-          if first:find(":") then
-            _continue_0 = true
-            break
-          end
-          if second:find(":") then
-            _continue_0 = true
-            break
-          end
-          if not (first:match("%a")) then
-            _continue_0 = true
-            break
-          end
-          if not (second:match("%a")) then
-            _continue_0 = true
-            break
-          end
-          local bigram = first .. " " .. second
-          if ignore_tokens and ignore_tokens[bigram] then
-            _continue_0 = true
-            break
-          end
-          if dedupe then
-            if not (bigram_seen) then
-              bigram_seen = { }
-            end
-            if bigram_seen[bigram] then
-              _continue_0 = true
-              break
-            end
-            bigram_seen[bigram] = true
-          end
-          table.insert(bigrams, bigram)
-          _continue_0 = true
-        until true
-        if not _continue_0 then
-          break
-        end
-      end
-      if sample_limit then
-        bigrams = self:sample_tokens(bigrams, sample_limit)
-      end
-      for _index_0 = 1, #bigrams do
-        local bigram = bigrams[_index_0]
-        table.insert(tokens, bigram)
-      end
-      return tokens
     end,
     tokenize_text = function(self, text)
       if not (text) then
@@ -481,14 +413,71 @@ do
           end
         end
       end
-      local custom_filter = self.opts and self.opts.filter_tokens
-      if custom_filter then
-        tokens = self.opts.filter_tokens(tokens, self.opts)
-      else
-        tokens = self:filter_tokens(tokens)
+      local dedupe = true
+      if self.opts and self.opts.dedupe ~= nil then
+        dedupe = self.opts.dedupe
       end
-      if custom_filter and self.opts.bigram_tokens then
-        self:add_bigrams(tokens, nil, false, self.opts and self.opts.ignore_tokens)
+      local ignore_tokens = self.opts and self.opts.ignore_tokens
+      local sample_limit = self.opts and self.opts.sample_at_most
+      local word_tokens = { }
+      local tagged_tokens = { }
+      for _index_0 = 1, #tokens do
+        local _continue_0 = false
+        repeat
+          local token = tokens[_index_0]
+          if not (token and token ~= "") then
+            _continue_0 = true
+            break
+          end
+          if ignore_tokens and ignore_tokens[token] then
+            _continue_0 = true
+            break
+          end
+          if token:find(":") then
+            table.insert(tagged_tokens, token)
+          else
+            table.insert(word_tokens, token)
+          end
+          _continue_0 = true
+        until true
+        if not _continue_0 then
+          break
+        end
+      end
+      local bigram_tokens = { }
+      if self.opts and self.opts.bigram_tokens then
+        bigram_tokens = self:generate_bigrams(word_tokens, ignore_tokens)
+      end
+      if dedupe then
+        word_tokens = self:dedupe_tokens(word_tokens)
+      end
+      if sample_limit then
+        word_tokens = self:sample_tokens(word_tokens, sample_limit)
+      end
+      if dedupe then
+        bigram_tokens = self:dedupe_tokens(bigram_tokens)
+      end
+      if sample_limit then
+        bigram_tokens = self:sample_tokens(bigram_tokens, sample_limit)
+      end
+      if dedupe then
+        tagged_tokens = self:dedupe_tokens(tagged_tokens)
+      end
+      tokens = { }
+      for _index_0 = 1, #word_tokens do
+        local token = word_tokens[_index_0]
+        table.insert(tokens, token)
+      end
+      for _index_0 = 1, #bigram_tokens do
+        local token = bigram_tokens[_index_0]
+        table.insert(tokens, token)
+      end
+      for _index_0 = 1, #tagged_tokens do
+        local token = tagged_tokens[_index_0]
+        table.insert(tokens, token)
+      end
+      if self.opts and self.opts.filter_tokens then
+        tokens = self.opts.filter_tokens(tokens, self.opts)
       end
       return tokens
     end
