@@ -192,7 +192,7 @@ describe "lapis.bayes.tokenizers.spam", ->
       }, tokens
 
   describe "with stemming", ->
-    it "stems word tokens when stem_words enabled", ->
+    it "stems word tokens", ->
       tokenizer = SpamTokenizer { stem_words: true }
 
       tokens = tokenizer\tokenize_text "running dogs created connections"
@@ -202,16 +202,6 @@ describe "lapis.bayes.tokenizers.spam", ->
         "dog"
         "creat"
         "connect"
-      }, tokens
-
-    it "does not stem when stem_words not set (backward compatibility)", ->
-      tokenizer = SpamTokenizer!
-
-      tokens = tokenizer\tokenize_text "running dogs"
-
-      assert.same {
-        "running"
-        "dogs"
       }, tokens
 
     it "stems caps words", ->
@@ -245,7 +235,30 @@ describe "lapis.bayes.tokenizers.spam", ->
         "run"
       }, tokens
 
-    it "does not stem special tokens", ->
+    it "stems word tokens with duplicate stems", ->
+      tokenizer = SpamTokenizer { stem_words: true, bigram_tokens: true }
+
+      tokens = tokenizer\tokenize_text "running runs run"
+
+      assert.same {
+        "run"
+        "run run"
+      }, tokens
+
+    it "stems with bigrames not deduped", ->
+      tokenizer = SpamTokenizer { stem_words: true, bigram_tokens: true, dedupe: false }
+
+      tokens = tokenizer\tokenize_text "running runs run"
+
+      assert.same {
+        "run"
+        "run"
+        "run"
+        "run run"
+        "run run"
+      }, tokens
+
+    it "stemming combined with tagged tokens", ->
       tokenizer = SpamTokenizer { stem_words: true }
 
       tokens = tokenizer\tokenize_text "running at http://examples.com with $199.99 for sales@example.com"
