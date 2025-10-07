@@ -1,6 +1,5 @@
 db = require "lapis.db"
 
-DefaultClassifier = require "lapis.bayes.classifiers.default"
 
 VERSION = "1.3.0"
 
@@ -8,11 +7,13 @@ VERSION = "1.3.0"
 -- categories: array of category names
 -- text: the text to calculate probabilities for
 text_probabilities = (categories, text, opts={}) ->
+  DefaultClassifier = require "lapis.bayes.classifiers.default"
   DefaultClassifier(opts)\text_probabilities categories, text
 
 -- return the best matching category for the given text using the default
 -- classifier
 classify_text = (categories, text, opts={}) ->
+  DefaultClassifier = require "lapis.bayes.classifiers.default"
   DefaultClassifier(opts)\classify_text categories, text
 
 -- train text using default classifier's tokenizer
@@ -20,6 +21,7 @@ classify_text = (categories, text, opts={}) ->
 -- text: the text (or array of words) to train
 -- opts: options to pass to the classifier
 train_text = (category, text, opts) ->
+  DefaultClassifier = require "lapis.bayes.classifiers.default"
   words = DefaultClassifier(opts)\tokenize_text text
 
   import Categories from require "lapis.bayes.models"
