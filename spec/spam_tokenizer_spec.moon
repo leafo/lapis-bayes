@@ -17,14 +17,14 @@ describe "lapis.bayes.tokenizers.spam", ->
       "rolex"
       "watches"
       "for"
+      "199.99"
       "visit"
       "now"
       "or"
       "email"
+      "50%"
       "off"
       "currency:$"
-      "number:199.99"
-      "number_bucket:long"
       "punct:!3"
       "domain:dealz.example.com"
       "domain:.example.com"
@@ -32,9 +32,6 @@ describe "lapis.bayes.tokenizers.spam", ->
       "email:sales@example.com"
       "email_user:sales"
       "domain:example.com"
-      "percent:50"
-      "number:50"
-      "number_bucket:short"
       "caps:off"
     }, tokens
 
@@ -46,6 +43,18 @@ describe "lapis.bayes.tokenizers.spam", ->
     "buy cheap"
     "cheap meds"
     "meds now"
+  }, {
+    bigram_tokens: true
+  }
+
+  it_tokenizes "bigrams with numbers", "Only 50% off today", {
+    "only"
+    "50%"
+    "off"
+    "today"
+    "only 50%"
+    "50% off"
+    "off today"
   }, {
     bigram_tokens: true
   }
@@ -85,9 +94,7 @@ describe "lapis.bayes.tokenizers.spam", ->
   }
 
   it_tokenizes "chinese with url", "点击这里获取 50% 折扣!!! http://spam.cn/deal", {
-    "percent:50"
-    "number:50"
-    "number_bucket:short"
+    "50%"
     "punct:!3"
     "domain:spam.cn"
     "domain:.cn"
@@ -107,11 +114,9 @@ describe "lapis.bayes.tokenizers.spam", ->
   it_tokenizes "ignored words", "Deal DEAL!!! Limited deal now NOW 10% NOW!!!", {
     "limited"
     "now"
+    "10%"
     "punct:!3"
     "caps:now"
-    "percent:10"
-    "number:10"
-    "number_bucket:short"
   }, {
     ignore_words: {
       deal: true
@@ -231,12 +236,11 @@ describe "lapis.bayes.tokenizers.spam", ->
       "run"
       "at"
       "with"
+      "199.99"
       "for"
       "domain:examples.com"
       "domain:.com"
       "currency:$"
-      "number:199.99"
-      "number_bucket:long"
       "email:sales@example.com"
       "email_user:sales"
       "domain:example.com"
@@ -263,13 +267,12 @@ describe "lapis.bayes.tokenizers.spam", ->
     it_tokenizes "ratio format", "Score is 10:1 or maybe 3:2", {
       "score"
       "is"
+      "10"
+      "1"
       "or"
       "maybe"
-      "number:10"
-      "number_bucket:short"
-      "number:1"
-      "number:3"
-      "number:2"
+      "3"
+      "2"
     }
 
     it_tokenizes "colons with url", "Check: http://example.com has deals", {
@@ -278,6 +281,30 @@ describe "lapis.bayes.tokenizers.spam", ->
       "deals"
       "domain:example.com"
       "domain:.com"
+    }
+
+  describe "percent tokens", ->
+    it_tokenizes "whole number percent", "Discount is 50% off", {
+      "discount"
+      "is"
+      "50%"
+      "off"
+    }
+
+    it_tokenizes "decimal percent", "Only 5.55% interest rate", {
+      "only"
+      "5.55%"
+      "interest"
+      "rate"
+    }
+
+    it_tokenizes "multiple percents", "Save 10% or even 15.5% today", {
+      "save"
+      "10%"
+      "or"
+      "even"
+      "15.5%"
+      "today"
     }
 
   describe "build_grammar", ->

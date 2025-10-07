@@ -3,22 +3,14 @@ unpack_fn = table.unpack or unpack
 unaccent = require "lapis.bayes.text.unaccent"
 import extract_text from require "web_sanitize"
 
-make_number_tokens = (value) ->
+normalize_number = (value) ->
   return unless value and value != ""
 
   normalized = value\gsub("[,%s]", "")
   digits_only = normalized\gsub("[^%d]", "")
   return if digits_only == ""
 
-  digit_count = #digits_only
-  bucket = if digit_count <= 2
-    "short"
-  elseif digit_count <= 4
-    "medium"
-  else
-    "long"
-
-  {{tag: "number", value: normalized}, {tag: "number_bucket", value: bucket}}
+  normalized
 
 handle_punct = (chars) ->
   char = chars\sub 1, 1
@@ -107,36 +99,26 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       unpack_fn tokens
 
     handle_number = (value) ->
-      tokens = make_number_tokens value
-      return unless tokens
-      unpack_fn tokens
+      normalize_number value
 
     handle_currency = (value) ->
       symbol, rest = value\match "^([%$£€¥]+)%s*(.+)$"
       symbol or= value\sub 1, 1
       rest or= ""
 
-      number_tokens = make_number_tokens rest
-      tokens = {}
+      normalized_number = normalize_number rest
 
       if symbol and symbol != ""
-        table.insert tokens, {tag: "currency", value: symbol}
-
-      if number_tokens
-        for token in *number_tokens
-          table.insert tokens, token
-
-      unpack_fn tokens
+        if normalized_number
+          {tag: "currency", value: symbol}, normalized_number
+        else
+          {tag: "currency", value: symbol}
 
     handle_percent = (value) ->
       number_part = value\sub 1, #value - 1
-      number_tokens = make_number_tokens number_part
-      return unless number_tokens
-      normalized = number_part\gsub("[,%s]", "")
-      tokens = {{tag: "percent", value: normalized}}
-      for token in *number_tokens
-        table.insert tokens, token
-      unpack_fn tokens
+      normalized = normalize_number number_part
+      return unless normalized
+      "#{normalized}%"
 
     handle_caps_word = (word) ->
       return unless word\match "%u"
@@ -253,8 +235,6 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       first = tokens[i]
       second = tokens[i + 1]
       continue unless first and second
-      continue unless first\match "%a"
-      continue unless second\match "%a"
 
       bigram = first .. " " .. second
       continue if ignore_tokens and ignore_tokens[bigram]

@@ -2,8 +2,8 @@ local unpack_fn = table.unpack or unpack
 local unaccent = require("lapis.bayes.text.unaccent")
 local extract_text
 extract_text = require("web_sanitize").extract_text
-local make_number_tokens
-make_number_tokens = function(value)
+local normalize_number
+normalize_number = function(value)
   if not (value and value ~= "") then
     return 
   end
@@ -12,25 +12,7 @@ make_number_tokens = function(value)
   if digits_only == "" then
     return 
   end
-  local digit_count = #digits_only
-  local bucket
-  if digit_count <= 2 then
-    bucket = "short"
-  elseif digit_count <= 4 then
-    bucket = "medium"
-  else
-    bucket = "long"
-  end
-  return {
-    {
-      tag = "number",
-      value = normalized
-    },
-    {
-      tag = "number_bucket",
-      value = bucket
-    }
-  }
+  return normalized
 end
 local handle_punct
 handle_punct = function(chars)
@@ -169,52 +151,36 @@ do
       end
       local handle_number
       handle_number = function(value)
-        local tokens = make_number_tokens(value)
-        if not (tokens) then
-          return 
-        end
-        return unpack_fn(tokens)
+        return normalize_number(value)
       end
       local handle_currency
       handle_currency = function(value)
         local symbol, rest = value:match("^([%$£€¥]+)%s*(.+)$")
         symbol = symbol or value:sub(1, 1)
         rest = rest or ""
-        local number_tokens = make_number_tokens(rest)
-        local tokens = { }
+        local normalized_number = normalize_number(rest)
         if symbol and symbol ~= "" then
-          table.insert(tokens, {
-            tag = "currency",
-            value = symbol
-          })
-        end
-        if number_tokens then
-          for _index_0 = 1, #number_tokens do
-            local token = number_tokens[_index_0]
-            table.insert(tokens, token)
+          if normalized_number then
+            return {
+              tag = "currency",
+              value = symbol
+            }, normalized_number
+          else
+            return {
+              tag = "currency",
+              value = symbol
+            }
           end
         end
-        return unpack_fn(tokens)
       end
       local handle_percent
       handle_percent = function(value)
         local number_part = value:sub(1, #value - 1)
-        local number_tokens = make_number_tokens(number_part)
-        if not (number_tokens) then
+        local normalized = normalize_number(number_part)
+        if not (normalized) then
           return 
         end
-        local normalized = number_part:gsub("[,%s]", "")
-        local tokens = {
-          {
-            tag = "percent",
-            value = normalized
-          }
-        }
-        for _index_0 = 1, #number_tokens do
-          local token = number_tokens[_index_0]
-          table.insert(tokens, token)
-        end
-        return unpack_fn(tokens)
+        return tostring(normalized) .. "%"
       end
       local handle_caps_word
       handle_caps_word = function(word)
@@ -356,14 +322,6 @@ do
           local first = tokens[i]
           local second = tokens[i + 1]
           if not (first and second) then
-            _continue_0 = true
-            break
-          end
-          if not (first:match("%a")) then
-            _continue_0 = true
-            break
-          end
-          if not (second:match("%a")) then
             _continue_0 = true
             break
           end
