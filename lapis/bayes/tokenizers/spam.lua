@@ -37,10 +37,7 @@ handle_domain_token = function(domain)
     local _accum_0 = { }
     local _len_0 = 1
     for label in domain:gmatch("[^%.]+") do
-      local encoded_label = punycode.punycode_encode(label)
-      table.insert(labels, encoded_label)
-      local _value_0 = encoded_label
-      _accum_0[_len_0] = _value_0
+      _accum_0[_len_0] = punycode.punycode_encode(label)
       _len_0 = _len_0 + 1
     end
     labels = _accum_0

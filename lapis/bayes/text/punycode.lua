@@ -83,6 +83,9 @@ punycode_encode = function(label)
   if not (label and label ~= "") then
     return label
   end
+  if label:match("^[%w%-]+$") then
+    return label
+  end
   local codepoints = utf8_codepoints(label)
   local input_length = #codepoints
   local has_nonbasic = false
