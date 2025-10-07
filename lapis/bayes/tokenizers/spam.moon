@@ -1,6 +1,7 @@
 unpack_fn = table.unpack or unpack
 
 unaccent = require "lapis.bayes.text.unaccent"
+punycode = require "lapis.bayes.text.punycode"
 import extract_text from require "web_sanitize"
 
 normalize_number = (value) ->
@@ -20,19 +21,19 @@ handle_invalid_byte = (byte) ->
   {tag: "invalid_byte", value: tostring(string.byte(byte))}
 
 handle_domain_token = (domain) ->
-  domain = domain\lower!
+  -- convert subdomains to punycode
+  labels = for label in domain\gmatch "[^%.]+"
+    punycode.punycode_encode label
 
-  tokens = {{tag: "domain", value: domain}}
-  labels = {}
-
-  for label in domain\gmatch "[^%.]+"
-    table.insert labels, label
+  tokens = {
+    {tag: "domain", value: table.concat(labels, ".")\lower!}
+  }
 
   -- Generate hierarchical domain tokens with leading dots for subdomains
   if #labels >= 2
     for i = 2, #labels
       suffix = table.concat [labels[j] for j = i, #labels], "."
-      table.insert tokens, {tag: "domain", value: ".#{suffix}"}
+      table.insert tokens, {tag: "domain", value: ".#{suffix\lower!}"}
 
   unpack_fn tokens
 
@@ -76,12 +77,15 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
     normalize_word = (word) ->
       return unless word and word != ""
+
+      unless opts.unaccent == false
+        word = unaccent.unaccent_string word
+
       word = word\lower!
       word = word\gsub("'+", "")
 
       return if #word < min_len
       return if #word > max_len
-      return if word\match "^%d+$"  -- Skip if all digits
       return if ignore_words and ignore_words[word]
 
       word
@@ -126,6 +130,8 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
     handle_caps_word = (word) ->
       return unless word\match "%u"
+
+
       normalized = normalize_word word
       return unless normalized
       stemmed = if stem
@@ -163,7 +169,8 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
     punct_pattern = punct_chars^3 * punct_chars^0
 
-    domain_label = (alphanum + P"-")^1
+    domain_char = utf8.printable_character - whitespace - S"./:@?#[](){}<>\"',"
+    domain_label = domain_char^1
     domain_pattern = domain_label * (P"." * domain_label)^1
 
     not_path = S[[ \t\r\n\"'<>()[\]{}?#]]
@@ -276,9 +283,6 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     raw_url_tokens = @collect_url_tokens raw_text
 
     text = extract_text text
-
-    if not (@opts and @opts.unaccent == false)
-      text = unaccent.unaccent_string text
 
     @grammar or= @build_grammar!
     tokens = @grammar\match text or {}

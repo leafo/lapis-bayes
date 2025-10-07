@@ -1,5 +1,6 @@
 local unpack_fn = table.unpack or unpack
 local unaccent = require("lapis.bayes.text.unaccent")
+local punycode = require("lapis.bayes.text.punycode")
 local extract_text
 extract_text = require("web_sanitize").extract_text
 local normalize_number
@@ -31,17 +32,25 @@ handle_invalid_byte = function(byte)
 end
 local handle_domain_token
 handle_domain_token = function(domain)
-  domain = domain:lower()
+  local labels
+  do
+    local _accum_0 = { }
+    local _len_0 = 1
+    for label in domain:gmatch("[^%.]+") do
+      local encoded_label = punycode.punycode_encode(label)
+      table.insert(labels, encoded_label)
+      local _value_0 = encoded_label
+      _accum_0[_len_0] = _value_0
+      _len_0 = _len_0 + 1
+    end
+    labels = _accum_0
+  end
   local tokens = {
     {
       tag = "domain",
-      value = domain
+      value = table.concat(labels, "."):lower()
     }
   }
-  local labels = { }
-  for label in domain:gmatch("[^%.]+") do
-    table.insert(labels, label)
-  end
   if #labels >= 2 then
     for i = 2, #labels do
       local suffix = table.concat((function()
@@ -55,7 +64,7 @@ handle_domain_token = function(domain)
       end)(), ".")
       table.insert(tokens, {
         tag = "domain",
-        value = "." .. tostring(suffix)
+        value = "." .. tostring(suffix:lower())
       })
     end
   end
@@ -111,15 +120,15 @@ do
         if not (word and word ~= "") then
           return 
         end
+        if not (opts.unaccent == false) then
+          word = unaccent.unaccent_string(word)
+        end
         word = word:lower()
         word = word:gsub("'+", "")
         if #word < min_len then
           return 
         end
         if #word > max_len then
-          return 
-        end
-        if word:match("^%d+$") then
           return 
         end
         if ignore_words and ignore_words[word] then
@@ -237,7 +246,8 @@ do
       local percent_pattern = number_body * P("%")
       local currency_pattern = S("$£€¥") * whitespace ^ 0 * number_body
       local punct_pattern = punct_chars ^ 3 * punct_chars ^ 0
-      local domain_label = (alphanum + P("-")) ^ 1
+      local domain_char = utf8.printable_character - whitespace - S("./:@?#[](){}<>\"',")
+      local domain_label = domain_char ^ 1
       local domain_pattern = domain_label * (P(".") * domain_label) ^ 1
       local not_path = S([[ \t\r\n\"'<>()[\]{}?#]])
       local port_part = (P(":") * digit ^ 1) ^ -1
@@ -382,9 +392,6 @@ do
       local raw_text = text
       local raw_url_tokens = self:collect_url_tokens(raw_text)
       text = extract_text(text)
-      if not (self.opts and self.opts.unaccent == false) then
-        text = unaccent.unaccent_string(text)
-      end
       self.grammar = self.grammar or self:build_grammar()
       local tokens = self.grammar:match(text or { })
       local existing = { }

@@ -330,6 +330,44 @@ describe "lapis.bayes.tokenizers.spam", ->
       "invalid_byte:255"
     }
 
+  describe "punycode domain handling", ->
+    it_tokenizes "ASCII domain unchanged", "Visit http://example.com now", {
+      "visit"
+      "now"
+      "domain:example.com"
+      "domain:.com"
+    }
+
+    it_tokenizes "German umlaut domain", "Check http://münchen.de today", {
+      "check"
+      "today"
+      "domain:xn--mnchen-3ya.de"
+      "domain:.de"
+    }
+
+    it_tokenizes "Japanese domain", "Visit http://日本.jp site", {
+      "visit"
+      "site"
+      "domain:xn--wgv71a.jp"
+      "domain:.jp"
+    }
+
+    it_tokenizes "Chinese domain", "See http://中国.cn here", {
+      "see"
+      "here"
+      "domain:xn--fiqs8s.cn"
+      "domain:.cn"
+    }
+
+    it_tokenizes "mixed subdomain", "Visit http://test.münchen.example.com now", {
+      "visit"
+      "now"
+      "domain:test.xn--mnchen-3ya.example.com"
+      "domain:.xn--mnchen-3ya.example.com"
+      "domain:.example.com"
+      "domain:.com"
+    }
+
   describe "build_grammar", ->
     it "grammar types", ->
       tokenizer = SpamTokenizer!

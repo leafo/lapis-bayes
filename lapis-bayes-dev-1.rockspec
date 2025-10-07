@@ -33,6 +33,7 @@ build = {
     ["lapis.bayes.models.categories"] = "lapis/bayes/models/categories.lua",
     ["lapis.bayes.models.word_classifications"] = "lapis/bayes/models/word_classifications.lua",
     ["lapis.bayes.schema"] = "lapis/bayes/schema.lua",
+    ["lapis.bayes.text.punycode"] = "lapis/bayes/text/punycode.lua",
     ["lapis.bayes.text.stem"] = "lapis/bayes/text/stem.lua",
     ["lapis.bayes.text.unaccent"] = "lapis/bayes/text/unaccent.lua",
     ["lapis.bayes.tokenizers.base"] = "lapis/bayes/tokenizers/base.lua",
