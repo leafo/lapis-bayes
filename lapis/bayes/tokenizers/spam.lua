@@ -1,5 +1,4 @@
 local unpack_fn = table.unpack or unpack
-local unaccent = require("lapis.bayes.text.unaccent")
 local punycode = require("lapis.bayes.text.punycode")
 local Extractor
 Extractor = require("web_sanitize.html").Extractor
@@ -34,6 +33,67 @@ handle_invalid_byte = function(byte)
     value = tostring(string.byte(byte))
   }
 end
+local dithered
+do
+  local gn
+  gn = function(sd, mean, r)
+    if sd == nil then
+      sd = 1
+    end
+    if mean == nil then
+      mean = 0
+    end
+    if r == nil then
+      r = math.random
+    end
+    local x1, x2, w, y1, y2
+    while true do
+      x1 = 2 * r() - 1
+      x2 = 2 * r() - 1
+      w = x1 ^ 2 + x2 ^ 2
+      if w < 1 then
+        break
+      end
+    end
+    w = math.sqrt(-2 * math.log(w) / 2)
+    y1 = x1 * w
+    y2 = x2 * w
+    return y1 * sd + mean
+  end
+  local dither_score
+  dither_score = function(rank, e)
+    return math.log(rank) + gn(math.log(e))
+  end
+  dithered = function(items, e)
+    if e == nil then
+      e = 1.5
+    end
+    local rows
+    do
+      local _accum_0 = { }
+      local _len_0 = 1
+      for i, item in ipairs(items) do
+        _accum_0[_len_0] = {
+          dither_score(i, e),
+          item
+        }
+        _len_0 = _len_0 + 1
+      end
+      rows = _accum_0
+    end
+    table.sort(rows, function(a, b)
+      return a[1] < b[1]
+    end)
+    local _accum_0 = { }
+    local _len_0 = 1
+    for _index_0 = 1, #rows do
+      local row = rows[_index_0]
+      _accum_0[_len_0] = row[2]
+      _len_0 = _len_0 + 1
+    end
+    return _accum_0
+  end
+end
 local SpamTokenizer
 do
   local _class_0
@@ -49,16 +109,18 @@ do
         P, S, R, C, Ct = _obj_0.P, _obj_0.S, _obj_0.R, _obj_0.C, _obj_0.Ct
       end
       local utf8 = require("lapis.util.utf8")
-      local opts = self.opts or { }
-      local min_len = opts.min_word_length or 2
-      local max_len = opts.max_word_length or 32
-      local ignore_words = opts.ignore_words
+      local opts = self.opts
+      local min_len = self.opts.min_word_length or 2
+      local max_len = self.opts.max_word_length or 32
+      local ignore_words = self.opts.ignore_words
       local truncate = types.truncated_text(max_len)
       local stem
-      if opts.stem_words then
+      if self.opts.stem_words then
         stem = require("lapis.bayes.text.stem").stem_word
-      else
-        stem = nil
+      end
+      local unaccent
+      if not (self.opts.unaccent == false) then
+        unaccent = require("lapis.bayes.text.unaccent").unaccent_string
       end
       local case_insensitive
       case_insensitive = function(text)
@@ -85,8 +147,8 @@ do
         if not (word and word ~= "") then
           return 
         end
-        if not (opts.unaccent == false) then
-          word = unaccent.unaccent_string(word)
+        if unaccent then
+          word = unaccent(word) or word
         end
         word = word:lower()
         word = word:gsub("'+", "")
@@ -398,18 +460,26 @@ do
       if count <= limit then
         return tokens
       end
-      local sampled = { }
-      for i = 1, limit do
-        sampled[#sampled + 1] = tokens[i]
+      local tokens_to_sample
+      if self.opts.dither == false then
+        tokens_to_sample = tokens
+      else
+        tokens_to_sample = dithered(tokens)
       end
-      return sampled
+      local _accum_0 = { }
+      local _len_0 = 1
+      for idx = 1, limit do
+        _accum_0[_len_0] = tokens_to_sample[idx]
+        _len_0 = _len_0 + 1
+      end
+      return _accum_0
     end,
     tokenize_text = function(self, text)
       if not (text) then
         return { }
       end
       text = tostring(text)
-      if self.opts and self.opts.filter_text then
+      if self.opts.filter_text then
         text = self.opts.filter_text(text)
       end
       local raw_text = text
@@ -447,11 +517,11 @@ do
         end
       end
       local dedupe = true
-      if self.opts and self.opts.dedupe ~= nil then
+      if self.opts.dedupe ~= nil then
         dedupe = self.opts.dedupe
       end
-      local ignore_tokens = self.opts and self.opts.ignore_tokens
-      local sample_limit = self.opts and self.opts.sample_at_most
+      local ignore_tokens = self.opts.ignore_tokens
+      local sample_limit = self.opts.sample_at_most
       local word_tokens = { }
       local tagged_tokens = { }
       for _index_0 = 1, #tokens do
@@ -482,7 +552,7 @@ do
         end
       end
       local bigram_tokens = { }
-      if self.opts and self.opts.bigram_tokens then
+      if self.opts.bigram_tokens then
         bigram_tokens = self:generate_bigrams(word_tokens, ignore_tokens)
       end
       if dedupe then
@@ -513,7 +583,7 @@ do
         local token = tagged_tokens[_index_0]
         table.insert(tokens, self:tagged_token_to_string(token))
       end
-      if self.opts and self.opts.filter_tokens then
+      if self.opts.filter_tokens then
         tokens = self.opts.filter_tokens(tokens, self.opts)
       end
       return tokens

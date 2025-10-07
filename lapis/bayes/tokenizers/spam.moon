@@ -1,6 +1,5 @@
 unpack_fn = table.unpack or unpack
 
-unaccent = require "lapis.bayes.text.unaccent"
 punycode = require "lapis.bayes.text.punycode"
 import Extractor from require "web_sanitize.html"
 types = require "lapis.validate.types"
@@ -25,6 +24,53 @@ handle_punct = (chars) ->
 handle_invalid_byte = (byte) ->
   {tag: "invalid_byte", value: tostring(string.byte(byte))}
 
+-- return new array with order shuffled by dithering
+-- e: dither factor
+-- https://buildingrecommenders.wordpress.com/2015/11/11/dithering/
+dithered = do
+  -- random normal box muller
+  gn = (sd=1, mean=0, r=math.random) ->
+    local x1, x2, w, y1, y2
+    while true
+      x1 = 2 * r! - 1
+      x2 = 2 * r! - 1
+      w = x1^2 + x2^2
+      break if w < 1
+
+    w = math.sqrt -2 * math.log(w) / 2
+    y1 = x1 * w
+    y2 = x2 * w
+
+    y1 * sd + mean
+
+  dither_score = (rank, e) ->
+    math.log(rank) + gn(math.log(e))
+
+  (items, e=1.5) ->
+    rows = for i, item in ipairs items
+      {dither_score(i, e), item}
+
+    table.sort rows, (a, b) ->
+      a[1] < b[1]
+
+    [row[2] for row in *rows]
+
+
+-- spam tokenizer with support for domains, emails, currencies, and more
+-- opts = {
+--   filter_text: function -- function to pre-filter text, returns new text
+--   min_word_length: number -- minimum length of word (default 2)
+--   max_word_length: number -- maximum length of word (default 32)
+--   ignore_words: table -- table of words to ignore
+--   stem_words: bool -- enable word stemming
+--   unaccent: bool -- enable unaccenting (default true)
+--   dedupe: bool -- enable deduplication (default true)
+--   ignore_tokens: table -- table of tokens to ignore
+--   sample_at_most: number -- limit number of sampled tokens
+--   dither: bool -- enable dithering when sampling (default true)
+--   bigram_tokens: bool -- enable bigram generation
+--   filter_tokens: function -- function to filter tokens, called at end with (tokens, opts)
+-- }
 class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
   new: (@opts = {}) =>
 
@@ -35,18 +81,19 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     import P, S, R, C, Ct from require "lpeg"
     utf8 = require "lapis.util.utf8"
 
-    opts = @opts or {}
+    opts = @opts
 
-    min_len = opts.min_word_length or 2
-    max_len = opts.max_word_length or 32
-    ignore_words = opts.ignore_words
+    min_len = @opts.min_word_length or 2
+    max_len = @opts.max_word_length or 32
+    ignore_words = @opts.ignore_words
 
     truncate = types.truncated_text max_len
 
-    stem = if opts.stem_words
+    stem = if @opts.stem_words
       require("lapis.bayes.text.stem").stem_word
-    else
-      nil
+
+    unaccent = unless @opts.unaccent == false
+      require("lapis.bayes.text.unaccent").unaccent_string
 
     case_insensitive = (text) ->
       out = nil
@@ -68,8 +115,8 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     normalize_word = (word) ->
       return unless word and word != ""
 
-      unless opts.unaccent == false
-        word = unaccent.unaccent_string word
+      if unaccent
+        word = unaccent(word) or word
 
       word = word\lower!
       word = word\gsub("'+", "")
@@ -286,18 +333,19 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     count = #tokens
     return tokens if count <= limit
 
-    sampled = {}
-    for i = 1, limit
-      sampled[#sampled + 1] = tokens[i]
+    tokens_to_sample = if @opts.dither == false
+      tokens
+    else
+      dithered tokens
 
-    sampled
+    [tokens_to_sample[idx] for idx=1,limit]
 
   tokenize_text: (text) =>
     return {} unless text
 
     text = tostring text
 
-    if @opts and @opts.filter_text
+    if @opts.filter_text
       text = @opts.filter_text text
 
     raw_text = text
@@ -326,10 +374,10 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
     -- Apply built-in token processing
     dedupe = true
-    if @opts and @opts.dedupe != nil
+    if @opts.dedupe != nil
       dedupe = @opts.dedupe
-    ignore_tokens = @opts and @opts.ignore_tokens
-    sample_limit = @opts and @opts.sample_at_most
+    ignore_tokens = @opts.ignore_tokens
+    sample_limit = @opts.sample_at_most
 
     -- Split into word tokens and tagged tokens
     word_tokens = {}
@@ -346,7 +394,7 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
     -- Generate bigrams from undeduped word tokens
     bigram_tokens = {}
-    if @opts and @opts.bigram_tokens
+    if @opts.bigram_tokens
       bigram_tokens = @generate_bigrams word_tokens, ignore_tokens
 
     -- Process word tokens: dedupe then sample
@@ -377,7 +425,7 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       table.insert tokens, @tagged_token_to_string token
 
     -- Apply custom filter at the very end if provided
-    if @opts and @opts.filter_tokens
+    if @opts.filter_tokens
       tokens = @opts.filter_tokens tokens, @opts
 
     tokens

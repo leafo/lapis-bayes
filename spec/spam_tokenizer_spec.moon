@@ -75,7 +75,7 @@ describe "lapis.bayes.tokenizers.spam", ->
     "alpha"
     "beta"
   }, {
-    sample_at_most: 2, dedupe: false
+    sample_at_most: 2, dedupe: false, dither: false
   }
 
   it_tokenizes "single word with bigrams enabled", "alpha", {
@@ -90,7 +90,7 @@ describe "lapis.bayes.tokenizers.spam", ->
     "alpha beta"
     "beta gamma"
   }, {
-    sample_at_most: 2, bigram_tokens: true, dedupe: false
+    sample_at_most: 2, bigram_tokens: true, dedupe: false, dither: false
   }
 
   it_tokenizes "chinese with url", "点击这里获取 50% 折扣!!! http://spam.cn/deal", {
