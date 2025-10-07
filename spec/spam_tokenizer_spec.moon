@@ -368,6 +368,36 @@ describe "lapis.bayes.tokenizers.spam", ->
       "domain:.com"
     }
 
+    it_tokenizes "hindi", [[
+      <p>नमस्ते, मैं मोहम्मद निर्माता हूँ, या juegosruins68, भारत का एक प्रतिभाशाली गेम डेवलपर। मैंने 5 साल की उम्र से गेम बनाने शुरू किए, जब मैं मजबूरन E.A Games&trade; म</p>
+    ]], {
+      "नमस्ते"
+      "मैं"
+      "मोहम्मद"
+      "निर्माता"
+      "हूँ"
+      "या"
+      "juegosruins68"
+      "भारत"
+      "का"
+      "एक"
+      "गेम"
+      "डेवलपर।"
+      "मैंने"
+      "5"
+      "साल"
+      "की"
+      "उम्र"
+      "से"
+      "बनाने"
+      "शुरू"
+      "किए"
+      "जब"
+      "मजबूरन"
+      "games&trade"
+      "म"
+    }
+
   describe "build_grammar", ->
     it "grammar types", ->
       tokenizer = SpamTokenizer!
