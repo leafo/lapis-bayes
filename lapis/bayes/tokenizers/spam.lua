@@ -1,9 +1,12 @@
 local unpack_fn = table.unpack or unpack
 local unaccent = require("lapis.bayes.text.unaccent")
 local punycode = require("lapis.bayes.text.punycode")
-local extract_text
-extract_text = require("web_sanitize").extract_text
+local Extractor
+Extractor = require("web_sanitize.html").Extractor
 local types = require("lapis.validate.types")
+local extract_text = Extractor({
+  escape_html = false
+})
 local normalize_number
 normalize_number = function(value)
   if not (value and value ~= "") then

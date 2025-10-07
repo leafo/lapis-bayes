@@ -2,8 +2,12 @@ unpack_fn = table.unpack or unpack
 
 unaccent = require "lapis.bayes.text.unaccent"
 punycode = require "lapis.bayes.text.punycode"
-import extract_text from require "web_sanitize"
+import Extractor from require "web_sanitize.html"
 types = require "lapis.validate.types"
+
+extract_text = Extractor {
+  escape_html: false
+}
 
 normalize_number = (value) ->
   return unless value and value != ""

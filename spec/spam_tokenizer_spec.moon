@@ -113,6 +113,18 @@ describe "lapis.bayes.tokenizers.spam", ->
     "domain:.com"
   }
 
+  it_tokenizes "html with nbsp entity", [[<a href="https://example.com/weed-gummies/">&nbsp;Green Street Origins CBD Gummies Canada</a>]], {
+    "green"
+    "street"
+    "origins"
+    "cbd"
+    "gummies"
+    "canada"
+    "domain:example.com"
+    "domain:.com"
+    "caps:cbd"
+  }
+
   it_tokenizes "ignored words", "Deal DEAL!!! Limited deal now NOW 10% NOW!!!", {
     "limited"
     "now"
@@ -395,7 +407,7 @@ describe "lapis.bayes.tokenizers.spam", ->
       "किए"
       "जब"
       "मजबूरन"
-      "games&trade"
+      "games™"
       "म"
     }
 
