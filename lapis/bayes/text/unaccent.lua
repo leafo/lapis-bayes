@@ -1743,6 +1743,8 @@ local unaccent_rules = [[ᖇ	R
 𝒯	T
 ︱	-
 ê	e
+ế	e
+ề	e
 Ꮐ	G
 Ū	U
 ٥	o

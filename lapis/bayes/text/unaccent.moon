@@ -1743,6 +1743,8 @@ unaccent_rules = [[ᖇ	R
 𝒯	T
 ︱	-
 ê	e
+ế	e
+ề	e
 Ꮐ	G
 Ū	U
 ٥	o
@@ -2512,6 +2514,4 @@ unaccent_string = unaccent_string_pattern\match
   :unaccent_table
   :unaccent_string
 }
-
-
 
