@@ -94,7 +94,9 @@ describe "lapis.bayes.tokenizers.spam", ->
   }
 
   it_tokenizes "chinese with url", "点击这里获取 50% 折扣!!! http://spam.cn/deal", {
+    "点击这里获取"
     "50%"
+    "折扣"
     "punct:!3"
     "domain:spam.cn"
     "domain:.cn"
@@ -305,6 +307,27 @@ describe "lapis.bayes.tokenizers.spam", ->
       "even"
       "15.5%"
       "today"
+    }
+
+  describe "invalid byte handling", ->
+    it_tokenizes "invalid UTF8 sequence", "Hello #{string.char(0xFF)} world", {
+      "hello"
+      "world"
+      "invalid_byte:255"
+    }
+
+    it_tokenizes "multiple invalid bytes", "Test#{string.char(0xFE)}#{string.char(0xFF)}end", {
+      "test"
+      "end"
+      "invalid_byte:254"
+      "invalid_byte:255"
+    }
+
+    -- Note: Cyrillic "Привет" doesn't lowercase properly due to string.lower() not handling Unicode
+    it_tokenizes "mixed valid unicode and invalid", "Привет#{string.char(0xFF)}世界", {
+      "Пpиbet"
+      "世界"
+      "invalid_byte:255"
     }
 
   describe "build_grammar", ->

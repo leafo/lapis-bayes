@@ -16,6 +16,9 @@ handle_punct = (chars) ->
   char = chars\sub 1, 1
   {tag: "punct", value: char .. tostring(#chars)}
 
+handle_invalid_byte = (byte) ->
+  {tag: "invalid_byte", value: tostring(string.byte(byte))}
+
 handle_domain_token = (domain) ->
   domain = domain\lower!
 
@@ -41,6 +44,7 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
   build_grammar: =>
     import P, S, R, C, Ct from require "lpeg"
+    utf8 = require "lapis.util.utf8"
 
     opts = @opts or {}
 
@@ -77,7 +81,7 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
       return if #word < min_len
       return if #word > max_len
-      return unless word\match "%a"
+      return if word\match "^%d+$"  -- Skip if all digits
       return if ignore_words and ignore_words[word]
 
       word
@@ -138,12 +142,15 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       else
         normalized
 
-    whitespace = S " \t\r\n"
+    whitespace = utf8.whitespace
     alpha = R "az", "AZ"
     digit = R "09"
     alphanum = alpha + digit
 
-    word_pattern = (alphanum + P"'")^1
+    punct_chars = S"!?$#%"
+    other_punct = S"()[]{},.;:\"<>/@#"
+    word_char = utf8.printable_character - whitespace - punct_chars - other_punct
+    word_pattern = (word_char + P"'")^1
 
     caps_char = R"AZ"
     caps_pattern = caps_char^2 * (caps_char + digit)^0
@@ -154,7 +161,6 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     percent_pattern = number_body * P"%"
     currency_pattern = S"$£€¥" * whitespace^0 * number_body
 
-    punct_chars = S"!?$#%"
     punct_pattern = punct_chars^3 * punct_chars^0
 
     domain_label = (alphanum + P"-")^1
@@ -192,7 +198,8 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     for i = 2, #token_patterns
       tokens = tokens + token_patterns[i]
 
-    Ct (tokens + P(1))^0
+    printable = utf8.printable_character
+    Ct (tokens + printable + (C(P(1)) / handle_invalid_byte))^0
 
   collect_url_tokens: (text) =>
     return {} unless text and text != ""

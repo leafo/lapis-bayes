@@ -22,6 +22,13 @@ handle_punct = function(chars)
     value = char .. tostring(#chars)
   }
 end
+local handle_invalid_byte
+handle_invalid_byte = function(byte)
+  return {
+    tag = "invalid_byte",
+    value = tostring(string.byte(byte))
+  }
+end
 local handle_domain_token
 handle_domain_token = function(domain)
   domain = domain:lower()
@@ -68,6 +75,7 @@ do
         local _obj_0 = require("lpeg")
         P, S, R, C, Ct = _obj_0.P, _obj_0.S, _obj_0.R, _obj_0.C, _obj_0.Ct
       end
+      local utf8 = require("lapis.util.utf8")
       local opts = self.opts or { }
       local min_len = opts.min_word_length or 2
       local max_len = opts.max_word_length or 32
@@ -111,7 +119,7 @@ do
         if #word > max_len then
           return 
         end
-        if not (word:match("%a")) then
+        if word:match("^%d+$") then
           return 
         end
         if ignore_words and ignore_words[word] then
@@ -214,18 +222,20 @@ do
           return normalized
         end
       end
-      local whitespace = S(" \t\r\n")
+      local whitespace = utf8.whitespace
       local alpha = R("az", "AZ")
       local digit = R("09")
       local alphanum = alpha + digit
-      local word_pattern = (alphanum + P("'")) ^ 1
+      local punct_chars = S("!?$#%")
+      local other_punct = S("()[]{},.;:\"<>/@#")
+      local word_char = utf8.printable_character - whitespace - punct_chars - other_punct
+      local word_pattern = (word_char + P("'")) ^ 1
       local caps_char = R("AZ")
       local caps_pattern = caps_char ^ 2 * (caps_char + digit) ^ 0
       local sign = S("+-") ^ -1
       local number_body = sign * digit ^ 1 * (P(",") * digit ^ 3) ^ 0 * (P(".") * digit ^ 1) ^ -1
       local percent_pattern = number_body * P("%")
       local currency_pattern = S("$£€¥") * whitespace ^ 0 * number_body
-      local punct_chars = S("!?$#%")
       local punct_pattern = punct_chars ^ 3 * punct_chars ^ 0
       local domain_label = (alphanum + P("-")) ^ 1
       local domain_pattern = domain_label * (P(".") * domain_label) ^ 1
@@ -255,7 +265,8 @@ do
       for i = 2, #token_patterns do
         tokens = tokens + token_patterns[i]
       end
-      return Ct((tokens + P(1)) ^ 0)
+      local printable = utf8.printable_character
+      return Ct((tokens + printable + (C(P(1)) / handle_invalid_byte)) ^ 0)
     end,
     collect_url_tokens = function(self, text)
       if not (text and text ~= "") then
