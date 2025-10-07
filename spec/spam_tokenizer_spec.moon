@@ -97,6 +97,7 @@ describe "lapis.bayes.tokenizers.spam", ->
     "点击这里获取"
     "50%"
     "折扣"
+    "deal"
     "punct:!3"
     "domain:spam.cn"
     "domain:.cn"
@@ -123,6 +124,59 @@ describe "lapis.bayes.tokenizers.spam", ->
     "domain:example.com"
     "domain:.com"
     "caps:cbd"
+  }
+
+  it_tokenizes "html strong with link", [[<strong><a href="https://howdyscbd.com/order-green-street-origins-cbd-gummies-ca/">https://howdyscbd.com/order-green-street-origins-cbd-gummies-ca/</a></strong>]], {
+    "order"
+    "green"
+    "street"
+    "origins"
+    "cbd"
+    "gummies"
+    "ca"
+    "domain:howdyscbd.com"
+    "domain:.com"
+  }
+
+  it_tokenizes "url with path segments", "Visit https://spamblog.biz/super-sale-today/index.html now", {
+    "visit"
+    "super"
+    "sale"
+    "today"
+    "index"
+    "html"
+    "now"
+    "domain:spamblog.biz"
+    "domain:.biz"
+  }
+
+  it_tokenizes "url with query and fragment", "Check this link https://news.example.com/summer/sale?promo=Summer-2024&utm_medium=email#Limited-Offer now", {
+    "check"
+    "this"
+    "link"
+    "summer"
+    "sale"
+    "promo"
+    "2024"
+    "utm"
+    "medium"
+    "email"
+    "limited"
+    "offer"
+    "now"
+    "domain:news.example.com"
+    "domain:.example.com"
+    "domain:.com"
+  }
+
+  it_tokenizes "url without scheme", "Visit www.discount-store.net/deal-of-day today", {
+    "visit"
+    "deal"
+    "of"
+    "day"
+    "today"
+    "domain:discount-store.net"
+    "domain:.net"
   }
 
   it_tokenizes "subscript characters", "Advanced CO₂ Extraction:", {
@@ -486,15 +540,11 @@ describe "lapis.bayes.tokenizers.spam", ->
       out = grammar\match "hello http://cool.leafo.net/fart.png is here"
       assert.same {
         "hello"
+        "fart"
+        "png"
         {tag: "domain", value: "cool.leafo.net"}
         {tag: "domain", value: ".leafo.net"}
         {tag: "domain", value: ".net"}
-        "rt"
-        "png"
         "is"
         "here"
       }, out
-
-
-
-

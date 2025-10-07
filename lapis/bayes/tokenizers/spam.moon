@@ -81,8 +81,6 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     import P, S, R, C, Ct from require "lpeg"
     utf8 = require "lapis.util.utf8"
 
-    opts = @opts
-
     min_len = @opts.min_word_length or 2
     max_len = @opts.max_word_length or 32
     ignore_words = @opts.ignore_words
@@ -146,6 +144,36 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
         for i = 2, #labels
           suffix = table.concat [labels[j] for j = i, #labels], "."
           table.insert tokens, {tag: "domain", value: truncate\transform ".#{suffix\lower!}"}
+
+      unpack_fn tokens
+
+    extract_url_words = (...) ->
+      out = {}
+      for part in *{...}
+        continue unless part and #part > 0
+
+        -- Strip leading URL punctuation like / ? #
+        part = part\gsub("^[:/?#]+", "")
+        continue if part == ""
+
+        -- Treat underscores and other punctuation as separators
+        part = part\gsub("_", " ")
+        part = part\gsub("[^%w']+", " ")
+
+        for raw in part\gmatch "%S+"
+          normalized = normalize_word raw
+          table.insert out, normalized if normalized
+
+      out
+
+    handle_url = (domain, path="", query="", fragment="") ->
+      tokens = {}
+
+      for word in *extract_url_words path, query, fragment
+        table.insert tokens, word
+
+      for token in *{handle_domain_token domain}
+        table.insert tokens, token
 
       unpack_fn tokens
 
@@ -241,7 +269,7 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     domain_label = domain_char^1
     domain_pattern = domain_label * (P"." * domain_label)^1
 
-    not_path = S[[ \t\r\n\"'<>()[\]{}?#]]
+    not_path = S" \t\r\n\"'<>()[\\]{}?#"
     port_part = (P":" * digit^1)^-1
     path_part = (P"/" * (1 - not_path)^0)^0
     query_part = (P"?" * (1 - not_path)^0)^-1
@@ -250,16 +278,16 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     www_prefix = case_insensitive "www."
     scheme = (alpha + digit)^1
 
-    url_with_scheme = scheme * P"://" * www_prefix^-1 * C(domain_pattern) * port_part * path_part * query_part * fragment_part
-    url_without_scheme = www_prefix * C(domain_pattern) * port_part * path_part * query_part * fragment_part
+    url_with_scheme = scheme * P"://" * www_prefix^-1 * C(domain_pattern) * port_part * C(path_part) * C(query_part) * C(fragment_part)
+    url_without_scheme = www_prefix * C(domain_pattern) * port_part * C(path_part) * C(query_part) * C(fragment_part)
 
     email_pattern = C((alphanum + S".%+_'-")^1 * P"@" * domain_pattern)
 
     number_capture = C(number_body) * -(alpha)
 
     token_patterns = {
-      url_with_scheme / handle_domain_token
-      url_without_scheme / handle_domain_token
+      url_with_scheme / handle_url
+      url_without_scheme / handle_url
       email_pattern / handle_email
       C(currency_pattern) / handle_currency
       C(percent_pattern) / handle_percent

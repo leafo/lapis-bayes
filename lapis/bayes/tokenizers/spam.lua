@@ -109,7 +109,6 @@ do
         P, S, R, C, Ct = _obj_0.P, _obj_0.S, _obj_0.R, _obj_0.C, _obj_0.Ct
       end
       local utf8 = require("lapis.util.utf8")
-      local opts = self.opts
       local min_len = self.opts.min_word_length or 2
       local max_len = self.opts.max_word_length or 32
       local ignore_words = self.opts.ignore_words
@@ -204,6 +203,67 @@ do
               value = truncate:transform("." .. tostring(suffix:lower()))
             })
           end
+        end
+        return unpack_fn(tokens)
+      end
+      local extract_url_words
+      extract_url_words = function(...)
+        local out = { }
+        local _list_0 = {
+          ...
+        }
+        for _index_0 = 1, #_list_0 do
+          local _continue_0 = false
+          repeat
+            local part = _list_0[_index_0]
+            if not (part and #part > 0) then
+              _continue_0 = true
+              break
+            end
+            part = part:gsub("^[:/?#]+", "")
+            if part == "" then
+              _continue_0 = true
+              break
+            end
+            part = part:gsub("_", " ")
+            part = part:gsub("[^%w']+", " ")
+            for raw in part:gmatch("%S+") do
+              local normalized = normalize_word(raw)
+              if normalized then
+                table.insert(out, normalized)
+              end
+            end
+            _continue_0 = true
+          until true
+          if not _continue_0 then
+            break
+          end
+        end
+        return out
+      end
+      local handle_url
+      handle_url = function(domain, path, query, fragment)
+        if path == nil then
+          path = ""
+        end
+        if query == nil then
+          query = ""
+        end
+        if fragment == nil then
+          fragment = ""
+        end
+        local tokens = { }
+        local _list_0 = extract_url_words(path, query, fragment)
+        for _index_0 = 1, #_list_0 do
+          local word = _list_0[_index_0]
+          table.insert(tokens, word)
+        end
+        local _list_1 = {
+          handle_domain_token(domain)
+        }
+        for _index_0 = 1, #_list_1 do
+          local token = _list_1[_index_0]
+          table.insert(tokens, token)
         end
         return unpack_fn(tokens)
       end
@@ -334,20 +394,20 @@ do
       local domain_char = utf8.printable_character - whitespace - S("./:@?#[](){}<>\"',")
       local domain_label = domain_char ^ 1
       local domain_pattern = domain_label * (P(".") * domain_label) ^ 1
-      local not_path = S([[ \t\r\n\"'<>()[\]{}?#]])
+      local not_path = S(" \t\r\n\"'<>()[\\]{}?#")
       local port_part = (P(":") * digit ^ 1) ^ -1
       local path_part = (P("/") * (1 - not_path) ^ 0) ^ 0
       local query_part = (P("?") * (1 - not_path) ^ 0) ^ -1
       local fragment_part = (P("#") * (1 - not_path) ^ 0) ^ -1
       local www_prefix = case_insensitive("www.")
       local scheme = (alpha + digit) ^ 1
-      local url_with_scheme = scheme * P("://") * www_prefix ^ -1 * C(domain_pattern) * port_part * path_part * query_part * fragment_part
-      local url_without_scheme = www_prefix * C(domain_pattern) * port_part * path_part * query_part * fragment_part
+      local url_with_scheme = scheme * P("://") * www_prefix ^ -1 * C(domain_pattern) * port_part * C(path_part) * C(query_part) * C(fragment_part)
+      local url_without_scheme = www_prefix * C(domain_pattern) * port_part * C(path_part) * C(query_part) * C(fragment_part)
       local email_pattern = C((alphanum + S(".%+_'-")) ^ 1 * P("@") * domain_pattern)
       local number_capture = C(number_body) * -(alpha)
       local token_patterns = {
-        url_with_scheme / handle_domain_token,
-        url_without_scheme / handle_domain_token,
+        url_with_scheme / handle_url,
+        url_without_scheme / handle_url,
         email_pattern / handle_email,
         C(currency_pattern) / handle_currency,
         C(percent_pattern) / handle_percent,
