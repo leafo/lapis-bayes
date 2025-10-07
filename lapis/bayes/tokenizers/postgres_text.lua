@@ -52,7 +52,7 @@ do
       return db.query([[SELECT unnest(lexemes) AS word FROM ts_debug('english', ?)]], text)
     end,
     pg_tokenize = function(self, text)
-      local regconfig = opts and self.opts.regconfig or "english"
+      local regconfig = self.opts and self.opts.regconfig or "english"
       return db.query([[SELECT unnest(tsvector_to_array(to_tsvector(?, ?))) AS word]], regconfig, text)
     end,
     tokenize_text = function(self, text)

@@ -79,7 +79,7 @@ class Categories extends Model
     import WordClassifications from require "lapis.bayes.models"
     tbl = db.escape_identifier WordClassifications\table_name!
 
-    res = db.query "
+    db.query "
     INSERT INTO #{tbl} (category_id, word, count) #{encode_tuples tuples}
     ON CONFLICT (category_id, word) DO UPDATE SET count = #{tbl}.count + EXCLUDED.count
     "

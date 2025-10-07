@@ -37,7 +37,7 @@ class PostgresTextTokenizer extends require "lapis.bayes.tokenizers.base"
 
   -- much faster (50x), but loses duplicates. Needs newer version of postgres
   pg_tokenize: (text) =>
-    regconfig = opts and @opts.regconfig or "english"
+    regconfig = @opts and @opts.regconfig or "english"
     db.query [[SELECT unnest(tsvector_to_array(to_tsvector(?, ?))) AS word]], regconfig, text
 
   tokenize_text: (text) =>

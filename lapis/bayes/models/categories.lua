@@ -80,7 +80,7 @@ do
       local WordClassifications
       WordClassifications = require("lapis.bayes.models").WordClassifications
       local tbl = db.escape_identifier(WordClassifications:table_name())
-      local res = db.query("\n    INSERT INTO " .. tostring(tbl) .. " (category_id, word, count) " .. tostring(encode_tuples(tuples)) .. "\n    ON CONFLICT (category_id, word) DO UPDATE SET count = " .. tostring(tbl) .. ".count + EXCLUDED.count\n    ")
+      db.query("\n    INSERT INTO " .. tostring(tbl) .. " (category_id, word, count) " .. tostring(encode_tuples(tuples)) .. "\n    ON CONFLICT (category_id, word) DO UPDATE SET count = " .. tostring(tbl) .. ".count + EXCLUDED.count\n    ")
       self:increment(total_count)
       return total_count
     end
