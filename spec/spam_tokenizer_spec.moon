@@ -146,3 +146,104 @@ describe "lapis.bayes.tokenizers.spam", ->
       "number:10"
       "number_bucket:short"
     }, tokens
+
+  it "tokenizes Esperanto sentence", ->
+    tokenizer = SpamTokenizer!
+
+    tokens = tokenizer\tokenize_text "Eble ĉiu ĵaŭdo ŝanĝiĝos al pli agrabla tago"
+
+    assert.same {
+     'eble'
+     'ciu'
+     'jaudo'
+     'sangigos'
+     'al'
+     'pli'
+     'agrabla'
+     'tago'
+    }, tokens
+
+  describe "with stemming", ->
+    it "stems word tokens when stem_words enabled", ->
+      tokenizer = SpamTokenizer { stem_words: true }
+
+      tokens = tokenizer\tokenize_text "running dogs created connections"
+
+      assert.same {
+        "run"
+        "dog"
+        "creat"
+        "connect"
+      }, tokens
+
+    it "does not stem when stem_words not set (backward compatibility)", ->
+      tokenizer = SpamTokenizer!
+
+      tokens = tokenizer\tokenize_text "running dogs"
+
+      assert.same {
+        "running"
+        "dogs"
+      }, tokens
+
+    it "stems caps words", ->
+      tokenizer = SpamTokenizer { stem_words: true }
+
+      tokens = tokenizer\tokenize_text "RUNNING Dogs"
+
+      assert.same {
+        "run"
+        "caps:run"
+        "dog"
+      }, tokens
+
+    it "stems words in bigrams", ->
+      tokenizer = SpamTokenizer { stem_words: true, bigram_tokens: true }
+
+      tokens = tokenizer\tokenize_text "running dogs"
+
+      assert.same {
+        "run"
+        "dog"
+        "run dog"
+      }, tokens
+
+    it "dedupes stemmed words", ->
+      tokenizer = SpamTokenizer { stem_words: true }
+
+      tokens = tokenizer\tokenize_text "running runs run"
+
+      assert.same {
+        "run"
+      }, tokens
+
+    it "does not stem special tokens", ->
+      tokenizer = SpamTokenizer { stem_words: true }
+
+      tokens = tokenizer\tokenize_text "running at http://examples.com with $199.99 for sales@example.com"
+
+      assert.same {
+        "run"
+        "at"
+        "url:examples.com"
+        "domain:examples.com"
+        "host_label:examples"
+        "host_label:com"
+        "root_domain:examples.com"
+        "tld:com"
+        "with"
+        "currency:$"
+        "number:199.99"
+        "number_bucket:long"
+        "for"
+        "email:sales@example.com"
+        "email_user:sales"
+        "domain:example.com"
+        "host_label:example"
+        "root_domain:example.com"
+      }, tokens
+
+
+
+
+

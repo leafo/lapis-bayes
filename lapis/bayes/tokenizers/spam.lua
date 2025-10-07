@@ -65,6 +65,12 @@ do
       local min_len = opts.min_word_length or 2
       local max_len = opts.max_word_length or 32
       local ignore_words = opts.ignore_words
+      local stem
+      if opts.stem_words then
+        stem = require("lapis.bayes.text.stem").stem_word
+      else
+        stem = nil
+      end
       local case_insensitive
       case_insensitive = function(text)
         local out = nil
@@ -239,11 +245,25 @@ do
         if not (normalized) then
           return 
         end
-        return normalized, "caps:" .. normalized
+        local stemmed
+        if stem then
+          stemmed = stem(normalized) or normalized
+        else
+          stemmed = normalized
+        end
+        return stemmed, "caps:" .. stemmed
       end
       local handle_word
       handle_word = function(word)
-        return normalize_word(word)
+        local normalized = normalize_word(word)
+        if not (normalized) then
+          return 
+        end
+        if stem then
+          return stem(normalized) or normalized
+        else
+          return normalized
+        end
       end
       local handle_punct
       handle_punct = function(chars)

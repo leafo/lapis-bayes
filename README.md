@@ -216,6 +216,7 @@ Options:
 * `bigram_tokens`: when `true`, append sequential word bigrams (skips tokens containing `:`)
 * `sample_at_most`: keeps at most N word tokens and, if enabled, at most N bigrams (deterministic prefix sample)
 * `unaccent`: defaults to `true`; set to `false` to keep original accents
+* `stem_words`: defaults to `false`; when `true`, applies Porter stemming to word tokens (e.g., "running" → "run")
 * `filter_text` / `filter_tokens`: custom hooks that receive the raw string or token array respectively
 
 ```lua

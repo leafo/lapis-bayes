@@ -47,6 +47,11 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     max_len = opts.max_word_length or 32
     ignore_words = opts.ignore_words
 
+    stem = if opts.stem_words
+      require("lapis.bayes.text.stem").stem_word
+    else
+      nil
+
     case_insensitive = (text) ->
       out = nil
       for char in text\gmatch "."
@@ -172,10 +177,19 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       return unless word\match "%u"
       normalized = normalize_word word
       return unless normalized
-      normalized, "caps:" .. normalized
+      stemmed = if stem
+        stem(normalized) or normalized
+      else
+        normalized
+      stemmed, "caps:" .. stemmed
 
     handle_word = (word) ->
-      normalize_word word
+      normalized = normalize_word word
+      return unless normalized
+      if stem
+        stem(normalized) or normalized
+      else
+        normalized
 
     handle_punct = (chars) ->
       char = chars\sub 1, 1
