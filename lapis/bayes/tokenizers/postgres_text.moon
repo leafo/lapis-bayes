@@ -21,7 +21,7 @@ class PostgresTextTokenizer extends require "lapis.bayes.tokenizers.base"
     min_len = opts and opts.min_token_length or 2
     max_len = opts and opts.max_token_length or 12
 
-    strip_numbers = opts and opts.strip_numbers or nil
+    strip_numbers = opts and opts.strip_numbers
     strip_numbers = true if strip_numbers == nil
 
     return for t in *tokens

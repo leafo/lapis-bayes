@@ -8,7 +8,7 @@ do
       local opts = self.opts
       local min_len = opts and opts.min_token_length or 2
       local max_len = opts and opts.max_token_length or 12
-      local strip_numbers = opts and opts.strip_numbers or nil
+      local strip_numbers = opts and opts.strip_numbers
       if strip_numbers == nil then
         strip_numbers = true
       end
