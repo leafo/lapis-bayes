@@ -338,7 +338,7 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
     punct_pattern = punct_chars^3 * punct_chars^0
 
-    domain_char = utf8.printable_character - whitespace - S"./:@?#[](){}<>\"',"
+    domain_char = utf8.printable_character - whitespace - S"./:@?#[](){}<>\"',;&"
     domain_label = domain_char^1
     domain_pattern = domain_label * (P"." * domain_label)^1
 

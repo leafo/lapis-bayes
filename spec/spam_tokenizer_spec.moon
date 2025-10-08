@@ -612,17 +612,19 @@ describe "lapis.bayes.tokenizers.spam", ->
       }, out
 
   describe "collect_url_tokens", ->
-    it "extracts url tokens from string with multiple urls", ->
+    it "extracts url tokens with HTML entities", ->
       tokenizer = SpamTokenizer!
-      tokens = tokenizer\collect_url_tokens "href='http://leafo.net&amp; ' http://google.com/p8sslord/da?what please help the good one www.leafodad.com yeah what the freak"
+      tokens = tokenizer\collect_url_tokens "http://leafo.net&amp; http://google.com/p8sslord/da?what please help www.leafodad.com"
       assert.same {
+        {tag: "domain", value: "leafo.net"}
+        {tag: "domain", value: ".net"}
         {tag: "domain", value: "google.com"}
         {tag: "domain", value: ".com"}
         {tag: "domain", value: "leafodad.com"}
         {tag: "domain", value: ".com"}
       }, tokens
 
-    it "extracts url from iframe", ->
+    it "extracts url from iframe with double quotes", ->
       tokenizer = SpamTokenizer!
       tokens = tokenizer\collect_url_tokens [[<iframe src="http://youtube.com/hello-world" frameborder="0"></iframe>]]
       assert.same {

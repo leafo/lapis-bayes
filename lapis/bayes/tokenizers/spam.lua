@@ -499,7 +499,7 @@ do
       local percent_pattern = number_body * P("%")
       local currency_pattern = S("$£€¥") * whitespace ^ 0 * number_body
       local punct_pattern = punct_chars ^ 3 * punct_chars ^ 0
-      local domain_char = utf8.printable_character - whitespace - S("./:@?#[](){}<>\"',")
+      local domain_char = utf8.printable_character - whitespace - S("./:@?#[](){}<>\"',;&")
       local domain_label = domain_char ^ 1
       local domain_pattern = domain_label * (P(".") * domain_label) ^ 1
       local not_path = S(" \t\r\n\"'<>()[\\]{}?#")
