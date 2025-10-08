@@ -117,6 +117,12 @@ describe "lapis.bayes.tokenizers.spam", ->
   it_tokenizes "mixed links", [[
     <ul><li><a href="https://love2d.org/">https://love2d.org/</a></li><li><a href="http://moonscript.org/">http://moonscript.org/</a></li><li><a href="https://github.com/leafo/lovekit">LoveKit</a></li></ul>
   ]], {
+    "lovekit"
+    "domain:love2d.org"
+    "domain:.org"
+    "domain:moonscript.org"
+    "domain:github.com"
+    "domain:.com"
   }, {
     bigram_tokens: true
   }
@@ -128,9 +134,9 @@ describe "lapis.bayes.tokenizers.spam", ->
     "cbd"
     "gummies"
     "canada"
+    "caps:cbd"
     "domain:example.com"
     "domain:.com"
-    "caps:cbd"
   }
 
   it_tokenizes "html strong with link", [[<strong><a href="https://howdyscbd.com/order-green-street-origins-cbd-gummies-ca/">https://howdyscbd.com/order-green-street-origins-cbd-gummies-ca/</a></strong>]], {
