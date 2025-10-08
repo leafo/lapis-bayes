@@ -57,6 +57,7 @@ assert("ham" == bayes.classify_text({"spam", "ham"}, "Games to download"))
 assert("spam" == bayes.classify_text({"spam", "ham"}, "discount rolex watch"))
 ```
 
+
 ## Reference
 
 The `lapis.bayes` module includes a set of functions that operate on the
@@ -64,9 +65,13 @@ default classifier and tokenizer:
 
 * `BayesClassifier`
 * `PostgresTextTokenizer`
+* `UrlDomainsTokenizer`
+* `SpamTokenizer`
 
-If the classifier or tokenizer need to be customized, then the classes will
-need to be manually instantiated.
+These functions work with the default classifier class defined by `require
+"lapis.bayes.classifiers.default"` (which resolves to the `BayesClassifier`. If
+you want finer control over tokenization and classification then you can work
+with tokenizers and classifiers directly.
 
 #### `num_words = bayes.train_text(category, text)`
 
@@ -115,9 +120,21 @@ Sometimes, you may want to explicitly provide the words for insertion and
 classification. You can bypass tokenization by passing an array of words in
 place of the string when calling any classify or train function.
 
-You can customize the tokenizer by providing a `tokenize_text` option. This
-should be a function that takes a single arugment, the string of text, and the
-return value is the tokens. For example:
+```lua
+local bayes = require("lapis.bayes")
+
+-- Providing a list of word tokens directly for training will skip the tokenization
+
+local tokens = {"cheap", "prom", "dresses", "buy", "discount", "prom", "dress"}
+bayes.train_text("spam", tokens)
+
+local tokens2 = {"games", "downloaded", "remember", "stuff"}
+bayes.train_text("ham", tokens2)
+```
+
+You can manually tokenize by providing a `tokenize_text` function to the
+options table. The function takes a single arugment, the string of text, and
+the return value is an array of tokens. For example:
 
 ```lua
 local bayes = require("lapis.bayes")
@@ -128,6 +145,39 @@ bayes.train_text("spam", "Cheap Prom Dresses 2014 - Buy discount Prom Dress", {
   end
 })
 ```
+
+Alternatively, you can pass in a specific tokenzer instance like so:
+
+```lua
+local SpamTokenizer = require "lapis.bayes.tokenizers.spam"
+
+local tokenizer = SpamTokenizer({
+  stem_words = true,
+  bigram_tokens = true,
+})
+
+local bayes = require("lapis.bayes")
+
+bayes.train_text("ham", "I love video games and discounts", {
+  tokenizer = tokenizer
+})
+
+bayes.train_text("spam", "discounted prescription drugs", {
+  tokenizer = tokenizer
+})
+
+local input_strinct = "Download latest games at huge discounts"
+
+local category, score = bayes.classify_text({"spam", "ham"}, input_string, {
+  tokenizer = tokenizer
+})
+
+print(category, score) --> "ham", 0.95
+```
+
+> It's important that you avoid mixing and matching category names with
+> different tokenizer types, as the different tokens can have different
+> meanings and distributions.
 
 ### Built-in tokenizers
 
@@ -156,8 +206,8 @@ Duplicates are removed.
 > may not have specific training.
 
 This tokenizer requires an active connection to a Postgres database (provided
-in the Lapis config). It will issue queries when tokenizing. The tokenizer is
-uses a query that is specific to English:
+in the Lapis config). It will issue a single query when tokenizing a string of
+text. The tokenizer is uses a query that is specific to English:
 
 
 ```sql
@@ -181,12 +231,16 @@ local tokens2 = t:tokenize_text([[
 
 Tokenizer options:
 
-* `min_len`: minimum token length (default `2`)
-* `max_len`: maximum token length (default `12`), tokens that don't fulfill length requirements will be excluded, not truncated
+* `min_token_length`: minimum token length (default `2`)
+* `max_token_length`: maximum token length (default `12`), tokens that don't fulfill length requirements will be excluded, not truncated
 * `strip_numbers`: remove tokens that are numbers (default `true`)
+* `strip_tags`: remove HTML tags from input text (default `false`)
 * `symbols_split_tokens`: split apart tokens that contain a symbol before tokenization, eg. `hello:world` goes to `hello world` (default `false`)
+* `ignore_words`: table of words to ignore, keys are words and values should be truthy (optional, default `nil`)
 * `filter_text`: custom pre-filter function to process incoming text, takes text as first argument, should return text (optional, default `nil`)
-* `filter_tokens`: custom post-filter function to process output tokens, takes token array, should return a token array (optional, default `nil`)
+* `filter_tokens`: custom post-filter function to process output tokens, takes token array and opts, should return a token array (optional, default `nil`)
+* `legacy_tokenizer`: use slower `ts_debug` tokenizer that preserves duplicate words (default `false`)
+* `regconfig`: PostgreSQL text search configuration to use for tokenization (default `"english"`)
 
 ####  Spam Tokenizer
 
