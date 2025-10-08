@@ -632,6 +632,13 @@ describe "lapis.bayes.tokenizers.spam", ->
         {tag: "domain", value: ".com"}
       }, tokens
 
+    -- TODO: this should probably be fixed at some point, it's treating ' as apostrophe word most likely
+    it "BUG: does not extract url from single-quoted attribute", ->
+      tokenizer = SpamTokenizer!
+      -- Single quotes break the URL pattern matching in the grammar
+      tokens = tokenizer\collect_url_tokens "href='http://example.com' other text"
+      assert.same {}, tokens
+
     it "extracts multiple urls", ->
       tokenizer = SpamTokenizer!
       tokens = tokenizer\collect_url_tokens [[
