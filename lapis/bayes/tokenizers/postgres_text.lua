@@ -8,7 +8,7 @@ do
       local opts = self.opts
       local min_len = opts and opts.min_token_length or 2
       local max_len = opts and opts.max_token_length or 12
-      local strip_numbers = opts and opts.strip_number_tokens or nil
+      local strip_numbers = opts and opts.strip_numbers or nil
       if strip_numbers == nil then
         strip_numbers = true
       end
@@ -49,34 +49,35 @@ do
       end)()
     end,
     slow_pg_tokenize = function(self, text)
-      return db.query([[SELECT unnest(lexemes) AS word FROM ts_debug('english', ?)]], text)
+      local regconfig = self.opts.regconfig or "english"
+      return db.query([[SELECT unnest(lexemes) AS word FROM ts_debug(?, ?)]], regconfig, text)
     end,
     pg_tokenize = function(self, text)
-      local regconfig = self.opts and self.opts.regconfig or "english"
+      local regconfig = self.opts.regconfig or "english"
       return db.query([[SELECT unnest(tsvector_to_array(to_tsvector(?, ?))) AS word]], regconfig, text)
     end,
     tokenize_text = function(self, text)
-      local opts = self.opts
-      local pre_filter = opts and opts.filter_text
-      if pre_filter then
-        text = pre_filter(text)
+      do
+        local pre_filter = self.opts.filter_text
+        if pre_filter then
+          text = pre_filter(text)
+        end
       end
-      if opts and opts.strip_tags then
+      if self.opts.strip_tags then
         local extract_text
         extract_text = require("web_sanitize").extract_text
         text = extract_text(text)
       end
-      if opts and opts.symbols_split_tokens then
+      if self.opts.symbols_split_tokens then
         text = text:gsub("[%!%@%#%$%%%^%&%*%(%)%[%]%{%}%|%\\%/%`%~%-%_%<%>%,%.]", " ")
       end
       local res
-      if opts and opts.legacy_tokenizer then
+      if self.opts.legacy_tokenizer then
         res = self:slow_pg_tokenize(text)
       else
         res = self:pg_tokenize(text)
       end
-      local tokens
-      do
+      local tokens = self:filter_tokens((function()
         local _accum_0 = { }
         local _len_0 = 1
         for _index_0 = 1, #res do
@@ -84,12 +85,10 @@ do
           _accum_0[_len_0] = r.word
           _len_0 = _len_0 + 1
         end
-        tokens = _accum_0
-      end
-      if opts and opts.filter_tokens then
-        tokens = opts.filter_tokens(tokens, opts)
-      else
-        tokens = self:filter_tokens(tokens)
+        return _accum_0
+      end)())
+      if self.opts.filter_tokens then
+        tokens = self.opts.filter_tokens(tokens, self.opts)
       end
       return tokens
     end
