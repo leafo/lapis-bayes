@@ -248,40 +248,47 @@ Tokenizer options:
 
 A tokenization specially designed to generate token arrays that are effective
 at spam classification. This includes normalizing accented characters,
-extracting URLs separately, working with HTML markup, generating bigrams,
-generating market tokens for punctuation and number types used, and more.
+extracting URLs and domains, working with HTML markup, generating bigrams,
+generating tagged tokens for punctuation, currencies, emails, and more.
 
 Token types include:
 
 * lowercase word tokens (with apostrophes removed and optional unaccenting)
 * `caps:<word>` for words containing uppercase letters
-* `punct:<char><run-length>` chunks for repeated punctuation
-* `number:<value>` and `number_bucket:<short|medium|long>` buckets
-* `currency:<symbol>` and `percent:<value>` wrappers around detected numbers
-* URL and domain family tokens: `url:`, `domain:`, `root_domain:`, `host_label:`, `tld:`
-* email tokens: `email:` and `email_user:`
+* `punct:<char><run-length>` for repeated punctuation (e.g., `punct:!3` for `!!!`)
+* `currency:<symbol>` for currency symbols (e.g., `currency:$`)
+* plain number strings (e.g., `"12345"`, `"5.99"`)
+* plain percent strings (e.g., `"99%"`)
+* `domain:<domain>` for full domains and hierarchical suffixes with leading dots (e.g., `domain:example.com`, `domain:.com`)
+* `email:<address>` for full email addresses
+* `email_user:<username>` for the username part of emails
+* `invalid_byte:<byte>` for invalid UTF-8 bytes
 * optional word bigrams (`word1 word2`) when enabled
 
 Options:
 
 * `min_word_length` / `max_word_length`: bounds applied before emitting word tokens (defaults `2` / `32`)
-* `ignore_words` / `ignore_tokens`: omit words before normalization or final tokens by exact match
+* `ignore_words`: table of words to ignore (keys are words, values should be truthy) (optional)
+* `ignore_tokens`: table of tokens to ignore (keys are tokens, values should be truthy) (optional)
+* `ignore_domains`: list of domains to ignore; prefix with `.` to ignore subdomains (e.g., `".example.com"` ignores all subdomains, `"example.com"` ignores exact match only) (optional)
 * `dedupe`: defaults to `true`; set `false` to keep duplicate tokens
-* `bigram_tokens`: when `true`, append sequential word bigrams (skips tokens containing `:`)
-* `sample_at_most`: keeps at most N word tokens and, if enabled, at most N bigrams (deterministic prefix sample)
+* `bigram_tokens`: when `true`, append sequential word bigrams
+* `sample_at_most`: keeps at most N word tokens and at most N bigrams separately; tagged tokens (domain, email, etc.) are never sampled
+* `dither`: defaults to `true`; when enabled, applies dithering randomization when sampling tokens
 * `unaccent`: defaults to `true`; set to `false` to keep original accents
 * `stem_words`: defaults to `false`; when `true`, applies Porter stemming to word tokens (e.g., "running" → "run")
-* `filter_text` / `filter_tokens`: custom hooks that receive the raw string or token array respectively
+* `filter_text`: custom pre-filter function to process incoming text, takes text as first argument, should return text (optional)
+* `filter_tokens`: custom post-filter function to process output tokens, takes token array and opts as arguments, should return a token array (optional)
 
 ```lua
 local SpamTokenizer = require "lapis.bayes.tokenizers.spam"
 
 local tokenizer = SpamTokenizer {
-  bigram_tokens: true,
-  sample_at_most: 128
+  bigram_tokens = true,
+  sample_at_most = 128
 }
 
-local tokens = tokenizer:tokenize_text([[<div>Limited time offer! Visit https://example.com</div>]])
+local tokens = tokenizer:tokenize_text([[<div>Limited time offer! Visit https://example.com for 50% off</div>]])
 ```
 
 Produces tokens:
@@ -292,12 +299,9 @@ Produces tokens:
   "time",
   "offer",
   "visit",
-  "url:example.com",
+  "50%",
   "domain:example.com",
-  "host_label:example",
-  "host_label:com",
-  "root_domain:example.com",
-  "tld:com",
+  "domain:.com",
   "limited time",
   "time offer",
   "offer visit"
