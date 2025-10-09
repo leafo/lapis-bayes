@@ -227,3 +227,126 @@ describe "lapis.bayes", ->
         total += p
 
       assert math.abs(total - 1) < 1e-6, "probabilities should sum to ~1"
+
+  describe "NgramTokenizer with BayesMultiClassifier for language detection", ->
+    NgramTokenizer = require "lapis.bayes.tokenizers.ngram"
+    BayesMultiClassifier = require "lapis.bayes.classifiers.bayes_multi"
+    import train_text from require "lapis.bayes"
+
+    local classifier
+
+    before_each ->
+      truncate_tables Categories, WordClassifications
+
+      -- Use bigrams (n=2) for language detection - captures character patterns
+      tokenizer = NgramTokenizer { n: 2 }
+      classifier = BayesMultiClassifier { tokenizer: tokenizer }
+
+      -- Train on sample sentences in different languages with more data per language
+      training_data = {
+        -- English - distinctive patterns: "th", "he", "er", "an", "in", "on"
+        {"english", "The quick brown fox jumps over the lazy dog and runs around"}
+        {"english", "Hello world this is a test of the system in English language"}
+        {"english", "Programming and software development with modern technology"}
+        {"english", "Machine learning models for natural language understanding"}
+        {"english", "Welcome to the website where you can find information"}
+        {"english", "These are common English words and phrases that we use"}
+
+        -- Spanish - distinctive: "ción", "que", "es", "os", "as", "ñ"
+        {"spanish", "El rápido zorro marrón que salta sobre el perro perezoso"}
+        {"spanish", "Hola mundo esta es una prueba del sistema de transmisión"}
+        {"spanish", "Los lenguajes de programación son herramientas importantes"}
+        {"spanish", "Buenos días cómo estás espero que tengas un buen día"}
+        {"spanish", "Bienvenido a nuestro sitio web donde puedes encontrar información"}
+        {"spanish", "Estas son palabras y frases comunes que usamos en español"}
+
+        -- French - distinctive: "le", "de", "tion", "ent", "que", accents
+        {"french", "Le rapide renard brun qui saute pardessus le chien paresseux"}
+        {"french", "Bonjour le monde ceci est un test du système de diffusion"}
+        {"french", "Les langages de programmation sont des outils importants"}
+        {"french", "Comment allezvous aujourdhui jespère que vous passez une bonne journée"}
+        {"french", "Bienvenue sur notre site web où vous pouvez trouver des informations"}
+        {"french", "Ce sont des mots et phrases courants que nous utilisons en français"}
+
+        -- German - distinctive: "ch", "sch", "en", "er", "un", umlauts
+        {"german", "Der schnelle braune Fuchs der über den faulen Hund springt"}
+        {"german", "Hallo Welt dies ist ein Test des Notfallübertragungssystems"}
+        {"german", "Programmiersprachen sind wichtige Werkzeuge für die Entwicklung"}
+        {"german", "Guten Morgen wie geht es Ihnen ich hoffe Sie haben einen schönen Tag"}
+        {"german", "Willkommen auf unserer Website wo Sie Informationen finden können"}
+        {"german", "Dies sind häufige Wörter und Phrasen die wir auf Deutsch verwenden"}
+
+        -- Chinese - distinctive: Chinese characters, different byte patterns
+        {"chinese", "敏捷的棕色狐狸跳过懒狗并且到处跑"}
+        {"chinese", "你好世界这是一个紧急广播系统的测试"}
+        {"chinese", "编程语言是表达算法的重要工具"}
+        {"chinese", "早上好你好吗我希望你有美好的一天"}
+        {"chinese", "欢迎来到我们的网站在这里你可以找到信息"}
+        {"chinese", "这些是我们在中文中使用的常用词和短语"}
+      }
+
+      for {lang, text} in *training_data
+        train_text lang, text, { tokenizer: tokenizer }
+
+    it "detects English text", ->
+      probs = assert classifier\text_probabilities {
+        "english", "spanish", "french", "german", "chinese"
+      }, "Welcome to the website where you can find information and content"
+
+      assert.same "english", probs[1][1], "should detect English"
+      assert probs["english"] > 0.3, "English should have reasonable probability"
+
+    it "detects Spanish text", ->
+      probs = assert classifier\text_probabilities {
+        "english", "spanish", "french", "german", "chinese"
+      }, "Bienvenido estas son palabras en español que usamos"
+
+      assert.same "spanish", probs[1][1], "should detect Spanish"
+      assert probs["spanish"] > probs["english"], "Spanish should outrank English"
+
+    it "detects French text", ->
+      probs = assert classifier\text_probabilities {
+        "english", "spanish", "french", "german", "chinese"
+      }, "Bienvenue ce sont des mots en français que nous utilisons"
+
+      assert.same "french", probs[1][1], "should detect French"
+      assert probs["french"] > probs["english"], "French should outrank English"
+
+    it "detects German text", ->
+      probs = assert classifier\text_probabilities {
+        "english", "spanish", "french", "german", "chinese"
+      }, "Willkommen dies sind Wörter auf Deutsch die wir verwenden"
+
+      assert.same "german", probs[1][1], "should detect German"
+      assert probs["german"] > probs["english"], "German should outrank English"
+
+    it "detects Chinese text", ->
+      probs = assert classifier\text_probabilities {
+        "english", "spanish", "french", "german", "chinese"
+      }, "欢迎这些是我们使用的中文词语"
+
+      assert.same "chinese", probs[1][1], "should detect Chinese"
+      assert probs["chinese"] > probs["english"], "Chinese should outrank English"
+
+    it "probabilities sum to 1", ->
+      probs = assert classifier\text_probabilities {
+        "english", "spanish", "french", "german", "chinese"
+      }, "This is a test sentence in English"
+
+      total = 0
+      for {_, p} in *probs
+        total += p
+
+      assert math.abs(total - 1) < 1e-6, "probabilities should sum to ~1"
+
+    it "returns all languages ranked", ->
+      probs = assert classifier\text_probabilities {
+        "english", "spanish", "french", "german", "chinese"
+      }, "Testing language detection with character ngrams"
+
+      assert.same 5, #probs, "should return probabilities for all 5 languages"
+      assert.same "english", probs[1][1], "English should be first"
+
+      -- Verify probabilities are in descending order
+      for i = 2, #probs
+        assert probs[i-1][2] >= probs[i][2], "probabilities should be sorted descending"
