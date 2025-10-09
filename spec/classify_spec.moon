@@ -142,6 +142,7 @@ describe "lapis.bayes", ->
     classifiers = {
       "lapis.bayes.classifiers.test"
       "lapis.bayes.classifiers.bayes"
+      "lapis.bayes.classifiers.bayes_multi"
       "lapis.bayes.classifiers.bayes_mod"
       "lapis.bayes.classifiers.fisher"
     }
@@ -183,4 +184,37 @@ describe "lapis.bayes", ->
               probs: text_probabilities {"spam", "ham"}, text
             }
 
+  describe "BayesMultiClassifier", ->
+    import train_text from require "lapis.bayes"
 
+    before_each ->
+      truncate_tables Categories, WordClassifications
+      for {label, tokens} in *{
+        {"cats", {"cat", "kitten", "purr", "whisker", "nap"}}
+        {"cats", {"feline", "cat", "purr"}}
+        {"dogs", {"dog", "puppy", "bark", "bone", "wag"}}
+        {"dogs", {"dog", "fetch", "leash", "bark"}}
+        {"birds", {"bird", "wing", "feather", "chirp"}}
+        {"birds", {"bird", "soar", "sky", "chirp"}}
+      }
+        train_text label, tokens
+
+    it "classifies across multiple categories", ->
+      classifier = require "lapis.bayes.classifiers.bayes_multi"
+      probs = assert classifier!\text_probabilities {"cats", "dogs", "birds"},
+        {"kitten", "purr", "whisker"}
+
+      assert.same "cats", probs[1][1]
+      assert probs["cats"] > probs["dogs"], "cats should outrank dogs"
+      assert probs["cats"] > probs["birds"], "cats should outrank birds"
+
+    it "generates a normalised probability distribution", ->
+      classifier = require "lapis.bayes.classifiers.bayes_multi"
+      probs = assert classifier!\text_probabilities {"cats", "dogs", "birds"},
+        {"bark", "bone", "dog"}
+
+      total = 0
+      for {_, p} in *probs
+        total += p
+
+      assert math.abs(total - 1) < 1e-6, "probabilities should sum to ~1"

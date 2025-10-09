@@ -22,6 +22,7 @@ build = {
     ["lapis.bayes"] = "lapis/bayes.lua",
     ["lapis.bayes.classifiers.base"] = "lapis/bayes/classifiers/base.lua",
     ["lapis.bayes.classifiers.bayes"] = "lapis/bayes/classifiers/bayes.lua",
+    ["lapis.bayes.classifiers.bayes_multi"] = "lapis/bayes/classifiers/bayes_multi.lua",
     ["lapis.bayes.classifiers.bayes_mod"] = "lapis/bayes/classifiers/bayes_mod.lua",
     ["lapis.bayes.classifiers.default"] = "lapis/bayes/classifiers/default.lua",
     ["lapis.bayes.classifiers.fisher"] = "lapis/bayes/classifiers/fisher.lua",
@@ -42,4 +43,3 @@ build = {
     ["lapis.bayes.tokenizers.url_domains"] = "lapis/bayes/tokenizers/url_domains.lua",
   }
 }
-
