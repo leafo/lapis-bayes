@@ -32,12 +32,21 @@ describe "lapis.bayes", ->
         second = Categories\find_or_create "second"
         third = Categories\find_or_create "third"
 
-        results = classifier\find_categories {"first", "second"}
-        assert.same 2, #results, "should find two categories"
+        do
+          results = classifier\find_categories {"first", "second"}
+          assert.same 2, #results, "should find two categories"
 
-        -- confirm the result objects are in correct order
-        assert.same first.id, results[1].id, "correct category order"
-        assert.same second.id, results[2].id, "correct category order"
+          -- confirm the result objects are in correct order
+          assert.same first.id, results[1].id, "correct category order"
+          assert.same second.id, results[2].id, "correct category order"
+
+        do
+          results = classifier\find_categories {"third", "first"}
+          assert.same 2, #results, "should find two categories"
+
+          -- confirm the result objects are in correct order
+          assert.same third.id, results[1].id, "correct category order"
+          assert.same first.id, results[2].id, "correct category order"
 
     describe "find_word_classifications", ->
       it "finds empty set", ->
