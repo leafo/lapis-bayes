@@ -1,4 +1,3 @@
-local db = require("lapis.db")
 local VERSION = "1.3.0"
 local text_probabilities
 text_probabilities = function(categories, text, opts)

@@ -1,6 +1,3 @@
-db = require "lapis.db"
-
-
 VERSION = "1.3.0"
 
 -- calculate the probabilities of text using default classifier
