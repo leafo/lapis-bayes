@@ -241,6 +241,115 @@ describe "lapis.bayes.tokenizers.spam", ->
       }
     }
 
+  describe "should_ignore_domain", ->
+    it "returns false when no ignore_domains option is set", ->
+      tokenizer = SpamTokenizer!
+      assert.false tokenizer\should_ignore_domain "example.com"
+
+    it "returns false with empty ignore_domains array", ->
+      tokenizer = SpamTokenizer ignore_domains: {}
+      assert.false tokenizer\should_ignore_domain "example.com"
+
+    describe "exact domain matching", ->
+      it "returns true for exact domain match", ->
+        tokenizer = SpamTokenizer ignore_domains: {"example.com", "test.org"}
+        assert.true tokenizer\should_ignore_domain "example.com"
+        assert.true tokenizer\should_ignore_domain "test.org"
+
+      it "returns false for non-matching domain", ->
+        tokenizer = SpamTokenizer ignore_domains: {"example.com"}
+        assert.false tokenizer\should_ignore_domain "other.com"
+        assert.false tokenizer\should_ignore_domain "example.org"
+
+      it "returns false for subdomain when parent is exact match", ->
+        tokenizer = SpamTokenizer ignore_domains: {"example.com"}
+        assert.false tokenizer\should_ignore_domain "sub.example.com"
+        assert.false tokenizer\should_ignore_domain "deep.sub.example.com"
+
+      it "returns false for parent domain when subdomain is exact match", ->
+        tokenizer = SpamTokenizer ignore_domains: {"sub.example.com"}
+        assert.false tokenizer\should_ignore_domain "example.com"
+
+    describe "suffix domain matching", ->
+      it "returns true for exact suffix match", ->
+        tokenizer = SpamTokenizer ignore_domains: {".example.com"}
+        assert.true tokenizer\should_ignore_domain "example.com"
+
+      it "returns true for subdomain of suffix match", ->
+        tokenizer = SpamTokenizer ignore_domains: {".example.com"}
+        assert.true tokenizer\should_ignore_domain "sub.example.com"
+        assert.true tokenizer\should_ignore_domain "deep.sub.example.com"
+
+      it "returns false for parent domain when subdomain is suffix", ->
+        tokenizer = SpamTokenizer ignore_domains: {".sub.example.com"}
+        assert.false tokenizer\should_ignore_domain "example.com"
+
+      it "returns false for different domain", ->
+        tokenizer = SpamTokenizer ignore_domains: {".example.com"}
+        assert.false tokenizer\should_ignore_domain "notexample.com"
+        assert.false tokenizer\should_ignore_domain "example.org"
+
+    describe "mixed exact and suffix matching", ->
+      it "handles both exact and suffix patterns", ->
+        tokenizer = SpamTokenizer ignore_domains: {"exact.com", ".suffix.net"}
+        -- Exact match
+        assert.true tokenizer\should_ignore_domain "exact.com"
+        assert.false tokenizer\should_ignore_domain "sub.exact.com"
+        -- Suffix match
+        assert.true tokenizer\should_ignore_domain "suffix.net"
+        assert.true tokenizer\should_ignore_domain "sub.suffix.net"
+        -- Neither
+        assert.false tokenizer\should_ignore_domain "other.com"
+
+    describe "domain normalization", ->
+      it "handles trailing dots", ->
+        tokenizer = SpamTokenizer ignore_domains: {"example.com"}
+        assert.true tokenizer\should_ignore_domain "example.com."
+        assert.true tokenizer\should_ignore_domain "example.com.."
+
+      it "handles uppercase domains (normalizes to lowercase)", ->
+        tokenizer = SpamTokenizer ignore_domains: {"example.com"}
+        assert.true tokenizer\should_ignore_domain "EXAMPLE.COM"
+        assert.true tokenizer\should_ignore_domain "Example.Com"
+
+      it "handles whitespace", ->
+        tokenizer = SpamTokenizer ignore_domains: {"example.com"}
+        assert.true tokenizer\should_ignore_domain "  example.com  "
+        assert.true tokenizer\should_ignore_domain " example.com"
+
+      it "handles punycode domains", ->
+        tokenizer = SpamTokenizer ignore_domains: {"xn--mnchen-3ya.de"}
+        assert.true tokenizer\should_ignore_domain "xn--mnchen-3ya.de"
+        -- Test that unicode domain gets converted to punycode for matching
+        assert.true tokenizer\should_ignore_domain "münchen.de"
+
+      it "normalizes ignore domains to punycode", ->
+        tokenizer = SpamTokenizer ignore_domains: {"münchen.de"}
+        assert.true tokenizer\should_ignore_domain "münchen.de"
+        assert.true tokenizer\should_ignore_domain "xn--mnchen-3ya.de"
+
+    describe "edge cases", ->
+      it "returns false for nil domain", ->
+        tokenizer = SpamTokenizer ignore_domains: {"example.com"}
+        assert.false tokenizer\should_ignore_domain nil
+
+      it "returns false for empty string", ->
+        tokenizer = SpamTokenizer ignore_domains: {"example.com"}
+        assert.false tokenizer\should_ignore_domain ""
+
+      it "returns false for whitespace-only string", ->
+        tokenizer = SpamTokenizer ignore_domains: {"example.com"}
+        assert.false tokenizer\should_ignore_domain "   "
+
+      it "returns false for domain with only dots", ->
+        tokenizer = SpamTokenizer ignore_domains: {"example.com"}
+        assert.false tokenizer\should_ignore_domain "..."
+
+      it "ignores invalid entries in ignore_domains", ->
+        tokenizer = SpamTokenizer ignore_domains: {"example.com", "", "  ", ".", 123, nil}
+        assert.true tokenizer\should_ignore_domain "example.com"
+        assert.false tokenizer\should_ignore_domain "other.com"
+
   it_tokenizes "subscript characters", "Advanced CO₂ Extraction:", {
     "advanced"
     "co"
