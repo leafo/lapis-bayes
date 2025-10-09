@@ -67,6 +67,7 @@ default classifier and tokenizer:
 * `PostgresTextTokenizer`
 * `UrlDomainsTokenizer`
 * `SpamTokenizer`
+* `NgramTokenizer`
 
 These functions work with the default classifier class defined by `require
 "lapis.bayes.classifiers.default"` (which resolves to the `BayesClassifier`. If
@@ -307,6 +308,55 @@ Produces tokens:
   "offer visit"
 }
 ```
+
+####  N-gram Tokenizer
+
+`NgramTokenizer = require "lapis.bayes.tokenizers.ngram"`
+
+A character-level n-gram tokenizer that splits text into overlapping sequences of n characters. This tokenizer is useful for language-agnostic classification, handling misspellings, and working with languages that don't have clear word boundaries. It properly handles UTF-8 multi-byte characters.
+
+N-grams are created at the character level from normalized words. For example, with bigrams (n=2), the word "hello" produces: `"he"`, `"el"`, `"ll"`, `"lo"`.
+
+Options:
+
+* `n`: size of n-grams to generate (default `2` for bigrams); supports 1 (unigrams), 2 (bigrams), 3 (trigrams), etc.
+* `ignore_numbers`: when `true` (default), skips tokens that are purely numeric
+* `filter_text`: custom pre-filter function to process incoming text, takes text as first argument, should return text (optional)
+* `filter_tokens`: custom post-filter function to process output tokens, takes token array and opts as arguments, should return a token array (optional)
+
+```lua
+local NgramTokenizer = require "lapis.bayes.tokenizers.ngram"
+
+-- Default bigram tokenizer
+local tokenizer = NgramTokenizer()
+local tokens = tokenizer:tokenize_text("hello world")
+--> {"he", "el", "ll", "lo", "wo", "or", "rl", "ld"}
+
+-- Trigram tokenizer
+local tokenizer3 = NgramTokenizer({ n = 3 })
+local tokens3 = tokenizer3:tokenize_text("testing")
+--> {"tes", "est", "sti", "tin", "ing"}
+
+-- Works with UTF-8 characters
+local tokens_utf8 = tokenizer:tokenize_text("café")
+--> {"ca", "af", "fé"}
+```
+
+**Use cases:**
+
+* Language detection and multilingual classification
+* Handling text with typos or non-standard spellings
+* Working with languages without clear word boundaries (e.g., Chinese, Japanese)
+* Creating more robust features that are less sensitive to exact word matches
+* SMS or social media text classification where spelling varies
+
+**Normalization:**
+
+Before generating n-grams, the tokenizer:
+1. Converts text to lowercase
+2. Removes punctuation from words
+3. Strips whitespace
+4. Optionally filters out numeric-only tokens (default)
 
 ####  URL Domains
 
