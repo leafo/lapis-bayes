@@ -57,6 +57,22 @@ assert("ham" == bayes.classify_text({"spam", "ham"}, "Games to download"))
 assert("spam" == bayes.classify_text({"spam", "ham"}, "discount rolex watch"))
 ```
 
+## Categories
+
+Category names are arbitrary strings that you choose to label your training
+data (eg. "ham", "spam"). Categories don't need to be created ahead of time -
+they are automatically created when you first call `train_text` with a new
+category name.
+
+All categories exist in a **shared global namespace**. Category metadata is
+stored in the `lapis_bayes_categories` table, and the training data (word
+counts) is stored in the `lapis_bayes_word_classifications` table. This means:
+
+**Important:** Do not reuse the same category name with different tokenizers or
+classifier types. Since all categories share the same namespace, mixing
+tokenizers will contaminate the training data and produce incorrect results. If
+you need to use different tokenizers, use distinct category names (e.g.,
+`"spam_ngram"` vs `"spam_postgres"`).
 
 ## Reference
 
