@@ -1,4 +1,4 @@
-local VERSION = "1.3.0"
+local VERSION = "1.4.0"
 local text_probabilities
 text_probabilities = function(categories, text, opts)
   if opts == nil then
