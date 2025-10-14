@@ -16,9 +16,12 @@ classify_text = function(categories, text, opts)
   return DefaultClassifier(opts):classify_text(categories, text)
 end
 local train_text
-train_text = function(category, text, opts)
+train_text = function(category, text, opts, ...)
+  if opts == nil then
+    opts = { }
+  end
   local DefaultClassifier = require("lapis.bayes.classifiers.default")
-  return DefaultClassifier(opts):train_text(category, text, opts)
+  return DefaultClassifier(opts):train_text(category, text, ...)
 end
 return {
   classify_text = classify_text,

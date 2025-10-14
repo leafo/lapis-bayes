@@ -39,6 +39,10 @@ class BaseClassifier
 
   train_text: (category, text, opts) =>
     tokens = @tokenize_text text
+
+    if opts and opts.filter_tokens
+      tokens = opts.filter_tokens opts, text
+
     import Categories from require "lapis.bayes.models"
     category = Categories\find_or_create category
     category\increment_words tokens

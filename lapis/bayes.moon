@@ -17,8 +17,8 @@ classify_text = (categories, text, opts={}) ->
 -- category: string name of category
 -- text: the text (or array of words) to train
 -- opts: options to pass to the classifier
-train_text = (category, text, opts) ->
+train_text = (category, text, opts={}, ...) ->
   DefaultClassifier = require "lapis.bayes.classifiers.default"
-  DefaultClassifier(opts)\train_text category, text, opts
+  DefaultClassifier(opts)\train_text category, text, ...
 
 { :classify_text, :train_text, :text_probabilities, :VERSION }
