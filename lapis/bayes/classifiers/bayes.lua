@@ -24,15 +24,20 @@ do
         local bi_log_sum = 0
         for _index_0 = 1, #available_words do
           local word = available_words[_index_0]
-          ai_log_sum = ai_log_sum + math.log((a.word_counts and a.word_counts[word] or 0) + default_a)
-          bi_log_sum = bi_log_sum + math.log((b.word_counts and b.word_counts[word] or 0) + default_b)
+          local ai_count = (a.word_counts and a.word_counts[word] or 0) + default_a
+          local bi_count = (b.word_counts and b.word_counts[word] or 0) + default_b
+          ai_log_sum = ai_log_sum + math.log(ai_count)
+          bi_log_sum = bi_log_sum + math.log(bi_count)
         end
-        ai_log_sum = ai_log_sum - math.log((default_a + a.total_count) * available_words_count)
-        bi_log_sum = bi_log_sum - math.log((default_b + b.total_count) * available_words_count)
         ai_log_sum = ai_log_sum + math.log(a.total_count)
         bi_log_sum = bi_log_sum + math.log(b.total_count)
-        local ai_prob = math.exp(ai_log_sum)
-        local bi_prob = math.exp(bi_log_sum)
+        ai_log_sum = ai_log_sum - math.log((default_a + a.total_count))
+        bi_log_sum = bi_log_sum - math.log((default_b + b.total_count))
+        ai_log_sum = ai_log_sum - math.log(available_words_count)
+        bi_log_sum = bi_log_sum - math.log(available_words_count)
+        local max_log_sum = math.max(ai_log_sum, bi_log_sum)
+        local ai_prob = math.exp(ai_log_sum - max_log_sum)
+        local bi_prob = math.exp(bi_log_sum - max_log_sum)
         prob = ai_prob / (ai_prob + bi_prob)
       else
         local ai_mul, bi_mul

@@ -29,17 +29,25 @@ class BayesClassifier extends require "lapis.bayes.classifiers.base"
       bi_log_sum = 0
 
       for word in *available_words
-        ai_log_sum += math.log (a.word_counts and a.word_counts[word] or 0) + default_a
-        bi_log_sum += math.log (b.word_counts and b.word_counts[word] or 0) + default_b
+        ai_count = (a.word_counts and a.word_counts[word] or 0) + default_a
+        bi_count = (b.word_counts and b.word_counts[word] or 0) + default_b
 
-      ai_log_sum -= math.log (default_a + a.total_count) * available_words_count
-      bi_log_sum -= math.log (default_b + b.total_count) * available_words_count
+        ai_log_sum += math.log ai_count
+        bi_log_sum += math.log bi_count
 
       ai_log_sum += math.log a.total_count
       bi_log_sum += math.log b.total_count
 
-      ai_prob = math.exp ai_log_sum
-      bi_prob = math.exp bi_log_sum
+      ai_log_sum -= math.log (default_a + a.total_count)
+      bi_log_sum -= math.log (default_b + b.total_count)
+
+      ai_log_sum -= math.log available_words_count
+      bi_log_sum -= math.log available_words_count
+
+      max_log_sum = math.max ai_log_sum, bi_log_sum
+
+      ai_prob = math.exp(ai_log_sum - max_log_sum)
+      bi_prob = math.exp(bi_log_sum - max_log_sum)
 
       ai_prob / (ai_prob + bi_prob)
     else
@@ -80,4 +88,3 @@ class BayesClassifier extends require "lapis.bayes.classifiers.base"
 
     table.sort tuples, (a, b) -> a[2] > b[2]
     tuples
-
