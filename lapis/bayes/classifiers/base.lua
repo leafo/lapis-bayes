@@ -32,6 +32,13 @@ do
       end
       return tokenizer:tokenize_text(text)
     end,
+    train_text = function(self, category, text, opts)
+      local tokens = self:tokenize_text(text)
+      local Categories
+      Categories = require("lapis.bayes.models").Categories
+      category = Categories:find_or_create(category)
+      return category:increment_words(tokens)
+    end,
     text_probabilities = function(self, category_names, text)
       local categories, err = self:find_categories(category_names)
       if not (categories) then

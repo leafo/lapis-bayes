@@ -19,3 +19,5 @@ lint::
 	moonc lint_config.moon
 	git ls-files | grep '\.moon$$' | grep -v config.moon | xargs -n 100 moonc -l
 
+tags::
+	moon-tags --lapis $$(git ls-files lapis/) > $@

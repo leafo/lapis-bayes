@@ -19,10 +19,6 @@ classify_text = (categories, text, opts={}) ->
 -- opts: options to pass to the classifier
 train_text = (category, text, opts) ->
   DefaultClassifier = require "lapis.bayes.classifiers.default"
-  words = DefaultClassifier(opts)\tokenize_text text
-
-  import Categories from require "lapis.bayes.models"
-  category = Categories\find_or_create category
-  category\increment_words words
+  DefaultClassifier(opts)\train_text category, text, opts
 
 { :classify_text, :train_text, :text_probabilities, :VERSION }

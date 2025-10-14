@@ -18,11 +18,7 @@ end
 local train_text
 train_text = function(category, text, opts)
   local DefaultClassifier = require("lapis.bayes.classifiers.default")
-  local words = DefaultClassifier(opts):tokenize_text(text)
-  local Categories
-  Categories = require("lapis.bayes.models").Categories
-  category = Categories:find_or_create(category)
-  return category:increment_words(words)
+  return DefaultClassifier(opts):train_text(category, text, opts)
 end
 return {
   classify_text = classify_text,

@@ -37,6 +37,12 @@ class BaseClassifier
 
     tokenizer\tokenize_text text
 
+  train_text: (category, text, opts) =>
+    tokens = @tokenize_text text
+    import Categories from require "lapis.bayes.models"
+    category = Categories\find_or_create category
+    category\increment_words tokens
+
   -- categories: a lua array of categories names
   -- text: string of text to classify, or an array of tokens to classify
   text_probabilities: (category_names, text) =>
