@@ -164,6 +164,15 @@ describe "lapis.bayes", ->
 
         assert.same "ham", res[1][1]
 
+    it "classifies with lapis.bayes.classifiers.bayes (log)", ->
+      C = require "lapis.bayes.classifiers.bayes"
+      classifier = C { log: true }
+
+      res = assert classifier\text_probabilities {"spam", "ham"},
+        "good game zone love them game at the beach"
+
+      assert.same "ham", res[1][1]
+
     for classification, texts in pairs {
       spam: {
         [[prom rolex watches for cheap sale]]
@@ -180,17 +189,31 @@ describe "lapis.bayes", ->
         categories = {"spam", "ham"}
 
         it "classifies '#{text}' as '#{classification}'", ->
-          got = classify_text categories, text
-          unless got == classification
+          got_default = classify_text categories, text
+          unless got_default == classification
             BaseClassifier = require "lapis.bayes.classifiers.base"
             tokens = BaseClassifier!\tokenize_text text
 
             error {
-              "got #{got}, expected #{classification}"
+              "got #{got_default}, expected #{classification}"
               categories: Categories\find_all categories, "name"
               words: WordClassifications\find_all tokens, "word"
               tokens: tokens
               probs: text_probabilities {"spam", "ham"}, text
+            }
+
+          got_log = classify_text categories, text, { log: true }
+          unless got_log == classification
+            BaseClassifier = require "lapis.bayes.classifiers.base"
+            tokens = BaseClassifier!\tokenize_text text
+
+            error {
+              "log mode got #{got_log}, expected #{classification}"
+              categories: Categories\find_all categories, "name"
+              words: WordClassifications\find_all tokens, "word"
+              tokens: tokens
+              probs: text_probabilities {"spam", "ham"}, text, { log: true }
+              opts: { log: true }
             }
 
   describe "BayesMultiClassifier", ->
