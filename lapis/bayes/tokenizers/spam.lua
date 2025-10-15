@@ -593,7 +593,7 @@ do
       end
       return deduped
     end,
-    generate_bigrams = function(self, tokens, ignore_tokens)
+    generate_bigrams = function(self, tokens)
       if not (tokens) then
         return { }
       end
@@ -601,6 +601,7 @@ do
       if count < 2 then
         return { }
       end
+      local ignore_tokens = self.opts.ignore_tokens
       local bigrams = { }
       for i = 1, count - 1 do
         local _continue_0 = false
@@ -626,6 +627,9 @@ do
       return bigrams
     end,
     sample_tokens = function(self, tokens, limit)
+      if limit == nil then
+        limit = self.opts.sample_at_most
+      end
       if not (tokens) then
         return { }
       end
@@ -654,6 +658,38 @@ do
       end
       return _accum_0
     end,
+    lift_tokens = function(self, tokens, pattern)
+      local lifted = { }
+      local rest
+      do
+        local _accum_0 = { }
+        local _len_0 = 1
+        for _index_0 = 1, #tokens do
+          local _continue_0 = false
+          repeat
+            local t = tokens[_index_0]
+            if t:match(pattern) then
+              table.insert(lifted, t)
+              _continue_0 = true
+              break
+            end
+            local _value_0 = t
+            _accum_0[_len_0] = _value_0
+            _len_0 = _len_0 + 1
+            _continue_0 = true
+          until true
+          if not _continue_0 then
+            break
+          end
+        end
+        rest = _accum_0
+      end
+      for _index_0 = 1, #rest do
+        local r = rest[_index_0]
+        table.insert(lifted, r)
+      end
+      return lifted
+    end,
     tokenize_text = function(self, text)
       if not (text) then
         return { }
@@ -662,111 +698,72 @@ do
       if self.opts.filter_text then
         text = self.opts.filter_text(text)
       end
-      local raw_text = text
-      local raw_url_tokens = self:collect_url_tokens(raw_text)
+      local raw_domain_tokens = self:collect_url_tokens(text)
       text = extract_text(text)
       self.grammar = self.grammar or self:build_grammar()
       local tokens = self.grammar:match(text or { })
-      local existing = { }
-      for _index_0 = 1, #tokens do
-        local token = tokens[_index_0]
-        local key
-        if type(token) == "table" then
-          key = self:tagged_token_to_string(token)
-        else
-          key = token
-        end
-        existing[key] = true
-      end
-      if raw_url_tokens and #raw_url_tokens > 0 then
-        for _index_0 = 1, #raw_url_tokens do
-          local _continue_0 = false
-          repeat
-            local token = raw_url_tokens[_index_0]
-            if existing[token] then
-              _continue_0 = true
-              break
-            end
-            table.insert(tokens, token)
-            existing[token] = true
-            _continue_0 = true
-          until true
-          if not _continue_0 then
-            break
-          end
-        end
-      end
       local dedupe = true
       if self.opts.dedupe ~= nil then
         dedupe = self.opts.dedupe
       end
       local ignore_tokens = self.opts.ignore_tokens
       local sample_limit = self.opts.sample_at_most
-      local word_tokens = { }
-      local tagged_tokens = { }
-      for _index_0 = 1, #tokens do
-        local _continue_0 = false
-        repeat
-          local token = tokens[_index_0]
-          if not (token) then
-            _continue_0 = true
-            break
-          end
-          if token == "" then
-            _continue_0 = true
-            break
-          end
-          if ignore_tokens and ignore_tokens[token] then
-            _continue_0 = true
-            break
-          end
-          if type(token) == "table" then
-            table.insert(tagged_tokens, token)
+      local generate_bigrams = self.opts.bigram_tokens
+      local merged_tokens = { }
+      local seen_tokens = { }
+      local insert_token
+      insert_token = function(t)
+        if ignore_tokens and ignore_tokens[t] then
+          return 
+        end
+        if dedupe and seen_tokens[t] then
+          return 
+        end
+        seen_tokens[t] = true
+        return table.insert(merged_tokens, t)
+      end
+      local prev_token = nil
+      for idx = 1, #tokens do
+        local token = tokens[idx]
+        local _exp_0 = type(token)
+        if "table" == _exp_0 then
+          local _exp_1 = token.tag
+          if "caps" == _exp_1 or "invalid_byte" == _exp_1 or "currency" == _exp_1 then
+            local _ = nil
           else
-            table.insert(word_tokens, token)
+            prev_token = nil
           end
-          _continue_0 = true
-        until true
-        if not _continue_0 then
-          break
+          insert_token(self:tagged_token_to_string(token))
+        elseif "string" == _exp_0 then
+          insert_token(token)
+          if prev_token and generate_bigrams then
+            insert_token(tostring(prev_token) .. " " .. tostring(token))
+          end
+          prev_token = token
         end
       end
-      local bigram_tokens = { }
-      if self.opts.bigram_tokens then
-        bigram_tokens = self:generate_bigrams(word_tokens, ignore_tokens)
-      end
-      if dedupe then
-        word_tokens = self:dedupe_tokens(word_tokens)
+      if raw_domain_tokens then
+        local original_tokens = merged_tokens
+        merged_tokens = { }
+        for _index_0 = 1, #raw_domain_tokens do
+          local token = raw_domain_tokens[_index_0]
+          insert_token(self:tagged_token_to_string(token))
+        end
+        for _index_0 = 1, #original_tokens do
+          local t = original_tokens[_index_0]
+          table.insert(merged_tokens, t)
+        end
       end
       if sample_limit then
-        word_tokens = self:sample_tokens(word_tokens, sample_limit)
+        merged_tokens = self:sample_tokens(merged_tokens)
       end
-      if dedupe then
-        bigram_tokens = self:dedupe_tokens(bigram_tokens)
-      end
-      if sample_limit then
-        bigram_tokens = self:sample_tokens(bigram_tokens, sample_limit)
-      end
-      if dedupe then
-        tagged_tokens = self:dedupe_tokens(tagged_tokens)
-      end
-      tokens = { }
-      for _index_0 = 1, #word_tokens do
-        local token = word_tokens[_index_0]
-        table.insert(tokens, token)
-      end
-      for _index_0 = 1, #bigram_tokens do
-        local token = bigram_tokens[_index_0]
-        table.insert(tokens, token)
-      end
-      for _index_0 = 1, #tagged_tokens do
-        local token = tagged_tokens[_index_0]
-        table.insert(tokens, self:tagged_token_to_string(token))
+      if self.opts.domain_tokens_first then
+        merged_tokens = self:lift_tokens(merged_tokens, "^domain:")
       end
       if self.opts.filter_tokens then
-        tokens = self.opts.filter_tokens(tokens, self.opts)
+        merged_tokens = self.opts.filter_tokens(merged_tokens, self.opts)
       end
-      return tokens
+      return merged_tokens
     end
   }
   _base_0.__index = _base_0

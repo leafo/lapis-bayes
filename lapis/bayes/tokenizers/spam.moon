@@ -484,83 +484,68 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
     ignore_tokens = @opts.ignore_tokens
     sample_limit = @opts.sample_at_most
+    generate_bigrams = @opts.bigram_tokens
 
-    -- Split into word tokens and tagged tokens
-    word_tokens = {}
-    tagged_tokens = {}
-    for token in *tokens
-      continue unless token
-      continue if token == ""
-      continue if ignore_tokens and ignore_tokens[token]
+    -- new token merging strategy, try to keep things adjacent
+    merged_tokens = {}
+    seen_tokens = {} -- for deduping
 
-      if type(token) == "table"
-        table.insert tagged_tokens, token
-      else
-        table.insert word_tokens, token
+    insert_token = (t) ->
+      if ignore_tokens and ignore_tokens[t]
+        return
 
-    -- Generate bigrams from undeduped word tokens
-    bigram_tokens = {}
-    if @opts.bigram_tokens
-      bigram_tokens = @generate_bigrams word_tokens
+      if dedupe and seen_tokens[t]
+        return
 
-    -- Process word tokens: dedupe then sample
-    if dedupe
-      word_tokens = @dedupe_tokens word_tokens
+      seen_tokens[t] = true
 
-    if sample_limit
-      word_tokens = @sample_tokens word_tokens
+      table.insert merged_tokens, t
 
-    -- Process bigram tokens: dedupe then sample
-    if dedupe
-      bigram_tokens = @dedupe_tokens bigram_tokens
+    prev_token = nil -- for bigram generation
 
-    if sample_limit
-      bigram_tokens = @sample_tokens bigram_tokens
+    for idx=1,#tokens
+      token = tokens[idx]
 
-    -- Process tagged tokens: dedupe (but not sample - we want all tagged tokens)
-    if dedupe
-      tagged_tokens = @dedupe_tokens tagged_tokens
+      switch type token
+        when "table" -- special token
+          switch token.tag
+            when "caps", "invalid_byte", "currency"
 
-    -- Merge all token sets: words + bigrams + tagged tokens
-    -- TODO: it would be best to interleave the tokens close to their original
-    -- positions so that when they are sampled during classification the things
-    -- near the top get selected
+              nil
+            else
+              prev_token = nil -- break the bigram
 
-    tokens = {}
-    for token in *word_tokens
-      table.insert tokens, token
+          insert_token @tagged_token_to_string token
 
-    for token in *bigram_tokens
-      table.insert tokens, token
+        when "string" -- plain word
+          insert_token token
 
-    seen_tagged_tokens = {}
+          if prev_token and generate_bigrams
+            insert_token "#{prev_token} #{token}"
 
-    -- add the raw url tokens
+          prev_token = token
+
+    -- these lose positioning due to being extracted differently, so we just
+    -- insert them in order at the top by moving some variables around
     if raw_domain_tokens
+      original_tokens = merged_tokens
+      merged_tokens = {}
       for token in *raw_domain_tokens
-        token = @tagged_token_to_string token
-        continue if ignore_tokens and ignore_tokens[token]
+        insert_token @tagged_token_to_string token
 
-        if dedupe
-          continue if seen_tagged_tokens[token]
+      for t in *original_tokens
+        table.insert merged_tokens, t
 
-        seen_tagged_tokens[token] = true
-        table.insert tokens, token
-
-    for token in *tagged_tokens
-      token = @tagged_token_to_string token
-      continue if ignore_tokens and ignore_tokens[token]
-      continue if seen_tagged_tokens[token]
-      seen_tagged_tokens[token] = true
-      table.insert tokens, token
+    if sample_limit
+      merged_tokens = @sample_tokens merged_tokens
 
     if @opts.domain_tokens_first
-      tokens = @lift_tokens tokens, "^domain:"
+      merged_tokens = @lift_tokens merged_tokens, "^domain:"
 
     -- Apply custom filter at the very end if provided
     if @opts.filter_tokens
-      tokens = @opts.filter_tokens tokens, @opts
+      merged_tokens = @opts.filter_tokens merged_tokens, @opts
 
-    tokens
+    merged_tokens
 
 return SpamTokenizer

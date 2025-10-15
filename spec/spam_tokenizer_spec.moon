@@ -7,41 +7,36 @@ it_tokenizes = (label, input, expected_tokens, opts=nil) ->
     assert.same expected_tokens, tokens, "Tokens for #{input\sub 1, 80}"
 
 describe "lapis.bayes.tokenizers.spam", ->
-  it "tokenizes spam-like text", ->
-    tokenizer = SpamTokenizer!
-
-    tokens = tokenizer\tokenize_text [[Cheap Rolex Watches for $199.99!!! Visit http://Dealz.EXAMPLE.com now or email SALES@EXAMPLE.com for 50% OFF!!!]]
-
-    assert.same {
-      "cheap"
-      "rolex"
-      "watches"
-      "for"
-      "199.99"
-      "visit"
-      "now"
-      "or"
-      "email"
-      "50%"
-      "off"
-      "domain:dealz.example.com"
-      "domain:.example.com"
-      "domain:.com"
-      "email:sales@example.com"
-      "email_user:sales"
-      "domain:example.com"
-      "currency:$"
-      "punct:!3"
-      "caps:off"
-    }, tokens
+  it_tokenizes "spam-like text", "Cheap Rolex Watches for $199.99!!! Visit http://Dealz.EXAMPLE.com now or email SALES@EXAMPLE.com for 50% OFF!!!", {
+    "cheap"
+    "rolex"
+    "watches"
+    "for"
+    "currency:$"
+    "199.99"
+    "punct:!3"
+    "visit"
+    "domain:dealz.example.com"
+    "domain:.example.com"
+    "domain:.com"
+    "now"
+    "or"
+    "email"
+    "email:sales@example.com"
+    "email_user:sales"
+    "domain:example.com"
+    "50%"
+    "off"
+    "caps:off"
+  }
 
   it_tokenizes "with bigrams", "Buy Cheap meds now", {
     "buy"
     "cheap"
-    "meds"
-    "now"
     "buy cheap"
+    "meds"
     "cheap meds"
+    "now"
     "meds now"
   }, {
     bigram_tokens: true
@@ -50,11 +45,44 @@ describe "lapis.bayes.tokenizers.spam", ->
   it_tokenizes "bigrams with numbers", "Only 50% off today", {
     "only"
     "50%"
-    "off"
-    "today"
     "only 50%"
+    "off"
     "50% off"
+    "today"
     "off today"
+  }, {
+    bigram_tokens: true
+  }
+
+  it_tokenizes "spam-like text with bigrams", "Cheap Rolex Watches for $199.99!!! Visit http://Dealz.EXAMPLE.com now or email SALES@EXAMPLE.com for 50% OFF!!!", {
+    "cheap"
+    "rolex"
+    "cheap rolex"
+    "watches"
+    "rolex watches"
+    "for"
+    "watches for"
+    "currency:$"
+    "199.99"
+    "for 199.99"
+    "punct:!3"
+    "visit"
+    "domain:dealz.example.com"
+    "domain:.example.com"
+    "domain:.com"
+    "now"
+    "or"
+    "now or"
+    "email"
+    "or email"
+    "email:sales@example.com"
+    "email_user:sales"
+    "domain:example.com"
+    "50%"
+    "for 50%"
+    "off"
+    "50% off"
+    "caps:off"
   }, {
     bigram_tokens: true
   }
@@ -64,7 +92,7 @@ describe "lapis.bayes.tokenizers.spam", ->
     "caps:spam"
   }
 
-  it_tokenizes "wit  duplicates when dedupe disabled", "spam spam", {
+  it_tokenizes "with duplicates when dedupe disabled", "spam spam", {
     "spam"
     "spam"
   }, {
@@ -84,59 +112,72 @@ describe "lapis.bayes.tokenizers.spam", ->
     bigram_tokens: true
   }
 
+  it_tokenizes "bigams with punctuation", "one. two. three!!!! four. five", {
+    "one"
+    "two"
+    "one two"
+    "three"
+    "two three"
+    "punct:!4"
+    "four"
+    "five"
+    "four five"
+  }, {
+    bigram_tokens: true
+  }
+
   it_tokenizes "limits bigrams with sample_at_most", "alpha beta gamma", {
     "alpha"
     "beta"
     "alpha beta"
-    "beta gamma"
   }, {
-    sample_at_most: 2, bigram_tokens: true, dedupe: false, dither: false
+    sample_at_most: 3, bigram_tokens: true, dedupe: false, dither: false
   }
 
   it_tokenizes "chinese with url", "点击这里获取 50% 折扣!!! http://spam.cn/deal", {
     "点击这里获取"
     "50%"
     "折扣"
+    "punct:!3"
     "deal"
     "domain:spam.cn"
     "domain:.cn"
-    "punct:!3"
   }
 
   it_tokenizes "html content", [[
     <div><p>Limited <strong>Offer</strong> <a href="http://example.com">Click</a> now!</p></div>
   ]], {
+    "domain:example.com"
+    "domain:.com"
     "limited"
     "offer"
     "click"
     "now"
-    "domain:example.com"
-    "domain:.com"
   }
 
   it_tokenizes "mixed links", [[
     <ul><li><a href="https://love2d.org/">https://love2d.org/</a></li><li><a href="http://moonscript.org/">http://moonscript.org/</a></li><li><a href="https://github.com/leafo/lovekit">LoveKit</a></li></ul>
   ]], {
-    "lovekit"
+    "domain:github.com"
+    "domain:.com"
     "domain:love2d.org"
     "domain:.org"
     "domain:moonscript.org"
-    "domain:github.com"
-    "domain:.com"
+    "lovekit"
   }, {
     bigram_tokens: true
   }
 
   it_tokenizes "html with nbsp entity", [[<a href="https://example.com/weed-gummies/">&nbsp;Green Street Origins CBD Gummies Canada</a>]], {
+    "domain:example.com"
+    "domain:.com"
     "green"
     "street"
     "origins"
     "cbd"
+    "caps:cbd"
     "gummies"
     "canada"
-    "domain:example.com"
-    "domain:.com"
-    "caps:cbd"
   }
 
   it_tokenizes "html strong with link", [[<strong><a href="https://howdyscbd.com/order-green-street-origins-cbd-gummies-ca/">https://howdyscbd.com/order-green-street-origins-cbd-gummies-ca/</a></strong>]], {
@@ -158,10 +199,30 @@ describe "lapis.bayes.tokenizers.spam", ->
     "today"
     "index"
     "html"
-    "now"
     "domain:spamblog.biz"
     "domain:.biz"
+    "now"
   }
+
+  it_tokenizes "url with path segments", "Visit https://spamblog.biz/super-sale-today/index.html now", {
+    "visit"
+    "super"
+    "visit super"
+    "sale"
+    "super sale"
+    "today"
+    "sale today"
+    "index"
+    "today index"
+    "html"
+    "index html" -- questionable if this should be included
+    "domain:spamblog.biz"
+    "domain:.biz"
+    "now"
+  }, {
+    bigram_tokens: true
+  }
+
 
   it_tokenizes "prioritizes domain tokens when enabled", "Visit https://spamblog.biz/super-sale-today/index.html now", {
     "domain:spamblog.biz"
@@ -183,8 +244,8 @@ describe "lapis.bayes.tokenizers.spam", ->
     "sale"
     "today"
     "html"
-    "now"
     "domain:spamblog.biz"
+    "now"
   }, {
     ignore_tokens: {
       "index": true
@@ -205,10 +266,43 @@ describe "lapis.bayes.tokenizers.spam", ->
     "email"
     "limited"
     "offer"
-    "now"
     "domain:news.example.com"
     "domain:.example.com"
     "domain:.com"
+    "now"
+  }
+
+  it_tokenizes "url with query and fragment with bigrams", "Check this link https://news.example.com/summer/sale?promo=Summer-2024&utm_medium=email#Limited-Offer now", {
+    "check"
+    "this"
+    "check this"
+    "link"
+    "this link"
+    "summer"
+    "link summer"
+    "sale"
+    "summer sale"
+    "promo"
+    "sale promo"
+    "promo summer"
+    "2024"
+    "summer 2024"
+    "utm"
+    "2024 utm"
+    "medium"
+    "utm medium"
+    "email"
+    "medium email"
+    "limited"
+    "email limited"
+    "offer"
+    "limited offer"
+    "domain:news.example.com"
+    "domain:.example.com"
+    "domain:.com"
+    "now"
+  }, {
+    bigram_tokens: true
   }
 
   it_tokenizes "url without scheme", "Visit www.discount-store.net/deal-of-day today", {
@@ -216,9 +310,9 @@ describe "lapis.bayes.tokenizers.spam", ->
     "deal"
     "of"
     "day"
-    "today"
     "domain:discount-store.net"
     "domain:.net"
+    "today"
   }
 
   describe "ignore domains", ->
@@ -232,10 +326,10 @@ describe "lapis.bayes.tokenizers.spam", ->
     it_tokenizes "still tokenizes subdomain with exact ignore", "Visit https://shop.example.com/deal now", {
       "visit"
       "deal"
-      "now"
       "domain:shop.example.com"
       "domain:.example.com"
       "domain:.com"
+      "now"
     }, {
       ignore_domains: {"example.com"}
     }
@@ -247,12 +341,13 @@ describe "lapis.bayes.tokenizers.spam", ->
       ignore_domains: {".example.com"}
     }
 
+    -- strange case
     it_tokenizes "allows other domains", "Visit https://another.com/deal now", {
       "visit"
       "deal"
-      "now"
       "domain:another.com"
       "domain:.com"
+      "now"
     }, {
       ignore_domains: {".example.com"}
     }
@@ -260,9 +355,9 @@ describe "lapis.bayes.tokenizers.spam", ->
     it_tokenizes "respects mixed exact and suffix ignores", "Visit https://example.com/deal https://safe.example.com/deal https://another.net/deal now", {
       "visit"
       "deal"
-      "now"
       "domain:another.net"
       "domain:.net"
+      "now"
     }, {
       ignore_domains: {
         "example.com"
@@ -382,17 +477,17 @@ describe "lapis.bayes.tokenizers.spam", ->
   it_tokenizes "subscript characters", "Advanced CO₂ Extraction:", {
     "advanced"
     "co"
+    "caps:co"
     "₂"
     "extraction"
-    "caps:co"
   }
 
   it_tokenizes "ignored words", "Deal DEAL!!! Limited deal now NOW 10% NOW!!!", {
+    "punct:!3"
     "limited"
     "now"
-    "10%"
-    "punct:!3"
     "caps:now"
+    "10%"
   }, {
     ignore_words: {
       deal: true
@@ -421,22 +516,22 @@ describe "lapis.bayes.tokenizers.spam", ->
 
   it_tokenizes "capitalized sentence", "MY GAME NOT WORKING. ERROR: LICENSE NOT FOUND. PLEASE HELP!", {
     "my"
-    "game"
-    "not"
-    "working"
-    "error"
-    "license"
-    "found"
-    "please"
-    "help"
     "caps:my"
+    "game"
     "caps:game"
+    "not"
     "caps:not"
+    "working"
     "caps:working"
+    "error"
     "caps:error"
+    "license"
     "caps:license"
+    "found"
     "caps:found"
+    "please"
     "caps:please"
+    "help"
     "caps:help"
   }
 
@@ -444,8 +539,8 @@ describe "lapis.bayes.tokenizers.spam", ->
     it_tokenizes "with bigrams with dupes", "spam spam spam", {
       "spam"
       "spam"
-      "spam"
       "spam spam"
+      "spam"
       "spam spam"
     }, {
       bigram_tokens: true, dedupe: false
@@ -471,14 +566,23 @@ describe "lapis.bayes.tokenizers.spam", ->
 
     it_tokenizes "with stems & caps", "RUNNING Dogs", {
       "run"
-      "dog"
       "caps:run"
+      "dog"
     }, {
       stem_words: true
     }
 
     it_tokenizes "with stems and bigrams", "running dogs", {
       "run"
+      "dog"
+      "run dog"
+    }, {
+      stem_words: true, bigram_tokens: true
+    }
+
+    it_tokenizes "with stems & caps & bigram", "RUNNING Dogs", {
+      "run"
+      "caps:run"
       "dog"
       "run dog"
     }, {
@@ -501,8 +605,8 @@ describe "lapis.bayes.tokenizers.spam", ->
     it_tokenizes "with bigrams not deduped", "running runs run", {
       "run"
       "run"
-      "run"
       "run run"
+      "run"
       "run run"
     }, {
       stem_words: true, bigram_tokens: true, dedupe: false
@@ -511,17 +615,36 @@ describe "lapis.bayes.tokenizers.spam", ->
     it_tokenizes "stemming combined with tagged tokens", "running at http://examples.com with $199.99 for sales@example.com", {
       "run"
       "at"
-      "with"
-      "199.99"
-      "for"
       "domain:examples.com"
       "domain:.com"
+      "with"
+      "currency:$"
+      "199.99"
+      "for"
       "email:sales@example.com"
       "email_user:sales"
       "domain:example.com"
-      "currency:$"
     }, {
       stem_words: true
+    }
+
+    it_tokenizes "stemming, tagged tokens, and bigrams interaction", "running at http://examples.com with $199.99 for sales@example.com", {
+      "run"
+      "at"
+      "run at"
+      "domain:examples.com"
+      "domain:.com"
+      "with"
+      "currency:$"
+      "199.99"
+      "with 199.99"
+      "for"
+      "199.99 for"
+      "email:sales@example.com"
+      "email_user:sales"
+      "domain:example.com"
+    }, {
+      stem_words: true, bigram_tokens: true
     }
 
   describe "colon character in text", ->
@@ -553,10 +676,13 @@ describe "lapis.bayes.tokenizers.spam", ->
 
     it_tokenizes "colons with url", "Check: http://example.com has deals", {
       "check"
-      "has"
-      "deals"
       "domain:example.com"
       "domain:.com"
+      "has"
+      "deals"
+      "has deals"
+    }, {
+      bigram_tokens: true
     }
 
   describe "percent tokens", ->
@@ -586,60 +712,71 @@ describe "lapis.bayes.tokenizers.spam", ->
   describe "invalid byte handling", ->
     it_tokenizes "invalid UTF8 sequence", "Hello #{string.char(0xFF)} world", {
       "hello"
-      "world"
       "invalid_byte:255"
+      "world"
+    }
+
+    it_tokenizes "invalid UTF8 sequence bigram interaction", "Hello #{string.char(0xFF)} world", {
+      "hello"
+      "invalid_byte:255"
+      "world"
+      "hello world"
+    }, {
+      bigram_tokens: true
     }
 
     it_tokenizes "multiple invalid bytes", "Test#{string.char(0xFE)}#{string.char(0xFF)}end", {
       "test"
-      "end"
       "invalid_byte:254"
       "invalid_byte:255"
+      "end"
     }
 
     -- Note: Cyrillic "Привет" doesn't lowercase properly due to string.lower() not handling Unicode
     it_tokenizes "mixed valid unicode and invalid", "Привет#{string.char(0xFF)}世界", {
       "Пpиbet"
-      "世界"
       "invalid_byte:255"
+      "世界"
     }
 
   describe "punycode domain handling", ->
     it_tokenizes "ASCII domain unchanged", "Visit http://example.com now", {
       "visit"
-      "now"
       "domain:example.com"
       "domain:.com"
+      "now"
     }
 
     it_tokenizes "German umlaut domain", "Check http://münchen.de today", {
       "check"
-      "today"
       "domain:xn--mnchen-3ya.de"
       "domain:.de"
+      "today"
     }
 
     it_tokenizes "Japanese domain", "Visit http://日本.jp site", {
       "visit"
-      "site"
       "domain:xn--wgv71a.jp"
       "domain:.jp"
+      "site"
     }
 
     it_tokenizes "Chinese domain", "See http://中国.cn here", {
       "see"
-      "here"
       "domain:xn--fiqs8s.cn"
       "domain:.cn"
+      "here"
+    }, {
+      bigram_tokens: true
     }
 
     it_tokenizes "mixed subdomain", "Visit http://test.münchen.example.com now", {
       "visit"
-      "now"
       "domain:test.xn--mnchen-3ya.example.com"
       "domain:.xn--mnchen-3ya.example.com"
       "domain:.example.com"
       "domain:.com"
+      "now"
     }
 
     it_tokenizes "hindi", [[
@@ -688,29 +825,31 @@ describe "lapis.bayes.tokenizers.spam", ->
 
     it_tokenizes "truncates caps words", "VERYLONGCAPSWORDEXCEEDINGTHEMAXIMUMALLOWEDLENGTH ok", {
       "verylongcapswordexceedingthema"
-      "ok"
       "caps:verylongcapswordexceedingthema"
+      "ok"
+      "verylongcapswordexceedingthema ok"
     }, {
       max_word_length: 30
+      bigram_tokens: true
     }
 
     it_tokenizes "truncates long domain names", "Visit http://thisisaverylongsubdomainnamethatshouldbetruncated.example.com now", {
       "visit"
-      "now"
       "domain:thisisaverylongsubdomainnameth"
       "domain:.example.com"
       "domain:.com"
+      "now"
     }, {
       max_word_length: 30
     }
 
     it_tokenizes "truncates long email addresses", "Contact verylongemailaddressthatshouldbetruncated@example.com today", {
       "contact"
-      "today"
       "email:verylongemailaddressthatshould"
       "email_user:verylongemailaddressthatshould"
       "domain:example.com"
       "domain:.com"
+      "today"
     }, {
       max_word_length: 30
     }
@@ -718,9 +857,9 @@ describe "lapis.bayes.tokenizers.spam", ->
     it_tokenizes "truncates very long numbers", "Price is $123456789012345678901234567890.99 wow", {
       "price"
       "is"
+      "currency:$"
       "123456789012345678901234567890"
       "wow"
-      "currency:$"
     }, {
       max_word_length: 30
     }
