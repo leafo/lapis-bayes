@@ -144,6 +144,24 @@ describe "lapis.bayes.tokenizers.spam", ->
     "domain:.cn"
   }
 
+  it_tokenizes "chinese with url and split_cjk", "点击这里获取 50% 折扣!!! http://spam.cn/deal", {
+    "点"
+    "击"
+    "这"
+    "里"
+    "获"
+    "取"
+    "50%"
+    "折"
+    "扣"
+    "punct:!3"
+    "deal"
+    "domain:spam.cn"
+    "domain:.cn"
+  }, {
+    split_cjk: true
+  }
+
   it_tokenizes "html content", [[
     <div><p>Limited <strong>Offer</strong> <a href="http://example.com">Click</a> now!</p></div>
   ]], {
@@ -768,6 +786,16 @@ describe "lapis.bayes.tokenizers.spam", ->
       "here"
     }, {
       bigram_tokens: true
+    }
+
+    it_tokenizes "Chinese domain with no-op split_cjk", "See http://中国.cn here", {
+      "see"
+      "domain:xn--fiqs8s.cn"
+      "domain:.cn"
+      "here"
+    }, {
+      bigram_tokens: true
+      split_cjk
     }
 
     it_tokenizes "mixed subdomain", "Visit http://test.münchen.example.com now", {

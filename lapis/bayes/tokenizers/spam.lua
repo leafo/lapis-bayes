@@ -3,6 +3,8 @@ local punycode = require("lapis.bayes.text.punycode")
 local Extractor
 Extractor = require("web_sanitize.html").Extractor
 local types = require("lapis.validate.types")
+local cjk_character
+cjk_character = require("lapis.bayes.text.utf8").cjk_character
 local extract_text = Extractor({
   escape_html = false
 })
@@ -492,6 +494,11 @@ do
       local other_punct = S("()[]{},.;:\"<>/@#")
       local word_char = utf8.printable_character - whitespace - punct_chars - other_punct
       local word_pattern = (word_char + P("'")) ^ 1
+      local cjk_word
+      if self.opts.split_cjk then
+        word_char = word_char - cjk_character
+        cjk_word = C(cjk_character) / handle_word
+      end
       local caps_char = R("AZ")
       local caps_pattern = caps_char ^ 2 * (caps_char + digit) ^ 0
       local sign = S("+-") ^ -1
@@ -524,6 +531,9 @@ do
         C(word_pattern) / handle_word,
         C(punct_pattern) / handle_punct
       }
+      if cjk_word then
+        table.insert(token_patterns, 8, cjk_word)
+      end
       local tokens = token_patterns[1]
       for i = 2, #token_patterns do
         tokens = tokens + token_patterns[i]

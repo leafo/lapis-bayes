@@ -4,6 +4,8 @@ punycode = require "lapis.bayes.text.punycode"
 import Extractor from require "web_sanitize.html"
 types = require "lapis.validate.types"
 
+import cjk_character from require "lapis.bayes.text.utf8"
+
 extract_text = Extractor {
   escape_html: false
 }
@@ -72,6 +74,7 @@ dithered = do
 --   bigram_tokens: bool -- enable bigram generation
 --   filter_tokens: function -- function to filter tokens, called at end with (tokens, opts)
 --   domain_tokens_first: bool -- move domain tokens before all other tokens (default false)
+--   split_cjk: -- split chinese, korean, japanese characters to be individual words
 -- }
 class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
   new: (@opts = {}) =>
@@ -328,6 +331,10 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     word_char = utf8.printable_character - whitespace - punct_chars - other_punct
     word_pattern = (word_char + P"'")^1
 
+    cjk_word = if @opts.split_cjk
+      word_char = word_char - cjk_character
+      C(cjk_character) / handle_word
+
     caps_char = R"AZ"
     caps_pattern = caps_char^2 * (caps_char + digit)^0
 
@@ -367,9 +374,13 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       C(percent_pattern) / handle_percent
       number_capture / handle_number
       C(caps_pattern) / handle_caps_word
+      -- CJK here...
       C(word_pattern) / handle_word
       C(punct_pattern) / handle_punct
     }
+
+    if cjk_word
+      table.insert token_patterns, 8, cjk_word
 
     tokens = token_patterns[1]
     for i = 2, #token_patterns
