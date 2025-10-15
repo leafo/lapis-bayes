@@ -24,14 +24,14 @@ describe "lapis.bayes.tokenizers.spam", ->
       "email"
       "50%"
       "off"
-      "currency:$"
-      "punct:!3"
       "domain:dealz.example.com"
       "domain:.example.com"
       "domain:.com"
       "email:sales@example.com"
       "email_user:sales"
       "domain:example.com"
+      "currency:$"
+      "punct:!3"
       "caps:off"
     }, tokens
 
@@ -98,9 +98,9 @@ describe "lapis.bayes.tokenizers.spam", ->
     "50%"
     "折扣"
     "deal"
-    "punct:!3"
     "domain:spam.cn"
     "domain:.cn"
+    "punct:!3"
   }
 
   it_tokenizes "html content", [[
@@ -134,9 +134,9 @@ describe "lapis.bayes.tokenizers.spam", ->
     "cbd"
     "gummies"
     "canada"
-    "caps:cbd"
     "domain:example.com"
     "domain:.com"
+    "caps:cbd"
   }
 
   it_tokenizes "html strong with link", [[<strong><a href="https://howdyscbd.com/order-green-street-origins-cbd-gummies-ca/">https://howdyscbd.com/order-green-street-origins-cbd-gummies-ca/</a></strong>]], {
@@ -161,6 +161,35 @@ describe "lapis.bayes.tokenizers.spam", ->
     "now"
     "domain:spamblog.biz"
     "domain:.biz"
+  }
+
+  it_tokenizes "prioritizes domain tokens when enabled", "Visit https://spamblog.biz/super-sale-today/index.html now", {
+    "domain:spamblog.biz"
+    "domain:.biz"
+    "visit"
+    "super"
+    "sale"
+    "today"
+    "index"
+    "html"
+    "now"
+  }, {
+    domain_tokens_first: true
+  }
+
+  it_tokenizes "ignores token that is part of domain ", "Visit https://spamblog.biz/super-sale-today/index.html now", {
+    "visit"
+    "super"
+    "sale"
+    "today"
+    "html"
+    "now"
+    "domain:spamblog.biz"
+  }, {
+    ignore_tokens: {
+      "index": true
+      "domain:.biz": true
+    }
   }
 
   it_tokenizes "url with query and fragment", "Check this link https://news.example.com/summer/sale?promo=Summer-2024&utm_medium=email#Limited-Offer now", {
@@ -487,10 +516,10 @@ describe "lapis.bayes.tokenizers.spam", ->
       "for"
       "domain:examples.com"
       "domain:.com"
-      "currency:$"
       "email:sales@example.com"
       "email_user:sales"
       "domain:example.com"
+      "currency:$"
     }, {
       stem_words: true
     }

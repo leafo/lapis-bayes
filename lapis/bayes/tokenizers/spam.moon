@@ -65,12 +65,13 @@ dithered = do
 --   stem_words: bool -- enable word stemming
 --   unaccent: bool -- enable unaccenting (default true)
 --   dedupe: bool -- enable deduplication (default true)
---   ignore_tokens: table -- table of tokens to ignore
+--   ignore_tokens: table -- table of tokens to ignore eg. {"my_token" = false}
 --   ignore_domains: {string} -- domains to ignore (`example.com` exact, `.example.com` includes subdomains)
 --   sample_at_most: number -- limit number of sampled tokens
 --   dither: bool -- enable dithering when sampling (default true)
 --   bigram_tokens: bool -- enable bigram generation
 --   filter_tokens: function -- function to filter tokens, called at end with (tokens, opts)
+--   domain_tokens_first: bool -- move domain tokens before all other tokens (default false)
 -- }
 class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
   new: (@opts = {}) =>
@@ -411,10 +412,11 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
         table.insert deduped, token
     deduped
 
-  generate_bigrams: (tokens, ignore_tokens) =>
+  generate_bigrams: (tokens) =>
     return {} unless tokens
     count = #tokens
     return {} if count < 2
+    ignore_tokens = @opts.ignore_tokens
 
     bigrams = {}
     for i = 1, count - 1
@@ -429,9 +431,10 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
     bigrams
 
-  sample_tokens: (tokens, limit) =>
+  sample_tokens: (tokens, limit=@opts.sample_at_most) =>
     return {} unless tokens
     return tokens unless limit
+
     limit = math.floor limit
     return {} if limit <= 0
     count = #tokens
@@ -444,6 +447,21 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
     [tokens_to_sample[idx] for idx=1,limit]
 
+  -- lift the tokens that match the pattern to the top, preserving order otherwise
+  lift_tokens: (tokens, pattern) =>
+    lifted = {}
+    rest = for t in *tokens
+      if t\match pattern
+        table.insert lifted, t
+        continue
+
+      t
+
+    for r in *rest
+      table.insert lifted, r
+
+    lifted
+
   tokenize_text: (text) =>
     return {} unless text
 
@@ -452,34 +470,18 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     if @opts.filter_text
       text = @opts.filter_text text
 
-    raw_text = text
-    raw_url_tokens = @collect_url_tokens raw_text
+    -- extract URLs before cleaing up text to capture urls in HTML markup
+    raw_domain_tokens = @collect_url_tokens text
 
     text = extract_text text
 
     @grammar or= @build_grammar!
     tokens = @grammar\match text or {}
 
-    -- Build map of existing tokens (convert objects to strings for comparison)
-    existing = {}
-    for token in *tokens
-      key = if type(token) == "table"
-        @tagged_token_to_string token
-      else
-        token
-      existing[key] = true
-
-    -- Add raw URL tokens if they don't already exist
-    if raw_url_tokens and #raw_url_tokens > 0
-      for token in *raw_url_tokens
-        continue if existing[token]
-        table.insert tokens, token
-        existing[token] = true
-
-    -- Apply built-in token processing
     dedupe = true
     if @opts.dedupe != nil
       dedupe = @opts.dedupe
+
     ignore_tokens = @opts.ignore_tokens
     sample_limit = @opts.sample_at_most
 
@@ -499,34 +501,61 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     -- Generate bigrams from undeduped word tokens
     bigram_tokens = {}
     if @opts.bigram_tokens
-      bigram_tokens = @generate_bigrams word_tokens, ignore_tokens
+      bigram_tokens = @generate_bigrams word_tokens
 
     -- Process word tokens: dedupe then sample
     if dedupe
       word_tokens = @dedupe_tokens word_tokens
 
     if sample_limit
-      word_tokens = @sample_tokens word_tokens, sample_limit
+      word_tokens = @sample_tokens word_tokens
 
     -- Process bigram tokens: dedupe then sample
     if dedupe
       bigram_tokens = @dedupe_tokens bigram_tokens
 
     if sample_limit
-      bigram_tokens = @sample_tokens bigram_tokens, sample_limit
+      bigram_tokens = @sample_tokens bigram_tokens
 
     -- Process tagged tokens: dedupe (but not sample - we want all tagged tokens)
     if dedupe
       tagged_tokens = @dedupe_tokens tagged_tokens
 
     -- Merge all token sets: words + bigrams + tagged tokens
+    -- TODO: it would be best to interleave the tokens close to their original
+    -- positions so that when they are sampled during classification the things
+    -- near the top get selected
+
     tokens = {}
     for token in *word_tokens
       table.insert tokens, token
+
     for token in *bigram_tokens
       table.insert tokens, token
+
+    seen_tagged_tokens = {}
+
+    -- add the raw url tokens
+    if raw_domain_tokens
+      for token in *raw_domain_tokens
+        token = @tagged_token_to_string token
+        continue if ignore_tokens and ignore_tokens[token]
+
+        if dedupe
+          continue if seen_tagged_tokens[token]
+
+        seen_tagged_tokens[token] = true
+        table.insert tokens, token
+
     for token in *tagged_tokens
-      table.insert tokens, @tagged_token_to_string token
+      token = @tagged_token_to_string token
+      continue if ignore_tokens and ignore_tokens[token]
+      continue if seen_tagged_tokens[token]
+      seen_tagged_tokens[token] = true
+      table.insert tokens, token
+
+    if @opts.domain_tokens_first
+      tokens = @lift_tokens tokens, "^domain:"
 
     -- Apply custom filter at the very end if provided
     if @opts.filter_tokens
