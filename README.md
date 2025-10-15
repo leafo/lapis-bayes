@@ -19,7 +19,7 @@ $ luarocks install lapis-bayes
 
 ## Quick start
 
-Create a new migration that look like this: 
+Create a new migration that look like this:
 
 ```lua
 -- migrations.lua
@@ -290,20 +290,22 @@ Options:
 * `ignore_domains`: list of domains to ignore; prefix with `.` to ignore subdomains (e.g., `".example.com"` ignores all subdomains, `"example.com"` ignores exact match only) (optional)
 * `dedupe`: defaults to `true`; set `false` to keep duplicate tokens
 * `bigram_tokens`: when `true`, append sequential word bigrams
-* `sample_at_most`: keeps at most N word tokens and at most N bigrams separately; tagged tokens (domain, email, etc.) are never sampled
+* `sample_at_most`: keeps at most N tokens, will dither by default to shuffle results slightly
 * `dither`: defaults to `true`; when enabled, applies dithering randomization when sampling tokens
 * `unaccent`: defaults to `true`; set to `false` to keep original accents
 * `stem_words`: defaults to `false`; when `true`, applies Porter stemming to word tokens (e.g., "running" → "run")
+* `split_cjk`: defaults to `false`; when `true`, splits Chinese, Japanese, and Korean characters into individual word tokens
 * `filter_text`: custom pre-filter function to process incoming text, takes text as first argument, should return text (optional)
 * `filter_tokens`: custom post-filter function to process output tokens, takes token array and opts as arguments, should return a token array (optional)
+* `domain_tokens_first`: defaults to `false`; when `true`, moves all domain tokens to the beginning of the token array (before all other tokens)
 
 ```lua
 local SpamTokenizer = require "lapis.bayes.tokenizers.spam"
 
-local tokenizer = SpamTokenizer {
+local tokenizer = SpamTokenizer({
   bigram_tokens = true,
-  sample_at_most = 128
-}
+  sample_at_most = 64
+})
 
 local tokens = tokenizer:tokenize_text([[<div>Limited time offer! Visit https://example.com for 50% off</div>]])
 ```

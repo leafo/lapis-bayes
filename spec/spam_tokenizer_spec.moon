@@ -162,6 +162,47 @@ describe "lapis.bayes.tokenizers.spam", ->
     split_cjk: true
   }
 
+  it_tokenizes "with commas #ddd", "hello,world，what,heck", {
+    "hello"
+    "world"
+    "what"
+    "heck"
+  }
+
+  it_tokenizes "chinese game text", "喜欢的游戏有空洞骑士，死亡细胞，饥荒，星露谷物语等等", {
+    "喜欢的游戏有空洞骑士"
+    "死亡细胞"
+    "饥荒"
+    "星露谷物语等等"
+  }
+
+  it_tokenizes "chinese game text with split_cjk", "喜欢的游戏有空洞骑士，死亡细胞，饥荒，星露谷物语等等", {
+    "喜"
+    "欢"
+    "的"
+    "游"
+    "戏"
+    "有"
+    "空"
+    "洞"
+    "骑"
+    "士"
+    "死"
+    "亡"
+    "细"
+    "胞"
+    "饥"
+    "荒"
+    "星"
+    "露"
+    "谷"
+    "物"
+    "语"
+    "等"
+  }, {
+    split_cjk: true
+  }
+
   it_tokenizes "html content", [[
     <div><p>Limited <strong>Offer</strong> <a href="http://example.com">Click</a> now!</p></div>
   ]], {
@@ -765,11 +806,20 @@ describe "lapis.bayes.tokenizers.spam", ->
       "now"
     }
 
+    it_tokenizes "German umlaut domain normalized with unaccent", "Check http://münchen.de today", {
+      "check"
+      "domain:munchen.de"
+      "domain:.de"
+      "today"
+    }
+
     it_tokenizes "German umlaut domain", "Check http://münchen.de today", {
       "check"
       "domain:xn--mnchen-3ya.de"
       "domain:.de"
       "today"
+    }, {
+      unaccent: false
     }
 
     it_tokenizes "Japanese domain", "Visit http://日本.jp site", {
@@ -795,7 +845,7 @@ describe "lapis.bayes.tokenizers.spam", ->
       "here"
     }, {
       bigram_tokens: true
-      split_cjk
+      split_cjk: true
     }
 
     it_tokenizes "mixed subdomain", "Visit http://test.münchen.example.com now", {
@@ -805,6 +855,8 @@ describe "lapis.bayes.tokenizers.spam", ->
       "domain:.example.com"
       "domain:.com"
       "now"
+    }, {
+      unaccent: false
     }
 
     it_tokenizes "hindi", [[

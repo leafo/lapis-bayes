@@ -165,9 +165,6 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     stem = if @opts.stem_words
       require("lapis.bayes.text.stem").stem_word
 
-    unaccent = unless @opts.unaccent == false
-      require("lapis.bayes.text.unaccent").unaccent_string
-
     case_insensitive = (text) ->
       out = nil
       for char in text\gmatch "."
@@ -187,9 +184,6 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
     normalize_word = (word) ->
       return unless word and word != ""
-
-      if unaccent
-        word = unaccent(word) or word
 
       word = word\lower!
       word = word\gsub("'+", "")
@@ -480,6 +474,9 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
     if @opts.filter_text
       text = @opts.filter_text text
+
+    unless @opts.unaccent == false
+      text = require("lapis.bayes.text.unaccent").unaccent_string(text) or text
 
     -- extract URLs before cleaing up text to capture urls in HTML markup
     raw_domain_tokens = @collect_url_tokens text

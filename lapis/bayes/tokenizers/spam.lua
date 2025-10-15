@@ -224,10 +224,6 @@ do
       if self.opts.stem_words then
         stem = require("lapis.bayes.text.stem").stem_word
       end
-      local unaccent
-      if not (self.opts.unaccent == false) then
-        unaccent = require("lapis.bayes.text.unaccent").unaccent_string
-      end
       local case_insensitive
       case_insensitive = function(text)
         local out = nil
@@ -252,9 +248,6 @@ do
       normalize_word = function(word)
         if not (word and word ~= "") then
           return 
-        end
-        if unaccent then
-          word = unaccent(word) or word
         end
         word = word:lower()
         word = word:gsub("'+", "")
@@ -707,6 +700,9 @@ do
       text = tostring(text)
       if self.opts.filter_text then
         text = self.opts.filter_text(text)
+      end
+      if not (self.opts.unaccent == false) then
+        text = require("lapis.bayes.text.unaccent").unaccent_string(text) or text
       end
       local raw_domain_tokens = self:collect_url_tokens(text)
       text = extract_text(text)
