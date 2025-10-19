@@ -19,6 +19,8 @@ normalize_number = (value) ->
 
   normalized
 
+-- NOTE: this only works with ASCII punctuation characters, be careful when
+-- updating punct_pattern if it's going to include unicode punctuation
 handle_punct = (chars) ->
   char = chars\sub 1, 1
   {tag: "punct", value: char .. tostring(#chars)}
