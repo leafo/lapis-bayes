@@ -151,7 +151,6 @@ describe "lapis.bayes", ->
       "lapis.bayes.classifiers.test"
       "lapis.bayes.classifiers.bayes"
       "lapis.bayes.classifiers.bayes_multi"
-      "lapis.bayes.classifiers.bayes_mod"
       "lapis.bayes.classifiers.fisher"
     }
 
