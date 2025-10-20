@@ -3,7 +3,6 @@ import truncate_tables from require "lapis.spec.db"
 import Categories, WordClassifications from require "lapis.bayes.models"
 
 describe "lapis.bayes", ->
-
   describe "BaseClassifier", ->
     local classifier
     before_each ->
@@ -373,3 +372,194 @@ describe "lapis.bayes", ->
       -- Verify probabilities are in descending order
       for i = 2, #probs
         assert probs[i-1][2] >= probs[i][2], "probabilities should be sorted descending"
+
+  describe "BayesClassifier with token_weight_patterns", ->
+    import train_text from require "lapis.bayes"
+    BayesClassifier = require "lapis.bayes.classifiers.bayes"
+
+    before_each ->
+      truncate_tables Categories, WordClassifications
+
+      -- Train with specific tokens to test weighting
+      -- Category "good" has certain tokens
+      train_text "good", {"hello", "world", "nice", "great", "domain:trusted"}
+      train_text "good", {"hello", "nice", "domain:trusted"}
+      train_text "good", {"world", "great"}
+
+      -- Category "bad" has different tokens
+      train_text "bad", {"spam", "junk", "domain:untrusted"}
+      train_text "bad", {"spam", "domain:untrusted"}
+      train_text "bad", {"junk", "evil"}
+
+    it "classifies without weights (baseline)", ->
+      classifier = BayesClassifier!
+      probs = assert classifier\text_probabilities {"good", "bad"},
+        {"hello", "world", "domain:trusted"}
+
+      assert.same "good", probs[1][1], "should classify as good"
+
+    it "boosts tokens matching pattern with weight > 1", ->
+      -- Without weights, classify text with domain token
+      classifier_no_weight = BayesClassifier!
+      probs_no_weight = assert classifier_no_weight\text_probabilities {"good", "bad"},
+        {"domain:trusted"}
+
+      baseline_prob = probs_no_weight["good"]
+
+      -- With weights, boost domain tokens
+      classifier_with_weight = BayesClassifier {
+        token_weight_patterns: {["^domain:"]: 2.0}
+      }
+      probs_with_weight = assert classifier_with_weight\text_probabilities {"good", "bad"},
+        {"domain:trusted"}
+
+      boosted_prob = probs_with_weight["good"]
+
+      -- Boosted probability should be higher (more confident)
+      assert boosted_prob > baseline_prob, "weighted token should increase confidence"
+
+    it "dampens tokens matching pattern with weight < 1", ->
+      -- Without weights
+      classifier_no_weight = BayesClassifier!
+      probs_no_weight = assert classifier_no_weight\text_probabilities {"good", "bad"}, {
+        "hello"
+        "domain:trusted"
+      }
+
+      baseline_prob = probs_no_weight["good"]
+
+      -- With dampening weight
+      classifier_with_weight = BayesClassifier {
+        token_weight_patterns: {
+          "^domain:": 0.5
+        }
+      }
+
+      probs_with_weight = assert classifier_with_weight\text_probabilities {"good", "bad"}, {
+        "hello"
+        "domain:trusted"
+      }
+
+      dampened_prob = probs_with_weight["good"]
+
+      -- Dampened probability should be lower (less confident)
+      assert dampened_prob < baseline_prob, "dampened token should decrease confidence"
+
+    it "handles tokens that don't match any pattern", ->
+      classifier = BayesClassifier {
+        token_weight_patterns: {
+          "^domain:": 2.0
+        }
+      }
+
+      probs = assert classifier\text_probabilities {"good", "bad"}, {
+        "hello"
+        "world"
+      }
+
+      assert.same "good", probs[1][1], "should still classify correctly"
+
+    it "handles multiple patterns", ->
+      classifier = BayesClassifier {
+        token_weight_patterns: {
+          "^domain:": 2.0
+          "^url:": 1.5
+          "trusted$": 3.0
+        }
+      }
+
+      probs = assert classifier\text_probabilities {"good", "bad"}, {
+        "domain:trusted"
+        "hello"
+      }
+
+      assert.same "good", probs[1][1], "should classify with multiple patterns"
+
+    it "works in log mode", ->
+      classifier_log = BayesClassifier {
+        log: true
+        token_weight_patterns: {["^domain:"]: 2.0}
+      }
+
+      probs_log = assert classifier_log\text_probabilities {"good", "bad"},
+        {"domain:trusted"}
+
+      assert.same "good", probs_log[1][1], "should work in log mode"
+      assert probs_log["good"] > 0.5, "should have high confidence for good category"
+
+    it "works in regular mode", ->
+      classifier_regular = BayesClassifier {
+        log: false
+        token_weight_patterns: {
+          "^domain:": 2.0
+        }
+      }
+
+      probs_regular = assert classifier_regular\text_probabilities {"good", "bad"}, {
+        "domain:trusted"
+      }
+
+      assert.same "good", probs_regular[1][1], "should work in regular mode"
+      assert probs_regular["good"] > 0.5, "should have high confidence for good category"
+
+    it "handles weight of 1.0 (no effect)", ->
+      classifier_no_weight = BayesClassifier!
+      probs_no_weight = assert classifier_no_weight\text_probabilities {"good", "bad"}, {
+        "hello", "domain:trusted"
+      }
+
+      classifier_weight_1 = BayesClassifier {
+        token_weight_patterns: {
+          "^domain:": 1.0
+        }
+      }
+
+      probs_weight_1 = assert classifier_weight_1\text_probabilities {"good", "bad"}, {
+        "hello", "domain:trusted"
+      }
+
+      -- Should produce very similar results (allowing for floating point differences)
+      assert math.abs(probs_no_weight["good"] - probs_weight_1["good"]) < 0.01,
+        "weight of 1.0 should have minimal effect"
+
+    it "can flip classification with strong weight", ->
+      -- "weak" category has many tokens
+      train_text "weak", {"common", "common", "common", "common", "marker:weak"}
+
+      -- "strong" category has fewer tokens but marked token
+      train_text "strong", {"marker:strong"}
+
+      -- Without weights, common words dominate
+      classifier_no_weight = BayesClassifier!
+      probs_no_weight = assert classifier_no_weight\text_probabilities {"weak", "strong"}, {
+        "common"
+        "marker:strong"
+      }
+
+      -- With strong weight on marker, it should flip
+      classifier_with_weight = BayesClassifier {
+        token_weight_patterns: {
+          "^marker:": 5.0
+        }
+      }
+
+      probs_with_weight = assert classifier_with_weight\text_probabilities {"weak", "strong"}, {
+        "common", "marker:strong"
+      }
+
+      -- The weighted marker should increase confidence in "strong"
+      assert probs_with_weight["strong"] > probs_no_weight["strong"],
+        "strong weight should boost target category"
+
+    it "handles empty pattern list", ->
+      classifier = BayesClassifier {
+        token_weight_patterns: {}
+      }
+
+      probs = assert classifier\text_probabilities {"good", "bad"}, {
+        "hello"
+        "domain:trusted"
+      }
+
+      assert.same "good", probs[1][1], "should work with empty pattern list"
+

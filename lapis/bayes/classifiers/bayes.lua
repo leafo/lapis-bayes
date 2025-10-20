@@ -3,6 +3,17 @@ do
   local _class_0
   local _parent_0 = require("lapis.bayes.classifiers.base")
   local _base_0 = {
+    get_token_weight = function(self, word)
+      if not (self.opts.token_weight_patterns) then
+        return 1.0
+      end
+      for pattern, weight in pairs(self.opts.token_weight_patterns) do
+        if word:match(pattern) then
+          return weight
+        end
+      end
+      return 1.0
+    end,
     word_probabilities = function(self, categories, available_words)
       if not (#categories == 2) then
         return nil, "only two categories supported at once"
@@ -26,8 +37,9 @@ do
           local word = available_words[_index_0]
           local ai_count = (a.word_counts and a.word_counts[word] or 0) + default_a
           local bi_count = (b.word_counts and b.word_counts[word] or 0) + default_b
-          ai_log_sum = ai_log_sum + math.log(ai_count)
-          bi_log_sum = bi_log_sum + math.log(bi_count)
+          local weight = self:get_token_weight(word)
+          ai_log_sum = ai_log_sum + (weight * math.log(ai_count))
+          bi_log_sum = bi_log_sum + (weight * math.log(bi_count))
         end
         ai_log_sum = ai_log_sum + math.log(a.total_count)
         bi_log_sum = bi_log_sum + math.log(b.total_count)
@@ -45,15 +57,16 @@ do
           local word = available_words[_index_0]
           local ai_count = (a.word_counts and a.word_counts[word] or 0) + default_a
           local bi_count = (b.word_counts and b.word_counts[word] or 0) + default_b
+          local weight = self:get_token_weight(word)
           if ai_mul then
-            ai_mul = ai_mul * ai_count
+            ai_mul = ai_mul * (ai_count ^ weight)
           else
-            ai_mul = ai_count
+            ai_mul = ai_count ^ weight
           end
           if bi_mul then
-            bi_mul = bi_mul * bi_count
+            bi_mul = bi_mul * (bi_count ^ weight)
           else
-            bi_mul = bi_count
+            bi_mul = bi_count ^ weight
           end
         end
         local ai_prob = a.total_count * ai_mul / ((a.total_count + default_a) * available_words_count)
@@ -120,7 +133,8 @@ do
   self.default_options = {
     max_words = 40,
     default_prob = 0.1,
-    log = false
+    log = false,
+    token_weight_patterns = nil
   }
   if _parent_0.__inherited then
     _parent_0.__inherited(_parent_0, _class_0)

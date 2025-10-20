@@ -4,7 +4,17 @@ class BayesClassifier extends require "lapis.bayes.classifiers.base"
     max_words: 40
     default_prob: 0.1
     log: false
+    token_weight_patterns: nil
   }
+
+  get_token_weight: (word) =>
+    return 1.0 unless @opts.token_weight_patterns
+
+    for pattern, weight in pairs @opts.token_weight_patterns
+      if word\match pattern
+        return weight
+
+    1.0
 
   word_probabilities: (categories, available_words) =>
     return nil, "only two categories supported at once" unless #categories == 2
@@ -23,8 +33,9 @@ class BayesClassifier extends require "lapis.bayes.classifiers.base"
     default_a = default_prob * a.total_count
     default_b = default_prob * b.total_count
 
+    -- NOTE: you should use log mode if you have a large number of tokens
+    -- because the numbers get really small
     prob = if @opts.log
-      -- TODO: test if the log approach has any advantages
       ai_log_sum = 0
       bi_log_sum = 0
 
@@ -32,8 +43,10 @@ class BayesClassifier extends require "lapis.bayes.classifiers.base"
         ai_count = (a.word_counts and a.word_counts[word] or 0) + default_a
         bi_count = (b.word_counts and b.word_counts[word] or 0) + default_b
 
-        ai_log_sum += math.log ai_count
-        bi_log_sum += math.log bi_count
+        weight = @get_token_weight word
+
+        ai_log_sum += weight * math.log ai_count
+        bi_log_sum += weight * math.log bi_count
 
       ai_log_sum += math.log a.total_count
       bi_log_sum += math.log b.total_count
@@ -57,15 +70,17 @@ class BayesClassifier extends require "lapis.bayes.classifiers.base"
         ai_count = (a.word_counts and a.word_counts[word] or 0) + default_a
         bi_count = (b.word_counts and b.word_counts[word] or 0) + default_b
 
+        weight = @get_token_weight word
+
         if ai_mul
-          ai_mul *= ai_count
+          ai_mul *= ai_count ^ weight
         else
-          ai_mul = ai_count
+          ai_mul = ai_count ^ weight
 
         if bi_mul
-          bi_mul *= bi_count
+          bi_mul *= bi_count ^ weight
         else
-          bi_mul = bi_count
+          bi_mul = bi_count ^ weight
 
       ai_prob = a.total_count * ai_mul / ((a.total_count + default_a) * available_words_count)
       bi_prob = b.total_count * bi_mul / ((b.total_count + default_b) * available_words_count)

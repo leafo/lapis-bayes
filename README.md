@@ -389,6 +389,28 @@ local tokens = t:tokenize_text([[
 ]]) --> {"leafo.net", "itch.io"}
 ```
 
+## Classifier Configuration
+
+Classifier options:
+
+* `max_words`: Maximum number of words to use for classification (default `40`)
+* `default_prob`: Default probability for unseen words (default `0.1`)
+* `log`: Use logarithmic probability calculations (default `false`)
+* `token_weight_patterns`: Hash table of Lua patterns to weight multipliers. Matching tokens are weighted as exponents (e.g., `2.0` squares the count, `0.5` takes square root)
+
+```lua
+local BayesClassifier = require("lapis.bayes.classifiers.bayes")
+
+local classifier = BayesClassifier({
+  token_weight_patterns = {
+    ["^domain:"] = 2.0,  -- boost tokens that start with "domain:"
+    ["and"] = 0.8        -- reduce token "and"
+  }
+})
+
+local category, score = classifier:classify_text({"spam", "ham"}, "Check out domain:example.com")
+```
+
 ## Schema
 
 `lapis-bayes` creates two tables:
