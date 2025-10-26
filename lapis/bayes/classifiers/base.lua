@@ -42,7 +42,8 @@ do
       category = Categories:find_or_create(category)
       return category:increment_words(tokens)
     end,
-    text_probabilities = function(self, category_names, text)
+    text_probabilities = function(self, category_names, text, opts)
+      opts = opts or { }
       local categories, err = self:find_categories(category_names)
       if not (categories) then
         return nil, err
@@ -74,7 +75,7 @@ do
       end
       local token_ratio = count / #words
       local probs
-      probs, err = self:word_probabilities(categories, available_words)
+      probs, err = self:word_probabilities(categories, available_words, opts)
       if not (probs) then
         return nil, err
       end

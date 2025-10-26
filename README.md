@@ -397,6 +397,7 @@ Classifier options:
 * `default_prob`: Default probability for unseen words (default `0.1`)
 * `log`: Use logarithmic probability calculations (default `false`)
 * `token_weight_patterns`: Hash table of Lua patterns to weight multipliers. Matching tokens are weighted as exponents (e.g., `2.0` squares the count, `0.5` takes square root)
+* `uncertainty_weight`: Non-negative factor that controls how aggressively unclassified counts reduce token influence (default `1.0`)
 
 ```lua
 local BayesClassifier = require("lapis.bayes.classifiers.bayes")
@@ -410,6 +411,18 @@ local classifier = BayesClassifier({
 
 local category, score = classifier:classify_text({"spam", "ham"}, "Check out domain:example.com")
 ```
+
+You can also pass call-specific options to `classify_text/ text_probabilities`. For example, supply `unclassified_counts` to reduce the weight of tokens that appear frequently in unlabeled data:
+
+```lua
+local category, score = classifier:classify_text({"risky", "safe"}, tokens, {
+  unclassified_counts = {
+    ["ip:1.1.1.1"] = 1000
+  }
+})
+```
+
+The classifier scales each affected token by `(classified / (classified + unclassified)) ^ uncertainty_weight`, so large unlabeled totals push the outcome toward uncertainty unless you lower `uncertainty_weight`.
 
 ## Schema
 

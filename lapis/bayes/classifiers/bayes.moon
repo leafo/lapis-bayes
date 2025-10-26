@@ -5,6 +5,7 @@ class BayesClassifier extends require "lapis.bayes.classifiers.base"
     default_prob: 0.1
     log: false
     token_weight_patterns: nil
+    uncertainty_weight: 1.0
   }
 
   get_token_weight: (word) =>
@@ -16,7 +17,8 @@ class BayesClassifier extends require "lapis.bayes.classifiers.base"
 
     1.0
 
-  word_probabilities: (categories, available_words) =>
+  word_probabilities: (categories, available_words, opts={}) =>
+    opts or= {}
     return nil, "only two categories supported at once" unless #categories == 2
 
     a, b = unpack categories
@@ -27,6 +29,31 @@ class BayesClassifier extends require "lapis.bayes.classifiers.base"
 
     available_words = @candidate_words categories, available_words, @opts.max_words
     available_words_count = #available_words
+
+    unclassified_counts = opts.unclassified_counts or @opts.unclassified_counts
+    uncertainty_weight = if opts.uncertainty_weight != nil
+      opts.uncertainty_weight
+    else
+      @opts.uncertainty_weight or 1.0
+    uncertainty_weight = math.max uncertainty_weight, 0
+
+    token_weights = {}
+    for word in *available_words
+      weight = @get_token_weight word
+
+      if unclassified_counts
+        unc = unclassified_counts[word]
+        if unc and unc > 0
+          classified_total = 0
+          classified_total += (a.word_counts and a.word_counts[word]) or 0
+          classified_total += (b.word_counts and b.word_counts[word]) or 0
+
+          total = classified_total + unc
+          if total > 0 and uncertainty_weight != 0
+            confidence = classified_total / total
+            weight *= confidence ^ uncertainty_weight
+
+      token_weights[word] = weight
 
     default_prob = @opts.default_prob / sum_counts
 
@@ -43,7 +70,7 @@ class BayesClassifier extends require "lapis.bayes.classifiers.base"
         ai_count = (a.word_counts and a.word_counts[word] or 0) + default_a
         bi_count = (b.word_counts and b.word_counts[word] or 0) + default_b
 
-        weight = @get_token_weight word
+        weight = token_weights[word] or @get_token_weight word
 
         ai_log_sum += weight * math.log ai_count
         bi_log_sum += weight * math.log bi_count
@@ -70,7 +97,7 @@ class BayesClassifier extends require "lapis.bayes.classifiers.base"
         ai_count = (a.word_counts and a.word_counts[word] or 0) + default_a
         bi_count = (b.word_counts and b.word_counts[word] or 0) + default_b
 
-        weight = @get_token_weight word
+        weight = token_weights[word] or @get_token_weight word
 
         if ai_mul
           ai_mul *= ai_count ^ weight

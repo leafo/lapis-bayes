@@ -49,7 +49,9 @@ class BaseClassifier
 
   -- categories: a lua array of categories names
   -- text: string of text to classify, or an array of tokens to classify
-  text_probabilities: (category_names, text) =>
+  text_probabilities: (category_names, text, opts) =>
+    opts or= {}
+
     categories, err = @find_categories category_names
 
     unless categories
@@ -72,7 +74,7 @@ class BaseClassifier
 
     token_ratio = count / #words
 
-    probs, err = @word_probabilities categories, available_words
+    probs, err = @word_probabilities categories, available_words, opts
     unless probs
       return nil, err
 
@@ -167,4 +169,3 @@ class BaseClassifier
       category.word_counts[wc.word] = wc.count
 
     available_words
-

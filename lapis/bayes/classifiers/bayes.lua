@@ -14,7 +14,11 @@ do
       end
       return 1.0
     end,
-    word_probabilities = function(self, categories, available_words)
+    word_probabilities = function(self, categories, available_words, opts)
+      if opts == nil then
+        opts = { }
+      end
+      opts = opts or { }
       if not (#categories == 2) then
         return nil, "only two categories supported at once"
       end
@@ -26,6 +30,33 @@ do
       end
       available_words = self:candidate_words(categories, available_words, self.opts.max_words)
       local available_words_count = #available_words
+      local unclassified_counts = opts.unclassified_counts or self.opts.unclassified_counts
+      local uncertainty_weight
+      if opts.uncertainty_weight ~= nil then
+        uncertainty_weight = opts.uncertainty_weight
+      else
+        uncertainty_weight = self.opts.uncertainty_weight or 1.0
+      end
+      uncertainty_weight = math.max(uncertainty_weight, 0)
+      local token_weights = { }
+      for _index_0 = 1, #available_words do
+        local word = available_words[_index_0]
+        local weight = self:get_token_weight(word)
+        if unclassified_counts then
+          local unc = unclassified_counts[word]
+          if unc and unc > 0 then
+            local classified_total = 0
+            classified_total = classified_total + ((a.word_counts and a.word_counts[word]) or 0)
+            classified_total = classified_total + ((b.word_counts and b.word_counts[word]) or 0)
+            local total = classified_total + unc
+            if total > 0 and uncertainty_weight ~= 0 then
+              local confidence = classified_total / total
+              weight = weight * (confidence ^ uncertainty_weight)
+            end
+          end
+        end
+        token_weights[word] = weight
+      end
       local default_prob = self.opts.default_prob / sum_counts
       local default_a = default_prob * a.total_count
       local default_b = default_prob * b.total_count
@@ -37,7 +68,7 @@ do
           local word = available_words[_index_0]
           local ai_count = (a.word_counts and a.word_counts[word] or 0) + default_a
           local bi_count = (b.word_counts and b.word_counts[word] or 0) + default_b
-          local weight = self:get_token_weight(word)
+          local weight = token_weights[word] or self:get_token_weight(word)
           ai_log_sum = ai_log_sum + (weight * math.log(ai_count))
           bi_log_sum = bi_log_sum + (weight * math.log(bi_count))
         end
@@ -57,7 +88,7 @@ do
           local word = available_words[_index_0]
           local ai_count = (a.word_counts and a.word_counts[word] or 0) + default_a
           local bi_count = (b.word_counts and b.word_counts[word] or 0) + default_b
-          local weight = self:get_token_weight(word)
+          local weight = token_weights[word] or self:get_token_weight(word)
           if ai_mul then
             ai_mul = ai_mul * (ai_count ^ weight)
           else
@@ -134,7 +165,8 @@ do
     max_words = 40,
     default_prob = 0.1,
     log = false,
-    token_weight_patterns = nil
+    token_weight_patterns = nil,
+    uncertainty_weight = 1.0
   }
   if _parent_0.__inherited then
     _parent_0.__inherited(_parent_0, _class_0)

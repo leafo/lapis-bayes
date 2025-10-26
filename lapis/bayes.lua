@@ -5,7 +5,7 @@ text_probabilities = function(categories, text, opts)
     opts = { }
   end
   local DefaultClassifier = require("lapis.bayes.classifiers.default")
-  return DefaultClassifier(opts):text_probabilities(categories, text)
+  return DefaultClassifier(opts):text_probabilities(categories, text, opts)
 end
 local classify_text
 classify_text = function(categories, text, opts)
@@ -13,7 +13,7 @@ classify_text = function(categories, text, opts)
     opts = { }
   end
   local DefaultClassifier = require("lapis.bayes.classifiers.default")
-  return DefaultClassifier(opts):classify_text(categories, text)
+  return DefaultClassifier(opts):classify_text(categories, text, opts)
 end
 local train_text
 train_text = function(category, text, opts, ...)

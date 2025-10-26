@@ -5,13 +5,13 @@ VERSION = "1.4.0"
 -- text: the text to calculate probabilities for
 text_probabilities = (categories, text, opts={}) ->
   DefaultClassifier = require "lapis.bayes.classifiers.default"
-  DefaultClassifier(opts)\text_probabilities categories, text
+  DefaultClassifier(opts)\text_probabilities categories, text, opts
 
 -- return the best matching category for the given text using the default
 -- classifier
 classify_text = (categories, text, opts={}) ->
   DefaultClassifier = require "lapis.bayes.classifiers.default"
-  DefaultClassifier(opts)\classify_text categories, text
+  DefaultClassifier(opts)\classify_text categories, text, opts
 
 -- train text using default classifier's tokenizer
 -- category: string name of category
