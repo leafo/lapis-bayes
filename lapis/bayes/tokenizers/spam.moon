@@ -546,11 +546,11 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       for t in *original_tokens
         table.insert merged_tokens, t
 
-    if sample_limit
-      merged_tokens = @sample_tokens merged_tokens
-
     if @opts.domain_tokens_first
       merged_tokens = @lift_tokens merged_tokens, "^domain:"
+
+    if sample_limit
+      merged_tokens = @sample_tokens merged_tokens
 
     -- Apply custom filter at the very end if provided
     if @opts.filter_tokens

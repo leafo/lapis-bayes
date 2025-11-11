@@ -760,11 +760,11 @@ do
           table.insert(merged_tokens, t)
         end
       end
-      if sample_limit then
-        merged_tokens = self:sample_tokens(merged_tokens)
-      end
       if self.opts.domain_tokens_first then
         merged_tokens = self:lift_tokens(merged_tokens, "^domain:")
+      end
+      if sample_limit then
+        merged_tokens = self:sample_tokens(merged_tokens)
       end
       if self.opts.filter_tokens then
         merged_tokens = self.opts.filter_tokens(merged_tokens, self.opts)
