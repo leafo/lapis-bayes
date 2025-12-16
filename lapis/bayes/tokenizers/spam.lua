@@ -210,10 +210,10 @@ do
       return false
     end,
     build_grammar = function(self)
-      local P, S, R, C, Ct
+      local P, S, R, C, Cg, Ct
       do
         local _obj_0 = require("lpeg")
-        P, S, R, C, Ct = _obj_0.P, _obj_0.S, _obj_0.R, _obj_0.C, _obj_0.Ct
+        P, S, R, C, Cg, Ct = _obj_0.P, _obj_0.S, _obj_0.R, _obj_0.C, _obj_0.Cg, _obj_0.Ct
       end
       local utf8 = require("lapis.util.utf8")
       local min_len = self.opts.min_word_length or 2
@@ -342,27 +342,21 @@ do
         return out
       end
       local handle_url
-      handle_url = function(domain, path, query, fragment)
-        if path == nil then
-          path = ""
-        end
-        if query == nil then
-          query = ""
-        end
-        if fragment == nil then
-          fragment = ""
-        end
-        if self:should_ignore_domain(domain) then
+      handle_url = function(t)
+        if self:should_ignore_domain(t.domain) then
           return 
         end
         local tokens = { }
-        local _list_0 = extract_url_words(path, query, fragment)
+        if t.userinfo and t.userinfo ~= "" then
+          table.insert(tokens, t.userinfo:lower())
+        end
+        local _list_0 = extract_url_words(t.path, t.query, t.fragment)
         for _index_0 = 1, #_list_0 do
           local word = _list_0[_index_0]
           table.insert(tokens, word)
         end
         local _list_1 = {
-          handle_domain_token(domain)
+          handle_domain_token(t.domain)
         }
         for _index_0 = 1, #_list_1 do
           local token = _list_1[_index_0]
@@ -509,8 +503,10 @@ do
       local fragment_part = (P("#") * (1 - not_path) ^ 0) ^ -1
       local www_prefix = case_insensitive("www.")
       local scheme = (alpha + digit) ^ 1
-      local url_with_scheme = scheme * P("://") * www_prefix ^ -1 * C(domain_pattern) * port_part * C(path_part) * C(query_part) * C(fragment_part)
-      local url_without_scheme = www_prefix * C(domain_pattern) * port_part * C(path_part) * C(query_part) * C(fragment_part)
+      local userinfo_char = utf8.printable_character - whitespace - S("@/?#[](){}<>\"',;&")
+      local url_rest = Cg(domain_pattern, "domain") * port_part * Cg(path_part, "path") * Cg(query_part, "query") * Cg(fragment_part, "fragment")
+      local url_with_scheme = Ct(scheme * P("://") * (Cg(userinfo_char ^ 1, "userinfo") * P("@")) ^ -1 * www_prefix ^ -1 * url_rest)
+      local url_without_scheme = Ct(www_prefix * url_rest)
       local email_pattern = C((alphanum + S(".%+_'-")) ^ 1 * P("@") * domain_pattern)
       local number_capture = C(number_body) * -(alpha)
       local token_patterns = {

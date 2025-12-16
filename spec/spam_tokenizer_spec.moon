@@ -374,6 +374,24 @@ describe "lapis.bayes.tokenizers.spam", ->
     "today"
   }
 
+  -- using userinfo to attempt to hide the read domain
+  -- e.g., https://youtube.com@malicious.com - the real domain is malicious.com
+  it_tokenizes "url with deceptive userinfo domain", "Check https://youtube.com@evil.fun now", {
+    "check"
+    "youtube.com"
+    "domain:evil.fun"
+    "domain:.fun"
+    "now"
+  }
+
+  it_tokenizes "url with simple userinfo", "Login at https://user@example.com/login", {
+    "login"
+    "at"
+    "user"
+    "domain:example.com"
+    "domain:.com"
+  }
+
   describe "ignore domains", ->
     it_tokenizes "ignores exact domain only", "Visit https://example.com/deal now", {
       "visit"

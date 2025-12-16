@@ -155,7 +155,7 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     false
 
   build_grammar: =>
-    import P, S, R, C, Ct from require "lpeg"
+    import P, S, R, C, Cg, Ct from require "lpeg"
     utf8 = require "lapis.util.utf8"
 
     min_len = @opts.min_word_length or 2
@@ -237,15 +237,18 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
 
       out
 
-    handle_url = (domain, path="", query="", fragment="") ->
-      return if @should_ignore_domain domain
+    handle_url = (t) ->
+      return if @should_ignore_domain t.domain
 
       tokens = {}
 
-      for word in *extract_url_words path, query, fragment
+      if t.userinfo and t.userinfo != ""
+        table.insert tokens, t.userinfo\lower!
+
+      for word in *extract_url_words t.path, t.query, t.fragment
         table.insert tokens, word
 
-      for token in *{handle_domain_token domain}
+      for token in *{handle_domain_token t.domain}
         table.insert tokens, token
 
       unpack_fn tokens
@@ -355,8 +358,15 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     www_prefix = case_insensitive "www."
     scheme = (alpha + digit)^1
 
-    url_with_scheme = scheme * P"://" * www_prefix^-1 * C(domain_pattern) * port_part * C(path_part) * C(query_part) * C(fragment_part)
-    url_without_scheme = www_prefix * C(domain_pattern) * port_part * C(path_part) * C(query_part) * C(fragment_part)
+    -- Userinfo handling for URLs (username:password@host format)
+    -- Often abused in phishing: https://legitimate.com@malicious.com
+    userinfo_char = utf8.printable_character - whitespace - S"@/?#[](){}<>\"',;&"
+
+    url_rest = Cg(domain_pattern, "domain") * port_part * Cg(path_part, "path") * Cg(query_part, "query") * Cg(fragment_part, "fragment")
+
+    -- NOTE: url uses Ct and named groups to extract all parts of urls
+    url_with_scheme = Ct(scheme * P"://" * (Cg(userinfo_char^1, "userinfo") * P"@")^-1 * www_prefix^-1 * url_rest)
+    url_without_scheme = Ct(www_prefix * url_rest)
 
     email_pattern = C((alphanum + S".%+_'-")^1 * P"@" * domain_pattern)
 
