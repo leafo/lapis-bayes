@@ -34,6 +34,10 @@ hangul_jamo_ext_b = P"\237\158" * R("\176\191") + P"\237\159" * cont
 hangul_halfwidth = P"\239\190" * R("\160\191") + P"\239\191" * R("\128\156")
 hangul_character = hangul_jamo + hangul_jamo_ext_a + hangul_compat_jamo + hangul_syllables + hangul_jamo_ext_b + hangul_halfwidth
 
+-- Zero-width characters (invisible formatting characters)
+-- Tree-structured: branch by first byte, then second, then third
+zero_width_character = P"\226" * (P"\128" * R"\139\141" + P"\129\160") + P"\239\187\191"
+
 cjk_character = han_character + kana_character + hangul_character
 
 {
@@ -44,4 +48,5 @@ cjk_character = han_character + kana_character + hangul_character
   :kana_character
   :hangul_character
   :cjk_character
+  :zero_width_character
 }

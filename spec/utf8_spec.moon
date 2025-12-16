@@ -51,3 +51,24 @@ describe "lapis.bayes.text.utf8", ->
     it "rejects non-CJK characters", ->
       assert.falsy matches scripts.cjk_character, "A"
       assert.falsy matches scripts.cjk_character, "1"
+
+  describe "zero_width_character", ->
+    it "matches zero width space (U+200B)", ->
+      assert.same "\226\128\139", capture scripts.zero_width_character, "\226\128\139"
+
+    it "matches zero width non-joiner (U+200C)", ->
+      assert.same "\226\128\140", capture scripts.zero_width_character, "\226\128\140"
+
+    it "matches zero width joiner (U+200D)", ->
+      assert.same "\226\128\141", capture scripts.zero_width_character, "\226\128\141"
+
+    it "matches word joiner (U+2060)", ->
+      assert.same "\226\129\160", capture scripts.zero_width_character, "\226\129\160"
+
+    it "matches byte order mark (U+FEFF)", ->
+      assert.same "\239\187\191", capture scripts.zero_width_character, "\239\187\191"
+
+    it "rejects visible characters", ->
+      assert.falsy matches scripts.zero_width_character, "A"
+      assert.falsy matches scripts.zero_width_character, " "
+      assert.falsy matches scripts.zero_width_character, "漢"
