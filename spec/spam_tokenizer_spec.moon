@@ -908,6 +908,29 @@ describe "lapis.bayes.tokenizers.spam", ->
       "म"
     }
 
+  describe "zero-width character stripping", ->
+    it_tokenizes "strips zero-width space from domain", "Visit http://exa\226\128\139mple.com now", {
+      "visit"
+      "domain:example.com"
+      "domain:.com"
+      "now"
+    }
+
+    it_tokenizes "strips word joiner from domain", "Check http://test\226\129\160.example.com here", {
+      "check"
+      "domain:test.example.com"
+      "domain:.example.com"
+      "domain:.com"
+      "here"
+    }
+
+    it_tokenizes "strips multiple zero-width chars from domain", "See http://ex\226\128\139am\226\128\140ple\226\128\141.co\226\129\160m today", {
+      "see"
+      "domain:example.com"
+      "domain:.com"
+      "today"
+    }
+
   describe "max_word_length truncation", ->
     it_tokenizes "truncates long words to max length", "supercalifragilisticexpialidocious short", {
       "supercalifragilisticexpialidoc"
