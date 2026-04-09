@@ -73,6 +73,8 @@ class Categories extends Model
       total_count += count
       {@id, word, count}
 
+    table.sort tuples, (a, b) -> a[2] < b[2]
+
     unless next tuples
       return total_count
 

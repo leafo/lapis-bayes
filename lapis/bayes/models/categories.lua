@@ -74,6 +74,9 @@ do
         end
         tuples = _accum_0
       end
+      table.sort(tuples, function(a, b)
+        return a[2] < b[2]
+      end)
       if not (next(tuples)) then
         return total_count
       end
