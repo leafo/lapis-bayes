@@ -35,7 +35,7 @@ do
     train_text = function(self, category, text, opts)
       local tokens = self:tokenize_text(text)
       if opts and opts.filter_tokens then
-        tokens = opts.filter_tokens(opts, text)
+        tokens = opts.filter_tokens(tokens, opts)
       end
       local Categories
       Categories = require("lapis.bayes.models").Categories

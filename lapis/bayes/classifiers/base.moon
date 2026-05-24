@@ -41,7 +41,7 @@ class BaseClassifier
     tokens = @tokenize_text text
 
     if opts and opts.filter_tokens
-      tokens = opts.filter_tokens opts, text
+      tokens = opts.filter_tokens tokens, opts
 
     import Categories from require "lapis.bayes.models"
     category = Categories\find_or_create category
