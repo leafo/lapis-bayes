@@ -68,7 +68,61 @@ describe "lapis.bayes.text.utf8", ->
     it "matches byte order mark (U+FEFF)", ->
       assert.same "\239\187\191", capture scripts.zero_width_character, "\239\187\191"
 
+    it "matches soft hyphen (U+00AD)", ->
+      assert.same "\194\173", capture scripts.zero_width_character, "\194\173"
+
+    it "matches Arabic letter mark (U+061C)", ->
+      assert.same "\216\156", capture scripts.zero_width_character, "\216\156"
+
+    it "matches Mongolian vowel separator (U+180E)", ->
+      assert.same "\225\160\142", capture scripts.zero_width_character, "\225\160\142"
+
+    it "matches LRM (U+200E) and RLM (U+200F)", ->
+      assert.same "\226\128\142", capture scripts.zero_width_character, "\226\128\142"
+      assert.same "\226\128\143", capture scripts.zero_width_character, "\226\128\143"
+
+    it "matches bidi formatting U+202A–U+202E", ->
+      assert.same "\226\128\170", capture scripts.zero_width_character, "\226\128\170"
+      assert.same "\226\128\174", capture scripts.zero_width_character, "\226\128\174"
+
+    it "matches invisible operators U+2061–U+2064", ->
+      assert.same "\226\129\161", capture scripts.zero_width_character, "\226\129\161"
+      assert.same "\226\129\164", capture scripts.zero_width_character, "\226\129\164"
+
+    it "matches bidi isolates and deprecated format controls U+2066–U+206F", ->
+      assert.same "\226\129\166", capture scripts.zero_width_character, "\226\129\166"
+      assert.same "\226\129\175", capture scripts.zero_width_character, "\226\129\175"
+
+    it "matches combining grapheme joiner (U+034F)", ->
+      assert.same "\205\143", capture scripts.zero_width_character, "\205\143"
+
+    it "matches variation selectors U+FE00–U+FE0F", ->
+      assert.same "\239\184\128", capture scripts.zero_width_character, "\239\184\128"
+      assert.same "\239\184\143", capture scripts.zero_width_character, "\239\184\143"
+
+    it "matches TAG block U+E0000–U+E007F", ->
+      assert.same "\243\160\128\128", capture scripts.zero_width_character, "\243\160\128\128"
+      assert.same "\243\160\129\191", capture scripts.zero_width_character, "\243\160\129\191"
+
+    it "matches variation selectors supplement U+E0100–U+E01EF", ->
+      assert.same "\243\160\132\128", capture scripts.zero_width_character, "\243\160\132\128"
+      assert.same "\243\160\135\175", capture scripts.zero_width_character, "\243\160\135\175"
+
     it "rejects visible characters", ->
       assert.falsy matches scripts.zero_width_character, "A"
       assert.falsy matches scripts.zero_width_character, " "
       assert.falsy matches scripts.zero_width_character, "漢"
+
+    it "rejects characters just outside ranges", ->
+      assert.falsy matches scripts.zero_width_character, "\226\128\144" -- U+2010
+      assert.falsy matches scripts.zero_width_character, "\226\128\175" -- U+202F NNBSP
+      assert.falsy matches scripts.zero_width_character, "\226\129\159" -- U+205F MMSP
+      assert.falsy matches scripts.zero_width_character, "\226\129\165" -- U+2065
+      assert.falsy matches scripts.zero_width_character, "\243\160\135\176" -- U+E01F0
+
+  describe "strip_zero_width_string", ->
+    it "removes invisible format controls inside text", ->
+      assert.same "example.com", scripts.strip_zero_width_string "ex\194\173am\226\129\166ple.com"
+
+    it "preserves nil", ->
+      assert.same nil, scripts.strip_zero_width_string nil

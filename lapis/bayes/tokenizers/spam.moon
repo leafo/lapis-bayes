@@ -490,6 +490,9 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     unless @opts.unaccent == false
       text = require("lapis.bayes.text.unaccent").unaccent_string(text) or text
 
+    -- Globally strip zero-width / invisible formatting characters
+    text = require("lapis.bayes.text.utf8").strip_zero_width_string text
+
     -- extract URLs before cleaing up text to capture urls in HTML markup
     raw_domain_tokens = @collect_url_tokens text
 

@@ -700,6 +700,7 @@ do
       if not (self.opts.unaccent == false) then
         text = require("lapis.bayes.text.unaccent").unaccent_string(text) or text
       end
+      text = require("lapis.bayes.text.utf8").strip_zero_width_string(text)
       local raw_domain_tokens = self:collect_url_tokens(text)
       text = extract_text(text)
       self.grammar = self.grammar or self:build_grammar()
