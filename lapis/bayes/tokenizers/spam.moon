@@ -2,9 +2,10 @@ unpack_fn = table.unpack or unpack
 
 punycode = require "lapis.bayes.text.punycode"
 import Extractor from require "web_sanitize.html"
+import unescape from require "lapis.util"
 types = require "lapis.validate.types"
 
-import cjk_character from require "lapis.bayes.text.utf8"
+import cjk_character, strip_zero_width_string from require "lapis.bayes.text.utf8"
 
 extract_text = Extractor {
   escape_html: false
@@ -18,6 +19,10 @@ normalize_number = (value) ->
   return if digits_only == ""
 
   normalized
+
+unescape_url_part = (value) ->
+  return value unless value
+  strip_zero_width_string(unescape value) or value
 
 -- NOTE: this only works with ASCII punctuation characters, be careful when
 -- updating punct_pattern if it's going to include unicode punctuation
@@ -238,17 +243,18 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       out
 
     handle_url = (t) ->
-      return if @should_ignore_domain t.domain
+      domain = unescape_url_part t.domain
+      return if @should_ignore_domain domain
 
       tokens = {}
 
       if t.userinfo and t.userinfo != ""
-        table.insert tokens, t.userinfo\lower!
+        table.insert tokens, (unescape_url_part t.userinfo)\lower!
 
-      for word in *extract_url_words t.path, t.query, t.fragment
+      for word in *extract_url_words (unescape_url_part t.path), (unescape_url_part t.query), (unescape_url_part t.fragment)
         table.insert tokens, word
 
-      for token in *{handle_domain_token t.domain}
+      for token in *{handle_domain_token domain}
         table.insert tokens, token
 
       unpack_fn tokens
@@ -401,6 +407,10 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     return {} unless text and text != ""
 
     @grammar or= @build_grammar!
+
+    if text\find "%%"
+      text = unescape_url_part text
+
     tokens = @grammar\match text
     return {} unless tokens
 
@@ -491,7 +501,7 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       text = require("lapis.bayes.text.unaccent").unaccent_string(text) or text
 
     -- Globally strip zero-width / invisible formatting characters
-    text = require("lapis.bayes.text.utf8").strip_zero_width_string text
+    text = strip_zero_width_string text
 
     -- extract URLs before cleaing up text to capture urls in HTML markup
     raw_domain_tokens = @collect_url_tokens text

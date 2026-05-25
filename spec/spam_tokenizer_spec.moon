@@ -251,6 +251,37 @@ describe "lapis.bayes.tokenizers.spam", ->
     "domain:.com"
   }
 
+  it_tokenizes "html link with percent-encoded domain", [[<a href="https://ex%61mple%2Etest/s%6Fft%77a%72%65/%61v%61s%74">DOWNLOAD LINK</a>]], {
+    "domain:example.test"
+    "domain:.test"
+    "download"
+    "caps:download"
+    "link"
+    "caps:link"
+  }
+
+  it_tokenizes "ignores percent-encoded domain after decoding", [[<a href="https://ex%61mple%2Etest/s%6Fft%77a%72%65/%61v%61s%74">DOWNLOAD LINK</a>]], {
+    "download"
+    "caps:download"
+    "link"
+    "caps:link"
+  }, {
+    ignore_domains: {"example.test"}
+  }
+
+  it_tokenizes "url with percent-encoded zero-width character in domain", "Visit http://exa%E2%80%8Bmple.com now", {
+    "visit"
+    "domain:example.com"
+    "domain:.com"
+    "now"
+  }
+
+  it_tokenizes "html link with percent-encoded zero-width character in domain", [[<a href="http://exa%E2%80%8Bmple.com/deal">Deal</a>]], {
+    "domain:example.com"
+    "domain:.com"
+    "deal"
+  }
+
   it_tokenizes "url with path segments", "Visit https://spamblog.biz/super-sale-today/index.html now", {
     "visit"
     "super"

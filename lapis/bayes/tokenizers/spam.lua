@@ -2,9 +2,14 @@ local unpack_fn = table.unpack or unpack
 local punycode = require("lapis.bayes.text.punycode")
 local Extractor
 Extractor = require("web_sanitize.html").Extractor
+local unescape
+unescape = require("lapis.util").unescape
 local types = require("lapis.validate.types")
-local cjk_character
-cjk_character = require("lapis.bayes.text.utf8").cjk_character
+local cjk_character, strip_zero_width_string
+do
+  local _obj_0 = require("lapis.bayes.text.utf8")
+  cjk_character, strip_zero_width_string = _obj_0.cjk_character, _obj_0.strip_zero_width_string
+end
 local extract_text = Extractor({
   escape_html = false
 })
@@ -19,6 +24,13 @@ normalize_number = function(value)
     return 
   end
   return normalized
+end
+local unescape_url_part
+unescape_url_part = function(value)
+  if not (value) then
+    return value
+  end
+  return strip_zero_width_string(unescape(value)) or value
 end
 local handle_punct
 handle_punct = function(chars)
@@ -343,20 +355,21 @@ do
       end
       local handle_url
       handle_url = function(t)
-        if self:should_ignore_domain(t.domain) then
+        local domain = unescape_url_part(t.domain)
+        if self:should_ignore_domain(domain) then
           return 
         end
         local tokens = { }
         if t.userinfo and t.userinfo ~= "" then
-          table.insert(tokens, t.userinfo:lower())
+          table.insert(tokens, (unescape_url_part(t.userinfo)):lower())
         end
-        local _list_0 = extract_url_words(t.path, t.query, t.fragment)
+        local _list_0 = extract_url_words((unescape_url_part(t.path)), (unescape_url_part(t.query)), (unescape_url_part(t.fragment)))
         for _index_0 = 1, #_list_0 do
           local word = _list_0[_index_0]
           table.insert(tokens, word)
         end
         local _list_1 = {
-          handle_domain_token(t.domain)
+          handle_domain_token(domain)
         }
         for _index_0 = 1, #_list_1 do
           local token = _list_1[_index_0]
@@ -535,6 +548,9 @@ do
         return { }
       end
       self.grammar = self.grammar or self:build_grammar()
+      if text:find("%%") then
+        text = unescape_url_part(text)
+      end
       local tokens = self.grammar:match(text)
       if not (tokens) then
         return { }
@@ -700,7 +716,7 @@ do
       if not (self.opts.unaccent == false) then
         text = require("lapis.bayes.text.unaccent").unaccent_string(text) or text
       end
-      text = require("lapis.bayes.text.utf8").strip_zero_width_string(text)
+      text = strip_zero_width_string(text)
       local raw_domain_tokens = self:collect_url_tokens(text)
       text = extract_text(text)
       self.grammar = self.grammar or self:build_grammar()
