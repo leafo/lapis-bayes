@@ -962,6 +962,13 @@ describe "lapis.bayes.tokenizers.spam", ->
       "today"
     }
 
+    it_tokenizes "strips zero-width characters from final filtered tokens", "hello world", {
+      "helloworld"
+    }, {
+      filter_tokens: (tokens) ->
+        {"hello\226\128\139world", "\226\128\139"}
+    }
+
   describe "max_word_length truncation", ->
     it_tokenizes "truncates long words to max length", "supercalifragilisticexpialidocious short", {
       "supercalifragilisticexpialidoc"

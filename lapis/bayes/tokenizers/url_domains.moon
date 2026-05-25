@@ -1,9 +1,5 @@
-import trim, unescape from require "lapis.util"
-import strip_zero_width_string from require "lapis.bayes.text.utf8"
-
-normalize_url_text = (text) ->
-  return text unless text
-  strip_zero_width_string(unescape text) or text
+import trim from require "lapis.util"
+import normalize_url_text, sanitize_tokens from require "lapis.bayes.tokenizers.util"
 
 class UrlDomainsTokenizer extends require "lapis.bayes.tokenizers.base"
   new: (@opts = {}) =>
@@ -87,4 +83,4 @@ class UrlDomainsTokenizer extends require "lapis.bayes.tokenizers.base"
     @grammar or= @build_grammar!
     matches = @grammar\match text
     return nil, "failed to parse text" unless matches
-    @filter_tokens matches
+    sanitize_tokens @filter_tokens matches

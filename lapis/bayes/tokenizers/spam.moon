@@ -2,10 +2,10 @@ unpack_fn = table.unpack or unpack
 
 punycode = require "lapis.bayes.text.punycode"
 import Extractor from require "web_sanitize.html"
-import unescape from require "lapis.util"
 types = require "lapis.validate.types"
 
 import cjk_character, strip_zero_width_string from require "lapis.bayes.text.utf8"
+import normalize_url_text, sanitize_token, sanitize_tokens from require "lapis.bayes.tokenizers.util"
 
 extract_text = Extractor {
   escape_html: false
@@ -19,10 +19,6 @@ normalize_number = (value) ->
   return if digits_only == ""
 
   normalized
-
-unescape_url_part = (value) ->
-  return value unless value
-  strip_zero_width_string(unescape value) or value
 
 -- NOTE: this only works with ASCII punctuation characters, be careful when
 -- updating punct_pattern if it's going to include unicode punctuation
@@ -243,15 +239,15 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       out
 
     handle_url = (t) ->
-      domain = unescape_url_part t.domain
+      domain = normalize_url_text t.domain
       return if @should_ignore_domain domain
 
       tokens = {}
 
       if t.userinfo and t.userinfo != ""
-        table.insert tokens, (unescape_url_part t.userinfo)\lower!
+        table.insert tokens, (normalize_url_text t.userinfo)\lower!
 
-      for word in *extract_url_words (unescape_url_part t.path), (unescape_url_part t.query), (unescape_url_part t.fragment)
+      for word in *extract_url_words (normalize_url_text t.path), (normalize_url_text t.query), (normalize_url_text t.fragment)
         table.insert tokens, word
 
       for token in *{handle_domain_token domain}
@@ -409,7 +405,7 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     @grammar or= @build_grammar!
 
     if text\find "%%"
-      text = unescape_url_part text
+      text = normalize_url_text text
 
     tokens = @grammar\match text
     return {} unless tokens
@@ -524,6 +520,9 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     seen_tokens = {} -- for deduping
 
     insert_token = (t) ->
+      t = sanitize_token t
+      return unless t
+
       if ignore_tokens and ignore_tokens[t]
         return
 
@@ -578,6 +577,8 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
     -- Apply custom filter at the very end if provided
     if @opts.filter_tokens
       merged_tokens = @opts.filter_tokens merged_tokens, @opts
+
+    merged_tokens = sanitize_tokens merged_tokens
 
     merged_tokens
 

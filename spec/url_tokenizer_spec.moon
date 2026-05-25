@@ -47,6 +47,11 @@ describe "lapis.bayes.tokenizer.url_tokenizer", ->
         "example.com"
       }, tokenize_text "http://exa%E2%80%8Bmple.com/path"
 
+    it "strips zero-width characters from final tokens", ->
+      assert.same {
+        "example.com"
+      }, tokenize_text "http://exa\226\128\139mple.com/path"
+
     it "ignore domains", ->
       tokens = UrlDomainsTokenizer({
         ignore_domains: {

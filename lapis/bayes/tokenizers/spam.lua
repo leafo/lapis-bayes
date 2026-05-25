@@ -2,13 +2,16 @@ local unpack_fn = table.unpack or unpack
 local punycode = require("lapis.bayes.text.punycode")
 local Extractor
 Extractor = require("web_sanitize.html").Extractor
-local unescape
-unescape = require("lapis.util").unescape
 local types = require("lapis.validate.types")
 local cjk_character, strip_zero_width_string
 do
   local _obj_0 = require("lapis.bayes.text.utf8")
   cjk_character, strip_zero_width_string = _obj_0.cjk_character, _obj_0.strip_zero_width_string
+end
+local normalize_url_text, sanitize_token, sanitize_tokens
+do
+  local _obj_0 = require("lapis.bayes.tokenizers.util")
+  normalize_url_text, sanitize_token, sanitize_tokens = _obj_0.normalize_url_text, _obj_0.sanitize_token, _obj_0.sanitize_tokens
 end
 local extract_text = Extractor({
   escape_html = false
@@ -24,13 +27,6 @@ normalize_number = function(value)
     return 
   end
   return normalized
-end
-local unescape_url_part
-unescape_url_part = function(value)
-  if not (value) then
-    return value
-  end
-  return strip_zero_width_string(unescape(value)) or value
 end
 local handle_punct
 handle_punct = function(chars)
@@ -355,15 +351,15 @@ do
       end
       local handle_url
       handle_url = function(t)
-        local domain = unescape_url_part(t.domain)
+        local domain = normalize_url_text(t.domain)
         if self:should_ignore_domain(domain) then
           return 
         end
         local tokens = { }
         if t.userinfo and t.userinfo ~= "" then
-          table.insert(tokens, (unescape_url_part(t.userinfo)):lower())
+          table.insert(tokens, (normalize_url_text(t.userinfo)):lower())
         end
-        local _list_0 = extract_url_words((unescape_url_part(t.path)), (unescape_url_part(t.query)), (unescape_url_part(t.fragment)))
+        local _list_0 = extract_url_words((normalize_url_text(t.path)), (normalize_url_text(t.query)), (normalize_url_text(t.fragment)))
         for _index_0 = 1, #_list_0 do
           local word = _list_0[_index_0]
           table.insert(tokens, word)
@@ -549,7 +545,7 @@ do
       end
       self.grammar = self.grammar or self:build_grammar()
       if text:find("%%") then
-        text = unescape_url_part(text)
+        text = normalize_url_text(text)
       end
       local tokens = self.grammar:match(text)
       if not (tokens) then
@@ -732,6 +728,10 @@ do
       local seen_tokens = { }
       local insert_token
       insert_token = function(t)
+        t = sanitize_token(t)
+        if not (t) then
+          return 
+        end
         if ignore_tokens and ignore_tokens[t] then
           return 
         end
@@ -782,6 +782,7 @@ do
       if self.opts.filter_tokens then
         merged_tokens = self.opts.filter_tokens(merged_tokens, self.opts)
       end
+      merged_tokens = sanitize_tokens(merged_tokens)
       return merged_tokens
     end
   }

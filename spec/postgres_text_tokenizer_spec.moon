@@ -54,6 +54,17 @@ describe "lapis.bayes.tokenizers.postgres_text", ->
     assert.same {"doog", "taerg", "ffuts", "wow"},
       t\tokenize_text "good great stuff wow"
 
+  it "strips zero-width characters from final filtered tokens", ->
+    PostgresTextTokenizer = require "lapis.bayes.tokenizers.postgres_text"
+
+    t = PostgresTextTokenizer {
+      filter_tokens: (tokens) ->
+        {"hello\226\128\139world", "\226\128\139"}
+    }
+
+    assert.same {"helloworld"},
+      t\tokenize_text "good great stuff wow"
+
   it "respects min_token_length", ->
     PostgresTextTokenizer = require "lapis.bayes.tokenizers.postgres_text"
 

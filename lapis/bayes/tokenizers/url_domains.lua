@@ -1,16 +1,9 @@
-local trim, unescape
+local trim
+trim = require("lapis.util").trim
+local normalize_url_text, sanitize_tokens
 do
-  local _obj_0 = require("lapis.util")
-  trim, unescape = _obj_0.trim, _obj_0.unescape
-end
-local strip_zero_width_string
-strip_zero_width_string = require("lapis.bayes.text.utf8").strip_zero_width_string
-local normalize_url_text
-normalize_url_text = function(text)
-  if not (text) then
-    return text
-  end
-  return strip_zero_width_string(unescape(text)) or text
+  local _obj_0 = require("lapis.bayes.tokenizers.util")
+  normalize_url_text, sanitize_tokens = _obj_0.normalize_url_text, _obj_0.sanitize_tokens
 end
 local UrlDomainsTokenizer
 do
@@ -125,7 +118,7 @@ do
       if not (matches) then
         return nil, "failed to parse text"
       end
-      return self:filter_tokens(matches)
+      return sanitize_tokens(self:filter_tokens(matches))
     end
   }
   _base_0.__index = _base_0

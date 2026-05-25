@@ -41,5 +41,6 @@ build = {
     ["lapis.bayes.tokenizers.postgres_text"] = "lapis/bayes/tokenizers/postgres_text.lua",
     ["lapis.bayes.tokenizers.spam"] = "lapis/bayes/tokenizers/spam.lua",
     ["lapis.bayes.tokenizers.url_domains"] = "lapis/bayes/tokenizers/url_domains.lua",
+    ["lapis.bayes.tokenizers.util"] = "lapis/bayes/tokenizers/util.lua",
   }
 }

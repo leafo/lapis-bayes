@@ -1,4 +1,9 @@
 local db = require("lapis.db")
+local sanitize_token, sanitize_tokens
+do
+  local _obj_0 = require("lapis.bayes.tokenizers.util")
+  sanitize_token, sanitize_tokens = _obj_0.sanitize_token, _obj_0.sanitize_tokens
+end
 local PostgresTextTokenizer
 do
   local _class_0
@@ -19,6 +24,11 @@ do
           local _continue_0 = false
           repeat
             local t = tokens[_index_0]
+            t = sanitize_token(t)
+            if not (t) then
+              _continue_0 = true
+              break
+            end
             local t_len = #t
             if t_len > max_len then
               _continue_0 = true
@@ -90,7 +100,7 @@ do
       if self.opts.filter_tokens then
         tokens = self.opts.filter_tokens(tokens, self.opts)
       end
-      return tokens
+      return sanitize_tokens(tokens)
     end
   }
   _base_0.__index = _base_0

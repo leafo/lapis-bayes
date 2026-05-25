@@ -1,4 +1,5 @@
 db = require "lapis.db"
+import sanitize_token, sanitize_tokens from require "lapis.bayes.tokenizers.util"
 
 -- postgres based tokenizer
 -- opts = {
@@ -25,6 +26,9 @@ class PostgresTextTokenizer extends require "lapis.bayes.tokenizers.base"
     strip_numbers = true if strip_numbers == nil
 
     return for t in *tokens
+      t = sanitize_token t
+      continue unless t
+
       t_len = #t
       continue if t_len > max_len
       continue if t_len < min_len
@@ -66,4 +70,4 @@ class PostgresTextTokenizer extends require "lapis.bayes.tokenizers.base"
     if @opts.filter_tokens
       tokens = @opts.filter_tokens tokens, @opts
 
-    tokens
+    sanitize_tokens tokens
