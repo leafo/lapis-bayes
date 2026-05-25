@@ -1,4 +1,9 @@
-import trim from require "lapis.util"
+import trim, unescape from require "lapis.util"
+import strip_zero_width_string from require "lapis.bayes.text.utf8"
+
+normalize_url_text = (text) ->
+  return text unless text
+  strip_zero_width_string(unescape text) or text
 
 class UrlDomainsTokenizer extends require "lapis.bayes.tokenizers.base"
   new: (@opts = {}) =>
@@ -16,6 +21,7 @@ class UrlDomainsTokenizer extends require "lapis.bayes.tokenizers.base"
   -- strip urls to just domains
   filter_tokens: (urls) =>
     return for url in *urls
+      url = normalize_url_text url
       url = url\lower!
       url = trim url
       url = url\gsub "^%w+://", ""
@@ -77,6 +83,7 @@ class UrlDomainsTokenizer extends require "lapis.bayes.tokenizers.base"
     Ct (raw_url + href + simple + 1)^0
 
   tokenize_text: (text) =>
+    text = normalize_url_text text
     @grammar or= @build_grammar!
     matches = @grammar\match text
     return nil, "failed to parse text" unless matches

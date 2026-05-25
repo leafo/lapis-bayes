@@ -1,5 +1,17 @@
-local trim
-trim = require("lapis.util").trim
+local trim, unescape
+do
+  local _obj_0 = require("lapis.util")
+  trim, unescape = _obj_0.trim, _obj_0.unescape
+end
+local strip_zero_width_string
+strip_zero_width_string = require("lapis.bayes.text.utf8").strip_zero_width_string
+local normalize_url_text
+normalize_url_text = function(text)
+  if not (text) then
+    return text
+  end
+  return strip_zero_width_string(unescape(text)) or text
+end
 local UrlDomainsTokenizer
 do
   local _class_0
@@ -31,6 +43,7 @@ do
           local _continue_0 = false
           repeat
             local url = urls[_index_0]
+            url = normalize_url_text(url)
             url = url:lower()
             url = trim(url)
             url = url:gsub("^%w+://", "")
@@ -106,6 +119,7 @@ do
       return Ct((raw_url + href + simple + 1) ^ 0)
     end,
     tokenize_text = function(self, text)
+      text = normalize_url_text(text)
       self.grammar = self.grammar or self:build_grammar()
       local matches = self.grammar:match(text)
       if not (matches) then

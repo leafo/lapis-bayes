@@ -37,6 +37,16 @@ describe "lapis.bayes.tokenizer.url_tokenizer", ->
         'youtube.com'
       }, tokenize_text [[<iframe src="http://youtube.com/hello-world" frameborder="0"></iframe>]]
 
+    it "decodes percent-encoded domain", ->
+      assert.same {
+        "example.test"
+      }, tokenize_text [[<a href="https://ex%61mple%2Etest/path">link</a>]]
+
+    it "strips percent-encoded zero-width characters from domain", ->
+      assert.same {
+        "example.com"
+      }, tokenize_text "http://exa%E2%80%8Bmple.com/path"
+
     it "ignore domains", ->
       tokens = UrlDomainsTokenizer({
         ignore_domains: {
@@ -52,3 +62,12 @@ describe "lapis.bayes.tokenizer.url_tokenizer", ->
       ]]
 
       assert.same {"good.leafo.net", "google.com"}, tokens
+
+    it "ignores percent-encoded domain after decoding", ->
+      tokens = UrlDomainsTokenizer({
+        ignore_domains: {
+          "example.test": true
+        }
+      })\tokenize_text [[<a href="https://ex%61mple%2Etest/path">link</a>]]
+
+      assert.same {}, tokens
