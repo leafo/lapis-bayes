@@ -1,4 +1,4 @@
-local MarginalValueTrainer
+local SaturationTrainer
 do
   local _class_0
   local _base_0 = {
@@ -9,7 +9,7 @@ do
       elseif target_name == b then
         return a
       else
-        return error("MarginalValueTrainer: target '" .. tostring(target_name) .. "' is not in configured categories {" .. tostring(a) .. ", " .. tostring(b) .. "}")
+        return error("SaturationTrainer: target '" .. tostring(target_name) .. "' is not in configured categories {" .. tostring(a) .. ", " .. tostring(b) .. "}")
       end
     end,
     should_train_token = function(self, target_count, contrast_count)
@@ -139,8 +139,8 @@ do
         opts = { }
       end
       self.opts = opts
-      self.categories = assert(self.opts.categories, "MarginalValueTrainer: missing categories")
-      assert(#self.categories == 2, "MarginalValueTrainer: categories must be a list of exactly 2 names")
+      self.categories = assert(self.opts.categories, "SaturationTrainer: missing categories")
+      assert(#self.categories == 2, "SaturationTrainer: categories must be a list of exactly 2 names")
       self.saturation_threshold = self.opts.saturation_threshold or 0.95
       self.min_observations = self.opts.min_observations or 30
       if self.opts.train_novel ~= nil then
@@ -160,7 +160,7 @@ do
       end
     end,
     __base = _base_0,
-    __name = "MarginalValueTrainer"
+    __name = "SaturationTrainer"
   }, {
     __index = _base_0,
     __call = function(cls, ...)
@@ -170,6 +170,6 @@ do
     end
   })
   _base_0.__class = _class_0
-  MarginalValueTrainer = _class_0
+  SaturationTrainer = _class_0
   return _class_0
 end

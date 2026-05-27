@@ -1,7 +1,7 @@
 
 -- Selective trainer for a binary classifier. Decides per-token whether a
--- training write has non-zero marginal information value given the current
--- corpus state, then writes only the survivors.
+-- training write would add information given the token's current distribution
+-- in the corpus, and writes only the survivors.
 --
 -- Construct one trainer per binary category pair; the same instance handles
 -- training in either direction (it derives the contrast from the target name).
@@ -21,12 +21,12 @@
 --               omitted, a DefaultClassifier is constructed with these opts.
 --   tokenize_text / tokenizer / etc.: forwarded to the default classifier
 --                                     when no classifier is provided.
-class MarginalValueTrainer
+class SaturationTrainer
   new: (@opts={}) =>
     @categories = assert @opts.categories,
-      "MarginalValueTrainer: missing categories"
+      "SaturationTrainer: missing categories"
     assert #@categories == 2,
-      "MarginalValueTrainer: categories must be a list of exactly 2 names"
+      "SaturationTrainer: categories must be a list of exactly 2 names"
 
     @saturation_threshold = @opts.saturation_threshold or 0.95
     @min_observations = @opts.min_observations or 30
@@ -45,7 +45,7 @@ class MarginalValueTrainer
     elseif target_name == b
       a
     else
-      error "MarginalValueTrainer: target '#{target_name}' is not in configured categories {#{a}, #{b}}"
+      error "SaturationTrainer: target '#{target_name}' is not in configured categories {#{a}, #{b}}"
 
   -- Pure gating decision. Given current counts for a token in both target and
   -- contrast categories, return true if the token should be written.

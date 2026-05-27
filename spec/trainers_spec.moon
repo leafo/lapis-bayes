@@ -3,24 +3,24 @@ import use_test_env from require "lapis.spec"
 import truncate_tables from require "lapis.spec.db"
 
 import Categories, WordClassifications from require "lapis.bayes.models"
-MarginalValueTrainer = require "lapis.bayes.trainers.marginal_value"
+SaturationTrainer = require "lapis.bayes.trainers.saturation"
 
 -- identity tokenizer used in integration tests so we can target specific
 -- tokens without going through stemming / stopword filtering
 identity_tokenizer = (str, opts) -> [t for t in str\gmatch "%S+"]
 
-describe "lapis.bayes.trainers.marginal_value", ->
+describe "lapis.bayes.trainers.saturation", ->
   describe "construction", ->
     it "requires categories opt", ->
-      assert.has_error -> MarginalValueTrainer!
-      assert.has_error -> MarginalValueTrainer {}
+      assert.has_error -> SaturationTrainer!
+      assert.has_error -> SaturationTrainer {}
 
     it "requires exactly two categories", ->
-      assert.has_error -> MarginalValueTrainer categories: {"only_one"}
-      assert.has_error -> MarginalValueTrainer categories: {"a", "b", "c"}
+      assert.has_error -> SaturationTrainer categories: {"only_one"}
+      assert.has_error -> SaturationTrainer categories: {"a", "b", "c"}
 
     it "constructs with a category pair", ->
-      t = MarginalValueTrainer categories: {"spam", "ham"}
+      t = SaturationTrainer categories: {"spam", "ham"}
       assert.same {"spam", "ham"}, t.categories
       assert.same 0.95, t.saturation_threshold
       assert.same 30, t.min_observations
@@ -28,7 +28,7 @@ describe "lapis.bayes.trainers.marginal_value", ->
       assert.true t.train_opposite
 
     it "accepts threshold overrides", ->
-      t = MarginalValueTrainer {
+      t = SaturationTrainer {
         categories: {"a", "b"}
         saturation_threshold: 0.8
         min_observations: 5
@@ -43,7 +43,7 @@ describe "lapis.bayes.trainers.marginal_value", ->
   describe "get_contrast", ->
     local trainer
     before_each ->
-      trainer = MarginalValueTrainer categories: {"spam", "ham"}
+      trainer = SaturationTrainer categories: {"spam", "ham"}
 
     it "returns the other category", ->
       assert.same "ham", trainer\get_contrast "spam"
@@ -54,18 +54,18 @@ describe "lapis.bayes.trainers.marginal_value", ->
 
   describe "should_train_token", ->
     it "trains novel tokens by default", ->
-      t = MarginalValueTrainer categories: {"a", "b"}
+      t = SaturationTrainer categories: {"a", "b"}
       assert.true t\should_train_token 0, 0
 
     it "skips novel tokens when train_novel is false", ->
-      t = MarginalValueTrainer {
+      t = SaturationTrainer {
         categories: {"a", "b"}
         train_novel: false
       }
       assert.false t\should_train_token 0, 0
 
     it "always trains low-observation tokens regardless of rate", ->
-      t = MarginalValueTrainer {
+      t = SaturationTrainer {
         categories: {"a", "b"}
         min_observations: 30
       }
@@ -73,7 +73,7 @@ describe "lapis.bayes.trainers.marginal_value", ->
       assert.true t\should_train_token 5, 0
 
     it "skips tokens saturated in target direction", ->
-      t = MarginalValueTrainer {
+      t = SaturationTrainer {
         categories: {"a", "b"}
         saturation_threshold: 0.95
         min_observations: 10
@@ -81,7 +81,7 @@ describe "lapis.bayes.trainers.marginal_value", ->
       assert.false t\should_train_token 100, 0
 
     it "trains tokens saturated in opposite direction by default", ->
-      t = MarginalValueTrainer {
+      t = SaturationTrainer {
         categories: {"a", "b"}
         saturation_threshold: 0.95
         min_observations: 10
@@ -89,7 +89,7 @@ describe "lapis.bayes.trainers.marginal_value", ->
       assert.true t\should_train_token 0, 100
 
     it "skips opposite-direction tokens when train_opposite is false", ->
-      t = MarginalValueTrainer {
+      t = SaturationTrainer {
         categories: {"a", "b"}
         saturation_threshold: 0.95
         min_observations: 10
@@ -98,7 +98,7 @@ describe "lapis.bayes.trainers.marginal_value", ->
       assert.false t\should_train_token 0, 100
 
     it "trains uncertain mid-range tokens", ->
-      t = MarginalValueTrainer {
+      t = SaturationTrainer {
         categories: {"a", "b"}
         saturation_threshold: 0.95
         min_observations: 10
@@ -114,7 +114,7 @@ describe "lapis.bayes.trainers.marginal_value", ->
     before_each ->
       truncate_tables Categories, WordClassifications
 
-      trainer = MarginalValueTrainer {
+      trainer = SaturationTrainer {
         categories: {"spam", "ham"}
         saturation_threshold: 0.95
         min_observations: 10
@@ -131,7 +131,7 @@ describe "lapis.bayes.trainers.marginal_value", ->
       spam\increment_words { metabol: 100 }
       ham\increment_words { but: 100 }
 
-      count, stats = trainer\train_text "spam", "metabol novel but"
+      _, stats = trainer\train_text "spam", "metabol novel but"
 
       assert.same 3, stats.total
       assert.same 2, stats.kept
@@ -162,7 +162,7 @@ describe "lapis.bayes.trainers.marginal_value", ->
       assert.same 100, spam_counts.bar
 
     it "trains every token when contrast category does not exist yet", ->
-      count, stats = trainer\train_text "spam", "alpha beta gamma"
+      _, stats = trainer\train_text "spam", "alpha beta gamma"
 
       assert.same 3, stats.total
       assert.same 3, stats.kept
@@ -173,7 +173,7 @@ describe "lapis.bayes.trainers.marginal_value", ->
       assert.same {alpha: 1, beta: 1, gamma: 1}, counts
 
     it "respects train_novel = false", ->
-      trainer = MarginalValueTrainer {
+      trainer = SaturationTrainer {
         categories: {"spam", "ham"}
         train_novel: false
         min_observations: 5
@@ -183,7 +183,7 @@ describe "lapis.bayes.trainers.marginal_value", ->
       ham = Categories\find_or_create "ham"
       ham\increment_words { other: 10 }
 
-      count, stats = trainer\train_text "spam", "wholly novel words"
+      _, stats = trainer\train_text "spam", "wholly novel words"
 
       assert.same 3, stats.total
       assert.same 0, stats.kept
@@ -201,7 +201,7 @@ describe "lapis.bayes.trainers.marginal_value", ->
       -- (opposite direction)
       spam\increment_words { metabol: 100 }
 
-      count, stats = trainer\train_text "ham", "metabol"
+      _, stats = trainer\train_text "ham", "metabol"
 
       assert.same 1, stats.kept_opposite
 
