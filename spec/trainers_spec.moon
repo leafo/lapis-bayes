@@ -106,7 +106,7 @@ describe "lapis.bayes.trainers.saturation", ->
       assert.true t\should_train_token 60, 40
       assert.true t\should_train_token 55, 45
 
-  describe "train_text", ->
+  describe "select_tokens", ->
     use_test_env!
 
     local trainer
@@ -118,21 +118,25 @@ describe "lapis.bayes.trainers.saturation", ->
         categories: {"spam", "ham"}
         saturation_threshold: 0.95
         min_observations: 10
-        tokenize_text: identity_tokenizer
       }
 
-    it "skips saturated, trains novel, trains opposite", ->
+    it "gates survivors against the corpus without mutating it", ->
       spam = Categories\find_or_create "spam"
       ham = Categories\find_or_create "ham"
 
-      -- "metabol" is saturated in spam (100/0)
-      -- "but" is saturated in ham (0/100)
-      -- "novel" is unseen
+      -- "metabol" saturated in spam (skipped),
+      -- "but" saturated in ham (kept opposite),
+      -- "novel" unseen (kept novel)
       spam\increment_words { metabol: 100 }
       ham\increment_words { but: 100 }
 
-      _, stats = trainer\train_text "spam", "metabol novel but"
+      selected, stats = trainer\select_tokens "spam", {
+        metabol: 1
+        novel: 1
+        but: 1
+      }
 
+      assert.same { novel: 1, but: 1 }, selected
       assert.same 3, stats.total
       assert.same 2, stats.kept
       assert.same 1, stats.skipped_saturated
@@ -140,73 +144,76 @@ describe "lapis.bayes.trainers.saturation", ->
       assert.same 1, stats.kept_opposite
 
       spam_counts = {wc.word, wc.count for wc in *WordClassifications\select "where category_id = ?", spam.id}
-      assert.same 100, spam_counts.metabol  -- not incremented
-      assert.same 1, spam_counts.novel
-      assert.same 1, spam_counts.but
+      assert.same { metabol: 100 }, spam_counts
 
-    it "leaves spam untouched when every token is saturated in target", ->
-      spam = Categories\find_or_create "spam"
-      Categories\find_or_create "ham"
+    it "accepts an array-of-words token list and merges duplicates", ->
+      selected, stats = trainer\select_tokens "spam", {"alpha", "beta", "alpha"}
 
-      spam\increment_words { foo: 100, bar: 100 }
-
-      count, stats = trainer\train_text "spam", "foo bar"
-
-      assert.same 0, count
+      assert.same { alpha: 2, beta: 1 }, selected
       assert.same 2, stats.total
-      assert.same 0, stats.kept
-      assert.same 2, stats.skipped_saturated
+      assert.same 2, stats.kept_novel
 
-      spam_counts = {wc.word, wc.count for wc in *WordClassifications\select "where category_id = ?", spam.id}
-      assert.same 100, spam_counts.foo
-      assert.same 100, spam_counts.bar
+    it "does not create the target category", ->
+      trainer\select_tokens "spam", {"alpha"}
+      assert.nil Categories\find name: "spam"
 
-    it "trains every token when contrast category does not exist yet", ->
-      _, stats = trainer\train_text "spam", "alpha beta gamma"
+    it "treats every token as novel when contrast category does not exist", ->
+      -- target has prior counts but with no contrast there's no saturation to
+      -- measure against, so the DB lookup is skipped and tokens look novel
+      spam = Categories\find_or_create "spam"
+      spam\increment_words { alpha: 100 }
 
-      assert.same 3, stats.total
-      assert.same 3, stats.kept
-      assert.same 3, stats.kept_novel
+      selected, stats = trainer\select_tokens "spam", {"alpha", "beta"}
 
-      spam = assert Categories\find name: "spam"
-      counts = {wc.word, wc.count for wc in *WordClassifications\select "where category_id = ?", spam.id}
-      assert.same {alpha: 1, beta: 1, gamma: 1}, counts
+      assert.same { alpha: 1, beta: 1 }, selected
+      assert.same 2, stats.kept_novel
 
     it "respects train_novel = false", ->
       trainer = SaturationTrainer {
         categories: {"spam", "ham"}
         train_novel: false
         min_observations: 5
-        tokenize_text: identity_tokenizer
       }
 
       ham = Categories\find_or_create "ham"
       ham\increment_words { other: 10 }
 
-      _, stats = trainer\train_text "spam", "wholly novel words"
+      selected, stats = trainer\select_tokens "spam", {"wholly", "novel", "words"}
 
-      assert.same 3, stats.total
-      assert.same 0, stats.kept
+      assert.same {}, selected
       assert.same 3, stats.skipped_novel
 
-      spam = assert Categories\find name: "spam"
-      counts = {wc.word, wc.count for wc in *WordClassifications\select "where category_id = ?", spam.id}
-      assert.same {}, counts
+    it "errors when target is not in configured categories", ->
+      assert.has_error -> trainer\select_tokens "other", {"some", "words"}
 
-    it "works symmetrically in the ham direction", ->
+  describe "train_text", ->
+    use_test_env!
+
+    before_each ->
+      truncate_tables Categories, WordClassifications
+
+    it "tokenizes, gates, and writes selected tokens to the target", ->
+      trainer = SaturationTrainer {
+        categories: {"spam", "ham"}
+        saturation_threshold: 0.95
+        min_observations: 10
+        tokenize_text: identity_tokenizer
+      }
+
       spam = Categories\find_or_create "spam"
       ham = Categories\find_or_create "ham"
 
-      -- "metabol" saturated in spam: training "ham" with it should train
-      -- (opposite direction)
       spam\increment_words { metabol: 100 }
+      ham\increment_words { but: 100 }
 
-      _, stats = trainer\train_text "ham", "metabol"
+      count, stats = trainer\train_text "spam", "metabol novel but"
 
+      assert.same 2, count
+      assert.same 3, stats.total
+      assert.same 2, stats.kept
+      assert.same 1, stats.skipped_saturated
+      assert.same 1, stats.kept_novel
       assert.same 1, stats.kept_opposite
 
-      ham_counts = {wc.word, wc.count for wc in *WordClassifications\select "where category_id = ?", ham.id}
-      assert.same 1, ham_counts.metabol
-
-    it "errors when target is not in configured categories", ->
-      assert.has_error -> trainer\train_text "other", "some text"
+      spam_counts = {wc.word, wc.count for wc in *WordClassifications\select "where category_id = ?", spam.id}
+      assert.same { metabol: 100, novel: 1, but: 1 }, spam_counts

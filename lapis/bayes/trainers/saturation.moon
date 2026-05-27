@@ -67,11 +67,12 @@ class SaturationTrainer
     else
       true
 
-  -- Train a document. Returns (count_written, stats_table).
-  train_text: (target_name, text) =>
+  -- Apply gating to a tokens table without writing. Accepts the same shapes
+  -- the classifier tokenizer returns (array of words or {word: count} map).
+  -- Returns (selected, stats) where selected is a {word: count} map of the
+  -- tokens train_text would write.
+  select_tokens: (target_name, tokens) =>
     contrast_name = @get_contrast target_name
-
-    tokens = @classifier\tokenize_text text
 
     if @opts.filter_tokens
       tokens = @opts.filter_tokens tokens, @opts
@@ -98,17 +99,19 @@ class SaturationTrainer
       kept_low_obs: 0
     }
 
+    selected = {}
+
     unless next merged
-      return 0, stats
+      return selected, stats
 
     import Categories from require "lapis.bayes.models"
-    target = Categories\find_or_create target_name
+    target = Categories\find name: target_name
     contrast = Categories\find name: contrast_name
 
     target_counts = {}
     contrast_counts = {}
 
-    if contrast
+    if target and contrast
       words = [w for w in pairs merged]
       wcs = @classifier\find_word_classifications words, {target.id, contrast.id}
       for wc in *wcs
@@ -116,8 +119,6 @@ class SaturationTrainer
           target_counts[wc.word] = wc.count
         elseif wc.category_id == contrast.id
           contrast_counts[wc.word] = wc.count
-
-    filtered = {}
 
     for word, count in pairs merged
       stats.total += 1
@@ -142,11 +143,21 @@ class SaturationTrainer
       stats[bucket] += 1
 
       if bucket\match "^kept_"
-        filtered[word] = count
+        selected[word] = count
         stats.kept += 1
 
-    written = if next filtered
-      target\increment_words filtered
+    selected, stats
+
+  -- Train a document. Returns (count_written, stats_table).
+  train_text: (target_name, text) =>
+    tokens = @classifier\tokenize_text text
+    selected, stats = @select_tokens target_name, tokens
+
+    import Categories from require "lapis.bayes.models"
+    target = Categories\find_or_create target_name
+
+    written = if next selected
+      target\increment_words selected
     else
       0
 

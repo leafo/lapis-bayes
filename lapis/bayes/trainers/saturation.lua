@@ -29,9 +29,8 @@ do
         return true
       end
     end,
-    train_text = function(self, target_name, text)
+    select_tokens = function(self, target_name, tokens)
       local contrast_name = self:get_contrast(target_name)
-      local tokens = self.classifier:tokenize_text(text)
       if self.opts.filter_tokens then
         tokens = self.opts.filter_tokens(tokens, self.opts)
       end
@@ -60,18 +59,21 @@ do
         kept_uncertain = 0,
         kept_low_obs = 0
       }
+      local selected = { }
       if not (next(merged)) then
-        return 0, stats
+        return selected, stats
       end
       local Categories
       Categories = require("lapis.bayes.models").Categories
-      local target = Categories:find_or_create(target_name)
+      local target = Categories:find({
+        name = target_name
+      })
       local contrast = Categories:find({
         name = contrast_name
       })
       local target_counts = { }
       local contrast_counts = { }
-      if contrast then
+      if target and contrast then
         local words
         do
           local _accum_0 = { }
@@ -95,7 +97,6 @@ do
           end
         end
       end
-      local filtered = { }
       for word, count in pairs(merged) do
         stats.total = stats.total + 1
         local t = target_counts[word] or 0
@@ -119,13 +120,21 @@ do
         local _update_0 = bucket
         stats[_update_0] = stats[_update_0] + 1
         if bucket:match("^kept_") then
-          filtered[word] = count
+          selected[word] = count
           stats.kept = stats.kept + 1
         end
       end
+      return selected, stats
+    end,
+    train_text = function(self, target_name, text)
+      local tokens = self.classifier:tokenize_text(text)
+      local selected, stats = self:select_tokens(target_name, tokens)
+      local Categories
+      Categories = require("lapis.bayes.models").Categories
+      local target = Categories:find_or_create(target_name)
       local written
-      if next(filtered) then
-        written = target:increment_words(filtered)
+      if next(selected) then
+        written = target:increment_words(selected)
       else
         written = 0
       end
