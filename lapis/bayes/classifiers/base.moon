@@ -129,20 +129,46 @@ class BaseClassifier
 
     assert #categories == 2, "can only do two categories"
 
-    a,b = unpack categories
-    -- calculate conflict words
+    a, b = unpack categories
+    a_total = a.total_count or 0
+    b_total = b.total_count or 0
+    total = a_total + b_total
+
+    chi_squared_score = (a_count, b_count) ->
+      word_total = a_count + b_count
+      non_word_total = total - word_total
+
+      return 0 if total == 0 or word_total == 0 or non_word_total == 0
+
+      score = 0
+      for {word_count, row_total} in *{
+        {a_count, a_total}
+        {b_count, b_total}
+      }
+        non_word_count = row_total - word_count
+        expected_word = row_total * word_total / total
+        expected_non_word = row_total * non_word_total / total
+
+        if expected_word > 0
+          score += (word_count - expected_word)^2 / expected_word
+
+        if expected_non_word > 0
+          score += (non_word_count - expected_non_word)^2 / expected_non_word
+
+      score
+
     tuples = for word in *available_words
       a_count = a.word_counts and a.word_counts[word] or 0
       b_count = b.word_counts and b.word_counts[word] or 0
 
       {
         word
-        math.random! / 100 + math.abs (a_count - b_count) / math.sqrt a_count + b_count
-        a_count
-        b_count
+        chi_squared_score a_count, b_count
       }
 
     table.sort tuples, (a,b) ->
+      if a[2] == b[2]
+        return a[1] < b[1]
       a[2] > b[2]
 
     [t[1] for t in *tuples[,count]]

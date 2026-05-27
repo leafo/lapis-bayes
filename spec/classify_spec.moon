@@ -96,6 +96,30 @@ describe "lapis.bayes", ->
         table.sort expected
         assert.same expected, results
 
+    describe "candidate_words", ->
+      it "prioritizes high polarity words", ->
+        bright = Categories\find_or_create "bright"
+        dark = Categories\find_or_create "dark"
+
+        bright\increment_words {
+          sunshine: 80
+          neutral: 10
+          shared: 40
+        }
+
+        dark\increment_words {
+          gloom: 70
+          neutral: 40
+          shared: 40
+        }
+
+        categories = {bright, dark}
+        available_words = assert classifier\count_words categories,
+          {"sunshine", "gloom", "neutral", "shared"}
+
+        candidates = classifier\candidate_words categories, available_words, 2
+        assert.same {"sunshine", "gloom"}, candidates
+
   describe "classify_text", ->
     import train_text, classify_text, text_probabilities from require "lapis.bayes"
 
@@ -561,4 +585,3 @@ describe "lapis.bayes", ->
       }
 
       assert.same "good", probs[1][1], "should work with empty pattern list"
-

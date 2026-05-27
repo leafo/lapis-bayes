@@ -148,6 +148,43 @@ do
       end
       assert(#categories == 2, "can only do two categories")
       local a, b = unpack(categories)
+      local a_total = a.total_count or 0
+      local b_total = b.total_count or 0
+      local total = a_total + b_total
+      local chi_squared_score
+      chi_squared_score = function(a_count, b_count)
+        local word_total = a_count + b_count
+        local non_word_total = total - word_total
+        if total == 0 or word_total == 0 or non_word_total == 0 then
+          return 0
+        end
+        local score = 0
+        local _list_0 = {
+          {
+            a_count,
+            a_total
+          },
+          {
+            b_count,
+            b_total
+          }
+        }
+        for _index_0 = 1, #_list_0 do
+          local _des_0 = _list_0[_index_0]
+          local word_count, row_total
+          word_count, row_total = _des_0[1], _des_0[2]
+          local non_word_count = row_total - word_count
+          local expected_word = row_total * word_total / total
+          local expected_non_word = row_total * non_word_total / total
+          if expected_word > 0 then
+            score = score + ((word_count - expected_word) ^ 2 / expected_word)
+          end
+          if expected_non_word > 0 then
+            score = score + ((non_word_count - expected_non_word) ^ 2 / expected_non_word)
+          end
+        end
+        return score
+      end
       local tuples
       do
         local _accum_0 = { }
@@ -158,9 +195,7 @@ do
           local b_count = b.word_counts and b.word_counts[word] or 0
           local _value_0 = {
             word,
-            math.random() / 100 + math.abs((a_count - b_count) / math.sqrt(a_count + b_count)),
-            a_count,
-            b_count
+            chi_squared_score(a_count, b_count)
           }
           _accum_0[_len_0] = _value_0
           _len_0 = _len_0 + 1
@@ -168,6 +203,9 @@ do
         tuples = _accum_0
       end
       table.sort(tuples, function(a, b)
+        if a[2] == b[2] then
+          return a[1] < b[1]
+        end
         return a[2] > b[2]
       end)
       local _accum_0 = { }
