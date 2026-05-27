@@ -67,6 +67,8 @@ dithered = do
 --   min_word_length: number -- minimum length of word (default 2)
 --   max_word_length: number -- maximum length of word (default 32)
 --   ignore_words: table -- table of words to ignore
+--   stopwords: table/bool -- words to exclude as unigrams while preserving bigram context.
+--                           Defaults to @@default_stopwords; set false to disable.
 --   stem_words: bool -- enable word stemming
 --   unaccent: bool -- enable unaccenting (default true)
 --   dedupe: bool -- enable deduplication (default true)
@@ -80,6 +82,45 @@ dithered = do
 --   split_cjk: -- split chinese, korean, japanese characters to be individual words
 -- }
 class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
+  @default_stopwords: {
+    a: true
+    about: true
+    all: true
+    am: true
+    an: true
+    and: true
+    are: true
+    as: true
+    at: true
+    be: true
+    but: true
+    by: true
+    can: true
+    do: true
+    for: true
+    from: true
+    have: true
+    if: true
+    in: true
+    is: true
+    it: true
+    not: true
+    of: true
+    on: true
+    or: true
+    our: true
+    that: true
+    the: true
+    this: true
+    to: true
+    we: true
+    what: true
+    when: true
+    with: true
+    you: true
+    your: true
+  }
+
   new: (@opts = {}) =>
 
   tagged_token_to_string: (token) =>
@@ -512,6 +553,12 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       dedupe = @opts.dedupe
 
     ignore_tokens = @opts.ignore_tokens
+    stopwords = if @opts.stopwords == nil
+      @@default_stopwords
+    elseif @opts.stopwords == true
+      @@default_stopwords
+    else
+      @opts.stopwords
     sample_limit = @opts.sample_at_most
     generate_bigrams = @opts.bigram_tokens
 
@@ -534,6 +581,7 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
       table.insert merged_tokens, t
 
     prev_token = nil -- for bigram generation
+    prev_stopword = false
 
     for idx=1,#tokens
       token = tokens[idx]
@@ -546,16 +594,20 @@ class SpamTokenizer extends require "lapis.bayes.tokenizers.base"
               nil
             else
               prev_token = nil -- break the bigram
+              prev_stopword = false
 
           insert_token @tagged_token_to_string token
 
         when "string" -- plain word
-          insert_token token
+          is_stopword = stopwords and stopwords[token]
+
+          insert_token token unless is_stopword
 
           if prev_token and generate_bigrams
-            insert_token "#{prev_token} #{token}"
+            insert_token "#{prev_token} #{token}" unless prev_stopword and is_stopword
 
           prev_token = token
+          prev_stopword = is_stopword
 
     -- these lose positioning due to being extracted differently, so we just
     -- insert them in order at the top by moving some variables around

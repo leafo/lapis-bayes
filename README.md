@@ -286,6 +286,7 @@ Options:
 
 * `min_word_length` / `max_word_length`: bounds applied before emitting word tokens (defaults `2` / `32`)
 * `ignore_words`: table of words to ignore (keys are words, values should be truthy) (optional)
+* `stopwords`: table of words to exclude as standalone unigrams while preserving them inside mixed bigrams; defaults to `SpamTokenizer.default_stopwords`, set to `false` to disable
 * `ignore_tokens`: table of tokens to ignore (keys are tokens, values should be truthy) (optional)
 * `ignore_domains`: list of domains to ignore; prefix with `.` to ignore subdomains (e.g., `".example.com"` ignores all subdomains, `"example.com"` ignores exact match only) (optional)
 * `dedupe`: defaults to `true`; set `false` to keep duplicate tokens

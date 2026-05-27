@@ -722,6 +722,14 @@ do
         dedupe = self.opts.dedupe
       end
       local ignore_tokens = self.opts.ignore_tokens
+      local stopwords
+      if self.opts.stopwords == nil then
+        stopwords = self.__class.default_stopwords
+      elseif self.opts.stopwords == true then
+        stopwords = self.__class.default_stopwords
+      else
+        stopwords = self.opts.stopwords
+      end
       local sample_limit = self.opts.sample_at_most
       local generate_bigrams = self.opts.bigram_tokens
       local merged_tokens = { }
@@ -742,6 +750,7 @@ do
         return table.insert(merged_tokens, t)
       end
       local prev_token = nil
+      local prev_stopword = false
       for idx = 1, #tokens do
         local token = tokens[idx]
         local _exp_0 = type(token)
@@ -751,14 +760,21 @@ do
             local _ = nil
           else
             prev_token = nil
+            prev_stopword = false
           end
           insert_token(self:tagged_token_to_string(token))
         elseif "string" == _exp_0 then
-          insert_token(token)
+          local is_stopword = stopwords and stopwords[token]
+          if not (is_stopword) then
+            insert_token(token)
+          end
           if prev_token and generate_bigrams then
-            insert_token(tostring(prev_token) .. " " .. tostring(token))
+            if not (prev_stopword and is_stopword) then
+              insert_token(tostring(prev_token) .. " " .. tostring(token))
+            end
           end
           prev_token = token
+          prev_stopword = is_stopword
         end
       end
       if raw_domain_tokens then
@@ -817,6 +833,45 @@ do
     end
   })
   _base_0.__class = _class_0
+  local self = _class_0
+  self.default_stopwords = {
+    a = true,
+    about = true,
+    all = true,
+    am = true,
+    an = true,
+    ["and"] = true,
+    are = true,
+    as = true,
+    at = true,
+    be = true,
+    but = true,
+    by = true,
+    can = true,
+    ["do"] = true,
+    ["for"] = true,
+    from = true,
+    have = true,
+    ["if"] = true,
+    ["in"] = true,
+    is = true,
+    it = true,
+    ["not"] = true,
+    of = true,
+    on = true,
+    ["or"] = true,
+    our = true,
+    that = true,
+    the = true,
+    this = true,
+    to = true,
+    we = true,
+    what = true,
+    when = true,
+    with = true,
+    you = true,
+    your = true
+  }
   if _parent_0.__inherited then
     _parent_0.__inherited(_parent_0, _class_0)
   end

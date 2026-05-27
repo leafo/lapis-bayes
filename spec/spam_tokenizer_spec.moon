@@ -2,6 +2,12 @@ SpamTokenizer = require "lapis.bayes.tokenizers.spam"
 
 it_tokenizes = (label, input, expected_tokens, opts=nil) ->
   it "tokenizes #{label}", ->
+    if opts
+      unless opts.stopwords != nil
+        opts = setmetatable {k,v for k,v in pairs opts}, __index: stopwords: false
+    else
+      opts = { stopwords: false }
+
     tokenizer = SpamTokenizer opts
     tokens = tokenizer\tokenize_text input
     assert.same expected_tokens, tokens, "Tokens for #{input\sub 1, 80}"
@@ -601,6 +607,45 @@ describe "lapis.bayes.tokenizers.spam", ->
       deal: true
     }
   }
+
+  it_tokenizes "stopwords are skipped as unigrams but preserved for bigrams", "the metabol rate of loss", {
+    "metabol"
+    "the metabol"
+    "rate"
+    "metabol rate"
+    "rate of"
+    "loss"
+    "of loss"
+  }, {
+    bigram_tokens: true
+    stopwords: {
+      the: true
+      of: true
+    }
+  }
+
+  it_tokenizes "stopword-only bigrams are skipped", "the of metabol", {
+    "metabol"
+    "of metabol"
+  }, {
+    bigram_tokens: true
+    stopwords: {
+      the: true
+      of: true
+    }
+  }
+
+  it "uses default stopwords", ->
+    tokenizer = SpamTokenizer bigram_tokens: true
+    assert.same {
+      "metabol"
+      "the metabol"
+      "rate"
+      "metabol rate"
+      "rate of"
+      "loss"
+      "of loss"
+    }, tokenizer\tokenize_text "the metabol rate of loss"
 
   it_tokenizes "Esperanto sentence", "Eble ĉiu ĵaŭdo ŝanĝiĝos al pli agrabla tago", {
     "eble"
