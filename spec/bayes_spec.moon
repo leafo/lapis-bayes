@@ -1,12 +1,9 @@
 
-import use_test_env from require "lapis.spec"
 import truncate_tables from require "lapis.spec.db"
 
 import Categories, WordClassifications from require "lapis.bayes.models"
 
 describe "lapis.bayes", ->
-  use_test_env!
-
   describe "WordClassifications", ->
     local c1, c2
 

@@ -1,5 +1,4 @@
 
-import use_test_env from require "lapis.spec"
 import truncate_tables from require "lapis.spec.db"
 
 import Categories, WordClassifications from require "lapis.bayes.models"
@@ -107,8 +106,6 @@ describe "lapis.bayes.trainers.saturation", ->
       assert.true t\should_train_token 55, 45
 
   describe "select_tokens", ->
-    use_test_env!
-
     local trainer
 
     before_each ->
@@ -187,8 +184,6 @@ describe "lapis.bayes.trainers.saturation", ->
       assert.has_error -> trainer\select_tokens "other", {"some", "words"}
 
   describe "train_text", ->
-    use_test_env!
-
     before_each ->
       truncate_tables Categories, WordClassifications
 

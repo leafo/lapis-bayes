@@ -1,8 +1,4 @@
-import use_test_env from require "lapis.spec"
-
 describe "lapis.bayes.tokenizers.postgres_text", ->
-  use_test_env!
-
   it "skips words in ignore list", ->
     PostgresTextTokenizer = require "lapis.bayes.tokenizers.postgres_text"
 
