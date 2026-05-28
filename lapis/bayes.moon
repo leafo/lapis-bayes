@@ -1,4 +1,4 @@
-VERSION = "1.4.0"
+VERSION = "1.5.0"
 
 -- calculate the probabilities of text using default classifier
 -- categories: array of category names
