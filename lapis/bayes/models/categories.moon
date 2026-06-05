@@ -89,3 +89,63 @@ class Categories extends Model
     @increment total_count
     total_count
 
+  -- decrement existing words for this category, deleting any that reach zero
+  -- counts: table in the format {word = count, ... word1, word2, ...}
+  decrement_words: (counts) =>
+    return nil, "missing counts" unless counts
+
+    -- combine hash and array words into summed count
+    merged_counts = {}
+    for k,v in pairs counts
+      word, count = if type(k) == "string"
+        k, v
+      else
+        v, 1
+
+      merged_counts[word] or= 0
+      merged_counts[word] += count
+
+    tuples = for word, count in pairs merged_counts
+      {word, count}
+
+    table.sort tuples, (a, b) -> a[1] < b[1]
+
+    unless next tuples
+      return 0
+
+    import WordClassifications from require "lapis.bayes.models"
+    tbl = db.escape_identifier WordClassifications\table_name!
+    cat_tbl = db.escape_identifier @@table_name!
+    cat_id = db.escape_literal @id
+
+    -- decrement each matching word and subtract the total removed from the
+    -- category count. if a word is over-decremented, the LEAST term clamps the
+    -- removed amount to what the word actually had
+    res = db.query "
+    WITH input (word, amount) AS (#{encode_tuples tuples}),
+    upd AS (
+      UPDATE #{tbl} wc
+      SET count = wc.count - input.amount
+      FROM input
+      WHERE wc.category_id = #{cat_id} AND wc.word = input.word
+      RETURNING LEAST(wc.count + input.amount, input.amount) AS removed
+    ),
+    cat AS (
+      UPDATE #{cat_tbl}
+      SET total_count = total_count - (SELECT COALESCE(sum(removed), 0) FROM upd)
+      WHERE id = #{cat_id}
+      RETURNING 1
+    )
+    SELECT COALESCE(sum(removed), 0) AS total FROM upd
+    "
+
+    -- delete any words that reached zero
+    words = table.concat [db.escape_literal t[1] for t in *tuples], ", "
+    db.query "
+    DELETE FROM #{tbl}
+    WHERE category_id = #{cat_id} AND count <= 0 AND word IN (#{words})
+    "
+
+    total = res[1] and tonumber(res[1].total) or 0
+    @total_count -= total
+    total

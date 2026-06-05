@@ -121,6 +121,89 @@ describe "lapis.bayes", ->
       assert.same 12, wc_by_name.height.count
       assert.same 8, wc_by_name.green.count
 
+    it "decrements words", ->
+      c = Categories\find_or_create "hello"
+      c\increment_words {
+        color: 10
+        height: 5
+        green: 3
+      }
+
+      -- partial, exact-to-zero, over-decrement, and a word that isn't present
+      removed = c\decrement_words {
+        color: 4
+        green: 3
+        height: 9
+        missing: 2
+      }
+
+      -- height only had 5 so its removal is clamped: 4 + 3 + 5 (missing ignored)
+      assert.same 12, removed
+      assert.same 6, c.total_count
+
+      wc_by_name = {wc.word, wc.count for wc in *WordClassifications\select!}
+      -- green and height hit zero and were deleted, missing never existed
+      assert.same { color: 6 }, wc_by_name
+
+      c\refresh!
+      -- total_count stays consistent with sum(count): 18 - 12
+      assert.same 6, c.total_count
+
+    it "decrements words with array and mixed forms", ->
+      c = Categories\find_or_create "hello"
+      c\increment_words {
+        color: 5
+        height: 5
+      }
+
+      -- "color" appears twice (array + hash), "height" as a bare array word
+      removed = c\decrement_words {
+        "color"
+        "height"
+        color: 2
+      }
+
+      -- color: 1 + 2 = 3, height: 1
+      assert.same 4, removed
+
+      wc_by_name = {wc.word, wc.count for wc in *WordClassifications\select!}
+      assert.same { color: 2, height: 4 }, wc_by_name
+
+      c\refresh!
+      assert.same 6, c.total_count
+
+    it "only decrements words in the target category", ->
+      a = Categories\find_or_create "a"
+      a\increment_words { shared: 5, only_a: 2 }
+
+      b = Categories\find_or_create "b"
+      b\increment_words { shared: 7 }
+
+      a\decrement_words { shared: 5, only_a: 2 }
+
+      a\refresh!
+      b\refresh!
+
+      -- a is emptied, b's "shared" is untouched
+      assert.same 0, a.total_count
+      assert.same 7, b.total_count
+
+      b_words = {wc.word, wc.count for wc in *b\get_word_classifications!}
+      assert.same { shared: 7 }, b_words
+
+    it "returns missing counts error", ->
+      c = Categories\find_or_create "hello"
+      nil_result, err = c\decrement_words!
+      assert.nil nil_result
+      assert.same "missing counts", err
+
+    it "decrements nothing for empty counts", ->
+      c = Categories\find_or_create "hello"
+      c\increment_words { color: 3 }
+      assert.same 0, c\decrement_words {}
+      c\refresh!
+      assert.same 3, c.total_count
+
     it "deletes category", ->
       c = Categories\find_or_create "hello"
       c\increment_words {

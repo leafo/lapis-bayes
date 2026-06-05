@@ -86,6 +86,63 @@ do
       db.query("\n    INSERT INTO " .. tostring(tbl) .. " (category_id, word, count) " .. tostring(encode_tuples(tuples)) .. "\n    ON CONFLICT (category_id, word) DO UPDATE SET count = " .. tostring(tbl) .. ".count + EXCLUDED.count\n    ")
       self:increment(total_count)
       return total_count
+    end,
+    decrement_words = function(self, counts)
+      if not (counts) then
+        return nil, "missing counts"
+      end
+      local merged_counts = { }
+      for k, v in pairs(counts) do
+        local word, count
+        if type(k) == "string" then
+          word, count = k, v
+        else
+          word, count = v, 1
+        end
+        local _update_0 = word
+        merged_counts[_update_0] = merged_counts[_update_0] or 0
+        local _update_1 = word
+        merged_counts[_update_1] = merged_counts[_update_1] + count
+      end
+      local tuples
+      do
+        local _accum_0 = { }
+        local _len_0 = 1
+        for word, count in pairs(merged_counts) do
+          _accum_0[_len_0] = {
+            word,
+            count
+          }
+          _len_0 = _len_0 + 1
+        end
+        tuples = _accum_0
+      end
+      table.sort(tuples, function(a, b)
+        return a[1] < b[1]
+      end)
+      if not (next(tuples)) then
+        return 0
+      end
+      local WordClassifications
+      WordClassifications = require("lapis.bayes.models").WordClassifications
+      local tbl = db.escape_identifier(WordClassifications:table_name())
+      local cat_tbl = db.escape_identifier(self.__class:table_name())
+      local cat_id = db.escape_literal(self.id)
+      local res = db.query("\n    WITH input (word, amount) AS (" .. tostring(encode_tuples(tuples)) .. "),\n    upd AS (\n      UPDATE " .. tostring(tbl) .. " wc\n      SET count = wc.count - input.amount\n      FROM input\n      WHERE wc.category_id = " .. tostring(cat_id) .. " AND wc.word = input.word\n      RETURNING LEAST(wc.count + input.amount, input.amount) AS removed\n    ),\n    cat AS (\n      UPDATE " .. tostring(cat_tbl) .. "\n      SET total_count = total_count - (SELECT COALESCE(sum(removed), 0) FROM upd)\n      WHERE id = " .. tostring(cat_id) .. "\n      RETURNING 1\n    )\n    SELECT COALESCE(sum(removed), 0) AS total FROM upd\n    ")
+      local words = table.concat((function()
+        local _accum_0 = { }
+        local _len_0 = 1
+        for _index_0 = 1, #tuples do
+          local t = tuples[_index_0]
+          _accum_0[_len_0] = db.escape_literal(t[1])
+          _len_0 = _len_0 + 1
+        end
+        return _accum_0
+      end)(), ", ")
+      db.query("\n    DELETE FROM " .. tostring(tbl) .. "\n    WHERE category_id = " .. tostring(cat_id) .. " AND count <= 0 AND word IN (" .. tostring(words) .. ")\n    ")
+      local total = res[1] and tonumber(res[1].total) or 0
+      self.total_count = self.total_count - total
+      return total
     end
   }
   _base_0.__index = _base_0
