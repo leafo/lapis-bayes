@@ -21,10 +21,11 @@
 --               omitted, a DefaultClassifier is constructed with these opts.
 --   tokenize_text / tokenizer / etc.: forwarded to the default classifier
 --                                     when no classifier is provided.
-class SaturationTrainer
-  new: (@opts={}) =>
-    @categories = assert @opts.categories,
-      "SaturationTrainer: missing categories"
+BaseTrainer = require "lapis.bayes.trainers.base"
+
+class SaturationTrainer extends BaseTrainer
+  new: (opts) =>
+    super opts
     assert #@categories == 2,
       "SaturationTrainer: categories must be a list of exactly 2 names"
 
@@ -32,11 +33,6 @@ class SaturationTrainer
     @min_observations = @opts.min_observations or 30
     @train_novel = if @opts.train_novel != nil then @opts.train_novel else true
     @train_opposite = if @opts.train_opposite != nil then @opts.train_opposite else true
-
-    @classifier = @opts.classifier
-    unless @classifier
-      DefaultClassifier = require "lapis.bayes.classifiers.default"
-      @classifier = DefaultClassifier @opts
 
   get_contrast: (target_name) =>
     a, b = unpack @categories
@@ -74,19 +70,7 @@ class SaturationTrainer
   select_tokens: (target_name, tokens) =>
     contrast_name = @get_contrast target_name
 
-    if @opts.filter_tokens
-      tokens = @opts.filter_tokens tokens, @opts
-
-    merged = {}
-    if tokens
-      for k, v in pairs tokens
-        word, count = if type(k) == "string"
-          k, v
-        else
-          v, 1
-
-        merged[word] or= 0
-        merged[word] += count
+    merged = @normalize_tokens tokens
 
     stats = {
       total: 0
@@ -147,18 +131,3 @@ class SaturationTrainer
         stats.kept += 1
 
     selected, stats
-
-  -- Train a document. Returns (count_written, stats_table).
-  train_text: (target_name, text) =>
-    tokens = @classifier\tokenize_text text
-    selected, stats = @select_tokens target_name, tokens
-
-    import Categories from require "lapis.bayes.models"
-    target = Categories\find_or_create target_name
-
-    written = if next selected
-      target\increment_words selected
-    else
-      0
-
-    written, stats
