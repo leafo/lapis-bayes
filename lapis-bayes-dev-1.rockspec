@@ -42,6 +42,7 @@ build = {
     ["lapis.bayes.tokenizers.spam"] = "lapis/bayes/tokenizers/spam.lua",
     ["lapis.bayes.tokenizers.url_domains"] = "lapis/bayes/tokenizers/url_domains.lua",
     ["lapis.bayes.tokenizers.util"] = "lapis/bayes/tokenizers/util.lua",
+    ["lapis.bayes.trainers.base"] = "lapis/bayes/trainers/base.lua",
     ["lapis.bayes.trainers.saturation"] = "lapis/bayes/trainers/saturation.lua",
   }
 }
