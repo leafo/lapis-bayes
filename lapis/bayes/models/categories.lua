@@ -18,10 +18,19 @@ do
         })
       end
     end,
-    increment = function(self, amount)
+    increment = function(self, amount, doc_amount)
+      if doc_amount == nil then
+        doc_amount = 0
+      end
       amount = assert(tonumber(amount), "expecting number")
+      doc_amount = assert(tonumber(doc_amount), "expecting number")
       return self:update({
-        total_count = db.raw("total_count + " .. tostring(amount))
+        total_count = db.raw("total_count + " .. tostring(amount)),
+        doc_count = (function()
+          if doc_amount ~= 0 then
+            return db.raw("doc_count + " .. tostring(doc_amount))
+          end
+        end)()
       })
     end,
     increment_text = function(self, text, opts)
@@ -40,10 +49,14 @@ do
       w:_increment(count)
       return self:increment(count)
     end,
-    increment_words = function(self, counts)
+    increment_words = function(self, counts, opts)
+      if opts == nil then
+        opts = { }
+      end
       if not (counts) then
         return nil, "missing counts"
       end
+      local doc_count = assert(tonumber(opts.doc_count or 1), "doc_count must be a number")
       local merged_counts = { }
       for k, v in pairs(counts) do
         local word, count
@@ -84,13 +97,17 @@ do
       WordClassifications = require("lapis.bayes.models").WordClassifications
       local tbl = db.escape_identifier(WordClassifications:table_name())
       db.query("\n    INSERT INTO " .. tostring(tbl) .. " (category_id, word, count) " .. tostring(encode_tuples(tuples)) .. "\n    ON CONFLICT (category_id, word) DO UPDATE SET count = " .. tostring(tbl) .. ".count + EXCLUDED.count\n    ")
-      self:increment(total_count)
+      self:increment(total_count, doc_count)
       return total_count
     end,
-    decrement_words = function(self, counts)
+    decrement_words = function(self, counts, opts)
+      if opts == nil then
+        opts = { }
+      end
       if not (counts) then
         return nil, "missing counts"
       end
+      local doc_count = assert(tonumber(opts.doc_count or 1), "doc_count must be a number")
       local merged_counts = { }
       for k, v in pairs(counts) do
         local word, count
@@ -128,7 +145,7 @@ do
       local tbl = db.escape_identifier(WordClassifications:table_name())
       local cat_tbl = db.escape_identifier(self.__class:table_name())
       local cat_id = db.escape_literal(self.id)
-      local res = db.query("\n    WITH input (word, amount) AS (" .. tostring(encode_tuples(tuples)) .. "),\n    upd AS (\n      UPDATE " .. tostring(tbl) .. " wc\n      SET count = wc.count - input.amount\n      FROM input\n      WHERE wc.category_id = " .. tostring(cat_id) .. " AND wc.word = input.word\n      RETURNING LEAST(wc.count + input.amount, input.amount) AS removed\n    ),\n    cat AS (\n      UPDATE " .. tostring(cat_tbl) .. "\n      SET total_count = total_count - (SELECT COALESCE(sum(removed), 0) FROM upd)\n      WHERE id = " .. tostring(cat_id) .. "\n      RETURNING 1\n    )\n    SELECT COALESCE(sum(removed), 0) AS total FROM upd\n    ")
+      local res = db.query("\n    WITH input (word, amount) AS (" .. tostring(encode_tuples(tuples)) .. "),\n    upd AS (\n      UPDATE " .. tostring(tbl) .. " wc\n      SET count = wc.count - input.amount\n      FROM input\n      WHERE wc.category_id = " .. tostring(cat_id) .. " AND wc.word = input.word\n      RETURNING LEAST(wc.count + input.amount, input.amount) AS removed\n    ),\n    cat AS (\n      UPDATE " .. tostring(cat_tbl) .. "\n      SET total_count = total_count - (SELECT COALESCE(sum(removed), 0) FROM upd),\n        doc_count = GREATEST(doc_count - " .. tostring(db.escape_literal(doc_count)) .. ", 0)\n      WHERE id = " .. tostring(cat_id) .. "\n      RETURNING 1\n    )\n    SELECT COALESCE(sum(removed), 0) AS total FROM upd\n    ")
       local words = table.concat((function()
         local _accum_0 = { }
         local _len_0 = 1
@@ -142,6 +159,7 @@ do
       db.query("\n    DELETE FROM " .. tostring(tbl) .. "\n    WHERE category_id = " .. tostring(cat_id) .. " AND count <= 0 AND word IN (" .. tostring(words) .. ")\n    ")
       local total = res[1] and tonumber(res[1].total) or 0
       self.total_count = self.total_count - total
+      self.doc_count = math.max((self.doc_count or 0) - doc_count, 0)
       return total
     end
   }

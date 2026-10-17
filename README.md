@@ -399,6 +399,7 @@ Classifier options:
 * `log`: Use logarithmic probability calculations (default `false`)
 * `token_weight_patterns`: Hash table of Lua patterns to weight multipliers. Matching tokens are weighted as exponents (e.g., `2.0` squares the count, `0.5` takes square root)
 * `uncertainty_weight`: Non-negative factor that controls how aggressively unclassified counts reduce token influence (default `1.0`)
+* `normalize_doc_count`: Compare per-document word rates using each category's `doc_count`, with a uniform prior, so an unbalanced training set doesn't bias every shared word toward the larger category (default `false`)
 
 ```lua
 local BayesClassifier = require("lapis.bayes.classifiers.bayes")

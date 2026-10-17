@@ -3,6 +3,19 @@ do
   local _class_0
   local _parent_0 = require("lapis.bayes.classifiers.base")
   local _base_0 = {
+    doc_normalized_probability = function(self, a, b, available_words, token_weights)
+      local a_docs = a.doc_count
+      local b_docs = b.doc_count
+      local default_rate = self.opts.default_prob / (a_docs + b_docs)
+      local log_ratio = 0
+      for _index_0 = 1, #available_words do
+        local word = available_words[_index_0]
+        local a_rate = (a.word_counts and a.word_counts[word] or 0) / a_docs + default_rate
+        local b_rate = (b.word_counts and b.word_counts[word] or 0) / b_docs + default_rate
+        log_ratio = log_ratio + (token_weights[word] * (math.log(a_rate) - math.log(b_rate)))
+      end
+      return 1 / (1 + math.exp(-log_ratio))
+    end,
     get_token_weight = function(self, word)
       if not (self.opts.token_weight_patterns) then
         return 1.0
@@ -23,12 +36,17 @@ do
         return nil, "only two categories supported at once"
       end
       local a, b = unpack(categories)
+      if self.opts.normalize_doc_count then
+        if not ((a.doc_count or 0) > 0 and (b.doc_count or 0) > 0) then
+          return nil, "normalize_doc_count requires doc_count on both categories"
+        end
+      end
       local sum_counts = 0
       for _index_0 = 1, #categories do
         local c = categories[_index_0]
         sum_counts = sum_counts + c.total_count
       end
-      available_words = self:candidate_words(categories, available_words, self.opts.max_words)
+      available_words = self:candidate_words(categories, available_words, self.opts.max_words, self.opts.normalize_doc_count and "doc_count" or nil)
       local available_words_count = #available_words
       local unclassified_counts = opts.unclassified_counts or self.opts.unclassified_counts
       local uncertainty_weight
@@ -61,7 +79,9 @@ do
       local default_a = default_prob * a.total_count
       local default_b = default_prob * b.total_count
       local prob
-      if self.opts.log then
+      if self.opts.normalize_doc_count then
+        prob = self:doc_normalized_probability(a, b, available_words, token_weights)
+      elseif self.opts.log then
         local ai_log_sum = 0
         local bi_log_sum = 0
         for _index_0 = 1, #available_words do
@@ -166,7 +186,8 @@ do
     default_prob = 0.1,
     log = false,
     token_weight_patterns = nil,
-    uncertainty_weight = 1.0
+    uncertainty_weight = 1.0,
+    normalize_doc_count = false
   }
   if _parent_0.__inherited then
     _parent_0.__inherited(_parent_0, _class_0)

@@ -33,5 +33,8 @@ import prefix_table from require "lapis.bayes.model"
 
   [1474434614]: =>
     create_index prefix_table("categories"), "name"
+
+  [1792269168]: =>
+    add_column prefix_table("categories"), "doc_count", integer
 }
 

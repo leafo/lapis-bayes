@@ -51,5 +51,8 @@ return {
   end,
   [1474434614] = function(self)
     return create_index(prefix_table("categories"), "name")
+  end,
+  [1792269168] = function(self)
+    return add_column(prefix_table("categories"), "doc_count", integer)
   end
 }

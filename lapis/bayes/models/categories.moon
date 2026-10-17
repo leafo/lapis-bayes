@@ -31,10 +31,13 @@ class Categories extends Model
         category_id: @id
       }
 
-  increment: (amount) =>
+  increment: (amount, doc_amount=0) =>
     amount = assert tonumber(amount), "expecting number"
+    doc_amount = assert tonumber(doc_amount), "expecting number"
     @update {
       total_count: db.raw "total_count + #{amount}"
+      doc_count: if doc_amount != 0
+        db.raw "doc_count + #{doc_amount}"
     }
 
   -- NOTE: this was removed since it was tied to a specific tokenizer
@@ -54,8 +57,10 @@ class Categories extends Model
   -- issue a single query to increment all WordClassifications for this
   -- category with the list of words
   -- counts: table in the format {word = count, ... word1, word2, ...}
-  increment_words: (counts) =>
+  -- opts.doc_count: number of documents the counts represent (default 1)
+  increment_words: (counts, opts={}) =>
     return nil, "missing counts" unless counts
+    doc_count = assert tonumber(opts.doc_count or 1), "doc_count must be a number"
 
     -- combine hash and array words into summed count
     merged_counts = {}
@@ -86,13 +91,15 @@ class Categories extends Model
     ON CONFLICT (category_id, word) DO UPDATE SET count = #{tbl}.count + EXCLUDED.count
     "
 
-    @increment total_count
+    @increment total_count, doc_count
     total_count
 
   -- decrement existing words for this category, deleting any that reach zero
   -- counts: table in the format {word = count, ... word1, word2, ...}
-  decrement_words: (counts) =>
+  -- opts.doc_count: number of documents the counts represent (default 1)
+  decrement_words: (counts, opts={}) =>
     return nil, "missing counts" unless counts
+    doc_count = assert tonumber(opts.doc_count or 1), "doc_count must be a number"
 
     -- combine hash and array words into summed count
     merged_counts = {}
@@ -132,7 +139,8 @@ class Categories extends Model
     ),
     cat AS (
       UPDATE #{cat_tbl}
-      SET total_count = total_count - (SELECT COALESCE(sum(removed), 0) FROM upd)
+      SET total_count = total_count - (SELECT COALESCE(sum(removed), 0) FROM upd),
+        doc_count = GREATEST(doc_count - #{db.escape_literal doc_count}, 0)
       WHERE id = #{cat_id}
       RETURNING 1
     )
@@ -148,4 +156,5 @@ class Categories extends Model
 
     total = res[1] and tonumber(res[1].total) or 0
     @total_count -= total
+    @doc_count = math.max (@doc_count or 0) - doc_count, 0
     total

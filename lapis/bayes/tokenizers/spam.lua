@@ -757,7 +757,7 @@ do
         if "table" == _exp_0 then
           local _exp_1 = token.tag
           if "caps" == _exp_1 or "invalid_byte" == _exp_1 or "currency" == _exp_1 then
-            local _ = nil
+            local _scrap_0 = nil
           else
             prev_token = nil
             prev_stopword = false

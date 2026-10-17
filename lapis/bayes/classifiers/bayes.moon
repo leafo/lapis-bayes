@@ -6,7 +6,26 @@ class BayesClassifier extends require "lapis.bayes.classifiers.base"
     log: false
     token_weight_patterns: nil
     uncertainty_weight: 1.0
+    normalize_doc_count: false
   }
+
+  -- Compares per-document word rates so a category with more training
+  -- documents doesn't win every shared word. The prior is uniform since the
+  -- training balance is usually a sampling artifact, not the real base rate.
+  doc_normalized_probability: (a, b, available_words, token_weights) =>
+    a_docs = a.doc_count
+    b_docs = b.doc_count
+
+    -- one smoothing floor shared by both categories so it favors neither
+    default_rate = @opts.default_prob / (a_docs + b_docs)
+
+    log_ratio = 0
+    for word in *available_words
+      a_rate = (a.word_counts and a.word_counts[word] or 0) / a_docs + default_rate
+      b_rate = (b.word_counts and b.word_counts[word] or 0) / b_docs + default_rate
+      log_ratio += token_weights[word] * (math.log(a_rate) - math.log(b_rate))
+
+    1 / (1 + math.exp -log_ratio)
 
   get_token_weight: (word) =>
     return 1.0 unless @opts.token_weight_patterns
@@ -23,11 +42,16 @@ class BayesClassifier extends require "lapis.bayes.classifiers.base"
 
     a, b = unpack categories
 
+    if @opts.normalize_doc_count
+      unless (a.doc_count or 0) > 0 and (b.doc_count or 0) > 0
+        return nil, "normalize_doc_count requires doc_count on both categories"
+
     sum_counts = 0
     for c in *categories
       sum_counts += c.total_count
 
-    available_words = @candidate_words categories, available_words, @opts.max_words
+    available_words = @candidate_words categories, available_words, @opts.max_words,
+      @opts.normalize_doc_count and "doc_count" or nil
     available_words_count = #available_words
 
     unclassified_counts = opts.unclassified_counts or @opts.unclassified_counts
@@ -62,7 +86,9 @@ class BayesClassifier extends require "lapis.bayes.classifiers.base"
 
     -- NOTE: you should use log mode if you have a large number of tokens
     -- because the numbers get really small
-    prob = if @opts.log
+    prob = if @opts.normalize_doc_count
+      @doc_normalized_probability a, b, available_words, token_weights
+    elseif @opts.log
       ai_log_sum = 0
       bi_log_sum = 0
 

@@ -142,14 +142,17 @@ do
       local db = WordClassifications.db
       return WordClassifications:select("where word in ? and category_id in ?", db.list(words), db.list(category_ids))
     end,
-    candidate_words = function(self, categories, available_words, count)
+    candidate_words = function(self, categories, available_words, count, total_field)
+      if total_field == nil then
+        total_field = "total_count"
+      end
       if #available_words <= count then
         return available_words
       end
       assert(#categories == 2, "can only do two categories")
       local a, b = unpack(categories)
-      local a_total = a.total_count or 0
-      local b_total = b.total_count or 0
+      local a_total = a[total_field] or 0
+      local b_total = b[total_field] or 0
       local total = a_total + b_total
       local chi_squared_score
       chi_squared_score = function(a_count, b_count)
