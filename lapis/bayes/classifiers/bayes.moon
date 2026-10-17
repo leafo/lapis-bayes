@@ -12,18 +12,33 @@ class BayesClassifier extends require "lapis.bayes.classifiers.base"
   -- Compares per-document word rates so a category with more training
   -- documents doesn't win every shared word. The prior is uniform since the
   -- training balance is usually a sampling artifact, not the real base rate.
-  doc_normalized_probability: (a, b, available_words, token_weights) =>
-    a_docs = a.doc_count
-    b_docs = b.doc_count
-
+  doc_log_rate_ratio: (a, b, word) =>
     -- one smoothing floor shared by both categories so it favors neither
-    default_rate = @opts.default_prob / (a_docs + b_docs)
+    default_rate = @opts.default_prob / (a.doc_count + b.doc_count)
 
+    a_rate = (a.word_counts and a.word_counts[word] or 0) / a.doc_count + default_rate
+    b_rate = (b.word_counts and b.word_counts[word] or 0) / b.doc_count + default_rate
+    math.log(a_rate) - math.log(b_rate)
+
+  -- keeps the words that move the normalized score the most. chi-squared
+  -- selection can't be used here since word counts may exceed doc_count
+  doc_normalized_candidate_words: (a, b, available_words, count) =>
+    return available_words if #available_words <= count
+
+    tuples = for word in *available_words
+      {word, math.abs @doc_log_rate_ratio a, b, word}
+
+    table.sort tuples, (x, y) ->
+      if x[2] == y[2]
+        return x[1] < y[1]
+      x[2] > y[2]
+
+    [t[1] for t in *tuples[,count]]
+
+  doc_normalized_probability: (a, b, available_words, token_weights) =>
     log_ratio = 0
     for word in *available_words
-      a_rate = (a.word_counts and a.word_counts[word] or 0) / a_docs + default_rate
-      b_rate = (b.word_counts and b.word_counts[word] or 0) / b_docs + default_rate
-      log_ratio += token_weights[word] * (math.log(a_rate) - math.log(b_rate))
+      log_ratio += token_weights[word] * @doc_log_rate_ratio a, b, word
 
     1 / (1 + math.exp -log_ratio)
 
@@ -50,8 +65,10 @@ class BayesClassifier extends require "lapis.bayes.classifiers.base"
     for c in *categories
       sum_counts += c.total_count
 
-    available_words = @candidate_words categories, available_words, @opts.max_words,
-      @opts.normalize_doc_count and "doc_count" or nil
+    available_words = if @opts.normalize_doc_count
+      @doc_normalized_candidate_words a, b, available_words, @opts.max_words
+    else
+      @candidate_words categories, available_words, @opts.max_words
     available_words_count = #available_words
 
     unclassified_counts = opts.unclassified_counts or @opts.unclassified_counts

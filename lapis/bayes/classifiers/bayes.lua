@@ -3,16 +3,51 @@ do
   local _class_0
   local _parent_0 = require("lapis.bayes.classifiers.base")
   local _base_0 = {
+    doc_log_rate_ratio = function(self, a, b, word)
+      local default_rate = self.opts.default_prob / (a.doc_count + b.doc_count)
+      local a_rate = (a.word_counts and a.word_counts[word] or 0) / a.doc_count + default_rate
+      local b_rate = (b.word_counts and b.word_counts[word] or 0) / b.doc_count + default_rate
+      return math.log(a_rate) - math.log(b_rate)
+    end,
+    doc_normalized_candidate_words = function(self, a, b, available_words, count)
+      if #available_words <= count then
+        return available_words
+      end
+      local tuples
+      do
+        local _accum_0 = { }
+        local _len_0 = 1
+        for _index_0 = 1, #available_words do
+          local word = available_words[_index_0]
+          _accum_0[_len_0] = {
+            word,
+            math.abs(self:doc_log_rate_ratio(a, b, word))
+          }
+          _len_0 = _len_0 + 1
+        end
+        tuples = _accum_0
+      end
+      table.sort(tuples, function(x, y)
+        if x[2] == y[2] then
+          return x[1] < y[1]
+        end
+        return x[2] > y[2]
+      end)
+      local _accum_0 = { }
+      local _len_0 = 1
+      local _max_0 = count
+      for _index_0 = 1, _max_0 < 0 and #tuples + _max_0 or _max_0 do
+        local t = tuples[_index_0]
+        _accum_0[_len_0] = t[1]
+        _len_0 = _len_0 + 1
+      end
+      return _accum_0
+    end,
     doc_normalized_probability = function(self, a, b, available_words, token_weights)
-      local a_docs = a.doc_count
-      local b_docs = b.doc_count
-      local default_rate = self.opts.default_prob / (a_docs + b_docs)
       local log_ratio = 0
       for _index_0 = 1, #available_words do
         local word = available_words[_index_0]
-        local a_rate = (a.word_counts and a.word_counts[word] or 0) / a_docs + default_rate
-        local b_rate = (b.word_counts and b.word_counts[word] or 0) / b_docs + default_rate
-        log_ratio = log_ratio + (token_weights[word] * (math.log(a_rate) - math.log(b_rate)))
+        log_ratio = log_ratio + (token_weights[word] * self:doc_log_rate_ratio(a, b, word))
       end
       return 1 / (1 + math.exp(-log_ratio))
     end,
@@ -46,7 +81,11 @@ do
         local c = categories[_index_0]
         sum_counts = sum_counts + c.total_count
       end
-      available_words = self:candidate_words(categories, available_words, self.opts.max_words, self.opts.normalize_doc_count and "doc_count" or nil)
+      if self.opts.normalize_doc_count then
+        available_words = self:doc_normalized_candidate_words(a, b, available_words, self.opts.max_words)
+      else
+        available_words = self:candidate_words(categories, available_words, self.opts.max_words)
+      end
       local available_words_count = #available_words
       local unclassified_counts = opts.unclassified_counts or self.opts.unclassified_counts
       local uncertainty_weight

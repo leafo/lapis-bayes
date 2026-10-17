@@ -124,15 +124,14 @@ class BaseClassifier
   -- categories: array of category objects
   -- available_words: array of available words
   -- count: the max length of returned words array
-  -- total_field: category field used as each row total in the contingency table
-  candidate_words: (categories, available_words, count, total_field="total_count") =>
+  candidate_words: (categories, available_words, count) =>
     return available_words if #available_words <= count
 
     assert #categories == 2, "can only do two categories"
 
     a, b = unpack categories
-    a_total = a[total_field] or 0
-    b_total = b[total_field] or 0
+    a_total = a.total_count or 0
+    b_total = b.total_count or 0
     total = a_total + b_total
 
     chi_squared_score = (a_count, b_count) ->
